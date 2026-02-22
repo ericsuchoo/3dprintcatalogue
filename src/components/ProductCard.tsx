@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import LoadingIcon from '../assets/icons/loader.svg?raw';
 import classNames from 'classnames';
-import { BCMSImage } from '@thebcms/components-react';
 import type { ProductLite } from '../utils/product';
 import type { ClientConfig } from '@thebcms/client';
 import { useCart } from '../context/CartContext';
@@ -16,16 +15,16 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({
     card,
-    bcms,
     style,
     className,
 }) => {
     const { addCartItem } = useCart();
     const [isLoading, setIsloading] = useState(false);
-
     const [emptySizeError, setEmptySizeError] = useState<string | null>(null);
-    const [selectedSize, setSelectedSize] =
-        useState<ProductSizeEntryMetaItem | null>(null);
+    const [selectedSize, setSelectedSize] = useState<ProductSizeEntryMetaItem | null>(null);
+
+    // Priorizamos la URL de Cloudflare que definimos en productToLite
+    const displayImage = card.cloudflare_cover || card.cover?.url;
 
     const addToCart = () => {
         if (selectedSize) {
@@ -46,15 +45,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             setEmptySizeError('Please select a size');
         }
     };
+
     return (
         <div className={classNames('flex flex-col', className)} style={style}>
             <a href={`/shop/${card.slug}`} className="group flex flex-col">
-                <div className="flex overflow-hidden mb-6">
+                <div className="flex overflow-hidden mb-6 bg-gray-100">
                     <div className="size-full">
-                        <BCMSImage
-                            media={card.cover}
-                            clientConfig={bcms}
+                        {/* Cambiado: Usamos img estándar para Cloudflare */}
+                        <img
+                            src={displayImage}
+                            alt={card.title}
                             className="w-full h-[320px] object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
                         />
                     </div>
                 </div>
@@ -86,23 +88,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                             key={index}
                             disabled={!size.available}
                             className={classNames(
-                                'w-8 h-8 flex items-center justify-center leading-none tracking-[-0.3px] transition-colors duration-300',
+                                'w-8 h-8 flex items-center justify-center leading-none tracking-[-0.3px] transition-colors duration-300 border',
                                 {
-                                    'text-appGray-800 bg-appGray-200 border border-appText hover:bg-appGray-200':
+                                    'text-appGray-800 bg-appGray-200 border-appText hover:bg-appGray-200':
                                         size.available &&
-                                        selectedSize?.title ===
-                                            size.size.meta.en?.title,
-                                    'text-appGray-800 hover:bg-appGray-200':
-                                        size.available,
-                                    'text-appGray-400 cursor-default':
+                                        selectedSize?.title === size.size.meta.en?.title,
+                                    'text-appGray-800 border-transparent hover:bg-appGray-200':
+                                        size.available && selectedSize?.title !== size.size.meta.en?.title,
+                                    'text-appGray-400 border-transparent cursor-default':
                                         !size.available,
                                 },
                             )}
                             onClick={() => {
-                                setSelectedSize(
-                                    size.size.meta
-                                        .en as ProductSizeEntryMetaItem,
-                                );
+                                setSelectedSize(size.size.meta.en as ProductSizeEntryMetaItem);
                                 setEmptySizeError('');
                             }}
                             title={`${size.size.meta.en?.title} Size`}
@@ -120,9 +118,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <span> Add to cart </span>
                 {isLoading && (
                     <div
-                        dangerouslySetInnerHTML={{
-                            __html: LoadingIcon,
-                        }}
+                        dangerouslySetInnerHTML={{ __html: LoadingIcon }}
                         className="w-3.5 h-3.5 ml-3 mt-0.5 animate-spin"
                     />
                 )}

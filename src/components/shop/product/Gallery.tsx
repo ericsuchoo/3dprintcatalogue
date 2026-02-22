@@ -1,19 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import classNames from 'classnames';
-import { BCMSImage } from '@thebcms/components-react';
+// Ya no necesitamos BCMSImage para las fotos de Cloudflare
 import type {
     ProductColorEntry,
-    ProductImageGroup,
 } from '../../../../bcms/types/ts';
-import type { ClientConfig } from '@thebcms/client';
 
 interface Props {
-    gallery: ProductImageGroup[];
+    // Cambiamos el tipo a 'any' temporalmente para que no te dé error de Typescript 
+    // hasta que se regeneren los tipos con el nuevo campo cloudflare_url
+    gallery: any[]; 
     activeColor: ProductColorEntry;
-    bcms: ClientConfig;
 }
 
-export const Gallery: React.FC<Props> = ({ gallery, activeColor, bcms }) => {
+export const Gallery: React.FC<Props> = ({ gallery, activeColor }) => {
     const [activeImage, setActiveImage] = useState(0);
 
     const galleryByColor = useMemo(() => {
@@ -26,14 +25,14 @@ export const Gallery: React.FC<Props> = ({ gallery, activeColor, bcms }) => {
     return (
         <div className="flex flex-col">
             {galleryByColor[activeImage] && (
-                <BCMSImage
-                    media={galleryByColor[activeImage].image}
-                    clientConfig={bcms}
+                <img
+                    src={galleryByColor[activeImage].cloudflare_url} // <--- Usamos tu nuevo campo
+                    alt="Product render"
                     className="flex aspect-square w-full object-cover mb-6 flex-1"
                 />
             )}
             <div className="flex gap-4 overflow-x-auto">
-                {galleryByColor.map((image, index) => (
+                {galleryByColor.map((item, index) => (
                     <button
                         key={index}
                         className={classNames(
@@ -44,10 +43,10 @@ export const Gallery: React.FC<Props> = ({ gallery, activeColor, bcms }) => {
                         )}
                         onClick={() => setActiveImage(index)}
                     >
-                        <div className="overflow-hidden">
-                            <BCMSImage
-                                media={image.image}
-                                clientConfig={bcms}
+                        <div className="overflow-hidden w-full h-full">
+                            <img
+                                src={item.cloudflare_url} // <--- Usamos tu nuevo campo
+                                alt={`Thumbnail ${index}`}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                         </div>
