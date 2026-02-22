@@ -16,9 +16,11 @@ interface Props {
 }
 
 export const Main: React.FC<Props> = ({ meta, otherProducts, bcms }) => {
-    const [activeColor, setActiveColor] = useState<ProductColorEntry>(
-        meta.gallery[0].color,
-    );
+    // Seguro para inicializar el estado sin errores
+    const [activeColor, setActiveColor] = useState<ProductColorEntry>(() => {
+        const firstItem = meta.gallery[0] as any;
+        return firstItem?.version || firstItem?.color;
+    });
 
     return (
         <div>
@@ -27,7 +29,7 @@ export const Main: React.FC<Props> = ({ meta, otherProducts, bcms }) => {
                     <Gallery
                         gallery={meta.gallery}
                         activeColor={activeColor}
-                        bcms={bcms}
+                        bcms={bcms} 
                     />
                     <Details
                         meta={meta}
@@ -36,25 +38,21 @@ export const Main: React.FC<Props> = ({ meta, otherProducts, bcms }) => {
                     />
                 </div>
             )}
+            
             {otherProducts.length > 0 && (
-                <div>
-                    <div className="flex flex-col items-center gap-5 justify-between text-xl leading-none tracking-[-2%] mb-8 lg:text-[24px] lg:flex-row">
-                        <div>Others you may like</div>
-                        <a href="/shop" className="underline">
-                            {' '}
-                            See all{' '}
-                        </a>
+                <div className="mt-20">
+                    <div className="flex flex-col items-center gap-5 justify-between text-xl mb-8 lg:flex-row">
+                        <div className="font-bold">Others you may like</div>
+                        <a href="/shop" className="underline text-sm">See all</a>
                     </div>
                     <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {otherProducts.map((product, index) => {
-                            return (
-                                <ProductCard
-                                    key={index}
-                                    card={product}
-                                    bcms={bcms}
-                                />
-                            );
-                        })}
+                        {otherProducts.map((product, index) => (
+                            <ProductCard
+                                key={index}
+                                card={product}
+                                bcms={bcms}
+                            />
+                        ))}
                     </div>
                 </div>
             )}

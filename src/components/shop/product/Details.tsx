@@ -1,179 +1,152 @@
 import React, { useMemo, useState } from 'react';
-import classNames from 'classnames';
-import LoadingIcon from '../../../assets/icons/loader.svg?raw';
 import type {
     ProductColorEntry,
-    ProductColorEntryMetaItem,
     ProductEntryMetaItem,
-    ProductSizeEntryMetaItem,
 } from '../../../../bcms/types/ts';
-import { useCart } from '../../../context/CartContext';
-import ContentManager from '../../ContentManager';
+import { BCMSContentManager } from '@thebcms/components-react';
+import classNames from 'classnames';
 
 interface Props {
     meta: ProductEntryMetaItem;
     activeColor: ProductColorEntry;
-    colorChange: (value: ProductColorEntry) => void;
+    colorChange: (color: ProductColorEntry) => void;
 }
-export const Details: React.FC<Props> = ({
-    meta,
-    activeColor,
-    colorChange,
-}) => {
-    const { addCartItem } = useCart();
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedSize, setSelectedSize] = useState<
-        ProductSizeEntryMetaItem | undefined
-    >(meta?.sizes[0]?.size?.meta?.en);
-    const buy = () => {
-        addToCart(true);
-    };
 
-    const addToCart = (redirect?: boolean) => {
-        if (selectedSize) {
-            setIsLoading(true);
-            setTimeout(() => {
-                addCartItem({
-                    slug: meta.slug,
-                    title: meta.title,
-                    size: (selectedSize ||
-                        meta.sizes[0].size.meta.en) as ProductSizeEntryMetaItem,
-                    cover: meta.gallery[0].image,
-                    price: meta.discounted_price || meta.price,
-                    color: activeColor.meta.en as ProductColorEntryMetaItem,
-                    amount: 0,
-                });
-                setIsLoading(false);
-            }, 750);
-            if (redirect) {
-                window.location.href = '/shop/cart';
+export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => {
+    const [selectedSize, setSelectedSize] = useState<string>('');
+
+    // 1. Mapeo dinámico de disponibilidad desde el BCMS
+    const availableSizesMap = useMemo(() => {
+        const map: Record<string, boolean> = {};
+        meta.sizes?.forEach((s: any) => {
+            if (s.size?.meta?.en?.title) {
+                map[s.size.meta.en.title.toUpperCase()] = s.available;
             }
-        }
-    };
+        });
+        return map;
+    }, [meta.sizes]);
 
-    const colors = useMemo<ProductColorEntry[]>(() => {
-        return meta.gallery
-            .map((item) => item.color)
-            .filter(
-                (e, _, arr) =>
-                    arr.find((i) => i.meta.en?.slug === e.meta.en?.slug) === e,
-            );
-    }, []);
+    // 2. Tallas/Escalas dinámicas extraídas del producto
+    const displaySizes = useMemo(() => {
+        return meta.sizes?.map((s: any) => s.size.meta.en.title.toUpperCase()) || [];
+    }, [meta.sizes]);
+
+    // 3. Procesamiento de nodos de descripción para BCMSContentManager
+    const descriptionNodes = useMemo(() => {
+        const desc = meta.description as any;
+        if (!desc) return [];
+        return desc.en?.nodes || desc.nodes || (Array.isArray(desc.en) ? desc.en : desc);
+    }, [meta.description]);
 
     return (
-        <div className="border border-appGray-30 p-4 lg:p-6">
-            <div className="flex items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 className="text-[24px] leading-none tracking-[-0.64px] mb-3 lg:text-[32px]">
-                        {meta.title}
-                    </h1>
-                    {meta.units_sold && (
-                        <div className="leading-none tracking-[-0.32px] text-appGray-800">
-                            {meta.units_sold} Sold
-                        </div>
-                    )}
-                </div>
-                <div className="text-right">
-                    <div className="text-[20px] leading-none tracking-[-0.48px] mb-1 lg:text-[24px]">
-                        ${meta.price.toFixed(2)}
-                    </div>
-                    {meta.discounted_price && (
-                        <div className="leading-none tracking-[-0.32px] text-appGray-500 line-through">
-                            ${meta.discounted_price.toFixed(2)}
-                        </div>
-                    )}
-                </div>
+        <div className="flex flex-col">
+            {/* CABECERA: TÍTULO Y PRECIO */}
+            <div className="flex items-start justify-between mb-1">
+                <h1 className="text-3xl font-bold uppercase italic tracking-tighter">
+                    {meta.title}
+                </h1>
+                <div className="text-2xl font-light">${meta.price}</div>
             </div>
-            <div className="grid grid-cols-1 gap-4 pb-4 border-b border-appGray-300 mb-8">
-                <button
-                    className="flex justify-center w-full leading-none tracking-[-0.3px] px-14 pt-3.5 pb-[18px] bg-appText text-white transition-colors duration-300 hover:bg-appText/80"
-                    onClick={buy}
-                >
-                    Buy now
+
+            {/* UNIDADES VENDIDAS DINÁMICAS */}
+            <div className="text-[10px] font-medium text-gray-500 mb-8">
+                { (meta as any).units_sold || '0' } Unidades vendidas
+            </div>
+
+            {/* BOTONES DE COMPRA */}
+            <div className="flex flex-col gap-2 mb-10">
+                <button className="w-full bg-black text-white py-4 font-bold uppercase text-sm hover:bg-gray-900 transition-colors">
+                    Comprar ahora
                 </button>
-                <button
-                    className="flex justify-center w-full leading-none tracking-[-0.3px] px-14 pt-3.5 pb-[18px] bg-white border border-appText transition-colors duration-300 hover:bg-appText hover:text-white"
-                    disabled={isLoading}
-                    onClick={() => addToCart()}
-                >
-                    <span> Add to cart </span>
-                    {isLoading && (
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: LoadingIcon,
-                            }}
-                            className="w-3.5 h-3.5 ml-3 mt-0.5 animate-spin"
-                        />
-                    )}
+                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-gray-50 transition-colors">
+                    Añadir al carrito
                 </button>
             </div>
+
+            {/* SELECTOR DE TALLAS/ESCALAS CON MEJORA VISUAL */}
             <div className="mb-8">
-                <div className="leading-none tracking-[-0.32px] text-appGray-800 mb-4">
-                    Size
+                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
+                    Escalas / Tallas Disponibles
                 </div>
-                <div className="flex flex-wrap gap-3">
-                    {meta.sizes.map((size, index) => (
-                        <button
-                            key={index}
-                            disabled={!size.available}
-                            className={classNames(
-                                'w-8 h-8 flex items-center justify-center bg-appGray-100 leading-none tracking-[-0.3px] transition-colors duration-300',
-                                {
-                                    'text-appGray-800 bg-appGray-200 border border-appText hover:bg-appGray-200':
-                                        size.available &&
-                                        selectedSize?.title ===
-                                            size.size.meta.en?.title,
-                                    'text-appGray-800 hover:bg-appGray-200':
-                                        size.available,
-                                    'text-appGray-400 cursor-default':
-                                        !size.available,
-                                },
-                            )}
-                            title={`${size.size.meta.en?.title} Size`}
-                            onClick={() => setSelectedSize(size.size.meta.en)}
-                        >
-                            {size.size.meta.en?.title}
-                        </button>
-                    ))}
+                <div className="flex flex-wrap gap-2">
+                    {displaySizes.map((sizeLabel) => {
+                        const isAvailable = availableSizesMap[sizeLabel];
+
+                        return (
+                            <button
+                                key={sizeLabel}
+                                disabled={!isAvailable}
+                                onClick={() => setSelectedSize(sizeLabel)}
+                                className={classNames(
+                                    "px-4 h-10 border flex items-center justify-center text-[10px] font-bold transition-all duration-200",
+                                    selectedSize === sizeLabel
+                                        ? "bg-black text-white border-black" // SELECCIONADO
+                                        : isAvailable
+                                        ? "border-gray-200 hover:border-black text-black bg-white" // DISPONIBLE
+                                        : "bg-gray-200 border-gray-200 text-gray-500 cursor-not-allowed italic" // BLOQUEADO (Gris sólido apagado)
+                                )}
+                            >
+                                {sizeLabel}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
-            <div className="mb-8">
-                <div className="leading-none tracking-[-0.32px] text-appGray-800 mb-4">
-                    Colors
+
+            {/* SELECCIÓN DE VERSIÓN (GALERÍA DINÁMICA) */}
+            <div className="mb-10">
+                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
+                    Seleccionar Versión
                 </div>
-                <div className="flex flex-wrap gap-3">
-                    {colors.map((color, index) => (
-                        <button
-                            key={index}
-                            className={classNames(
-                                'w-10 h-10 flex items-center justify-center bg-appGray-100 leading-none tracking-[-0.3px] transition-colors duration-300',
-                                {
-                                    'text-appGray-800 bg-appGray-200 border border-appText hover:bg-appGray-200':
-                                        activeColor.meta.en?.slug ===
-                                        color.meta.en?.slug,
-                                    'text-appGray-800 hover:bg-appGray-200':
-                                        true,
-                                },
-                            )}
-                            title={`${color.meta.en?.title} Color`}
-                            onClick={() => colorChange(color)}
-                        >
-                            <div
-                                className="w-8 h-8"
-                                style={{ background: color.meta.en?.hex }}
-                            />
-                        </button>
-                    ))}
+                <div className="flex flex-col gap-2">
+                    {meta.gallery?.map((item: any, index: number) => {
+                        const version = item.version || item.color;
+                        if (!version) return null;
+                        const isActive = activeColor?.meta.en?.slug === version.meta.en?.slug;
+                        
+                        return (
+                            <button
+                                key={index}
+                                onClick={() => colorChange(version)}
+                                className={classNames(
+                                    "group flex items-center justify-between p-4 border transition-all duration-300",
+                                    isActive 
+                                        ? "bg-black text-white border-black" 
+                                        : "border-gray-200 hover:border-black bg-white text-black"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={classNames(
+                                        "w-2 h-2 rounded-full",
+                                        isActive ? "bg-white" : "bg-gray-300 group-hover:bg-black"
+                                    )} />
+                                    <span className="text-sm font-bold uppercase tracking-tight">
+                                        {version.meta.en?.title}
+                                    </span>
+                                </div>
+                                {isActive && (
+                                    <span className="text-[9px] font-black opacity-70 italic tracking-widest">
+                                        ACTIVO
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
-            <div>
-                <div className="leading-none tracking-[-0.32px] text-appGray-800 mb-4">
-                    Description
+
+            {/* SECCIÓN DE DESCRIPCIÓN */}
+            <div className="border-t border-gray-200 pt-8">
+                <div className="text-[10px] font-black uppercase tracking-[2px] mb-6">
+                    Descripción del modelo
                 </div>
-                <ContentManager
-                    items={meta.description.nodes}
-                    className="productDetails--description"
-                />
+                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {descriptionNodes.length > 0 ? (
+                        <BCMSContentManager items={descriptionNodes as any} />
+                    ) : (
+                        <p className="italic text-gray-400 text-xs">Sin descripción disponible.</p>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -2,7 +2,7 @@ import type { PropMediaDataParsed } from '@thebcms/types';
 import type {
     ProductBrandEntryMetaItem,
     ProductCategoryEntry,
-    ProductColorEntryMetaItem,
+    ProductColorEntryMetaItem, // El tipo técnico sigue siendo este
     ProductEntry,
     ProductEntryMetaItem,
     ProductGenderEntryMetaItem,
@@ -13,7 +13,7 @@ export interface ProductLite {
     title: string;
     slug: string;
     cover: PropMediaDataParsed;
-    cloudflare_cover?: string; // <-- Añadimos esto para la miniatura de la tienda
+    cloudflare_cover?: string;
     price: number;
     discounted_price?: number;
     sizes: ProductSizeGroup[];
@@ -22,8 +22,7 @@ export interface ProductLite {
     brand: ProductBrandEntryMetaItem;
     units_sold: number;
     date: number;
-    color: ProductColorEntryMetaItem;
-    // Añadimos la galería completa para que llegue al componente Details
+    version: ProductColorEntryMetaItem; 
     gallery: any[]; 
 }
 
@@ -33,7 +32,6 @@ export const productToLite = (product: ProductEntry): ProductLite => {
     return {
         title: meta.title,
         slug: meta.slug,
-        // Mantenemos cover por compatibilidad, pero priorizamos Cloudflare si existe
         cover: meta.gallery[0].image,
         cloudflare_cover: (meta.gallery[0] as any).cloudflare_url, 
         price: meta.price,
@@ -44,8 +42,8 @@ export const productToLite = (product: ProductEntry): ProductLite => {
         brand: meta.brand.meta.en as ProductBrandEntryMetaItem,
         units_sold: meta.units_sold || 0,
         date: product.createdAt,
-        color: meta.gallery[0].color.meta.en as ProductColorEntryMetaItem,
-        // Mapeamos la galería para incluir el campo de Cloudflare
+        // ACTUALIZACIÓN: Ahora mapea a la propiedad .version que creaste
+        version: meta.gallery[0].version.meta.en as ProductColorEntryMetaItem,
         gallery: meta.gallery.map(item => ({
             ...item,
             cloudflare_url: (item as any).cloudflare_url
