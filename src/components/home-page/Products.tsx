@@ -1,145 +1,70 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import TrashIcon from '../../assets/icons/trash.svg?raw';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { ProductLite } from '../../utils/product';
-import type {
-    ProductCategoryEntryMetaItem,
-    ProductGenderEntryMetaItem,
-} from '../../../bcms/types/ts';
 import type { ClientConfig } from '@thebcms/client';
 import { FormCheck } from '../form/Check';
 import { ProductCard } from '../ProductCard';
 
-interface Props {
-    products: ProductLite[];
-    filters: {
-        genders: ProductGenderEntryMetaItem[];
-        categories: ProductCategoryEntryMetaItem[];
-    };
-    bcms: ClientConfig;
-}
-
 export interface ProductFilter {
-    type: 'category' | 'brand' | 'gender' | 'price' | 'popularity';
+    type: 'category' | 'gender' | 'brand' | 'price' | 'popularity';
     label: string;
-    value: string | number;
+    value: string | number; 
     active: boolean;
 }
 
-export const HomeProducts: React.FC<Props> = ({ products, filters, bcms }) => {
-    const [productFilters, setProductFilters] = useState<ProductFilter[]>([]);
-
-    const activeFilters = useMemo<ProductFilter[]>(() => {
-        return productFilters.filter((e) => e.active);
-    }, [productFilters]);
-
-    const clearFilters = () => {
-        productFilters.forEach((filter) => {
-            filter.active = false;
-        });
-        setProductFilters([...productFilters]);
-    };
-
-    const filteredProducts = useMemo(() => {
-        return products.filter((e) => {
-            let show = true;
-
-            activeFilters.forEach((filter) => {
-                if (filter.type === 'gender' && filter.active) {
-                    show = show && e.gender.slug === filter.value;
-                }
-                if (filter.type === 'category' && filter.active) {
-                    show =
-                        show &&
-                        !!e.categories.find(
-                            (c) => c.meta.en?.slug === filter.value,
-                        );
-                }
-            });
-            return show;
-        });
-    }, [products, activeFilters]);
+export const HomeProducts: React.FC<{ products: ProductLite[]; filters: any; bcms: ClientConfig }> = ({ products, filters, bcms }) => {
+    const [activeFilters, setActiveFilters] = useState<string[]>([]);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
-        const mappedFilters: ProductFilter[] = filters.genders.map((gender) => {
-            return {
-                active: false,
-                label: gender.title,
-                value: gender.slug,
-                type: 'gender',
-            };
-        });
-
-        const mappedCategories: ProductFilter[] = filters.categories.map(
-            (category) => {
-                return {
-                    active: false,
-                    label: category.title,
-                    value: category.slug,
-                    type: 'category',
-                };
-            },
-        );
-
-        setProductFilters([...mappedFilters, ...mappedCategories]);
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    const setFilter = (value: string) => {
-        const mappedFilters = productFilters.map((p) => {
-            if (p.value === value) {
-                return { ...p, active: !p.active };
-            }
+    const allFilters = useMemo(() => [
+        ...filters.genders.map((g: any) => ({ label: g.title, value: g.slug })),
+        ...filters.categories.map((c: any) => ({ label: c.title, value: c.slug }))
+    ], [filters]);
 
-            return p;
-        });
-
-        setProductFilters(mappedFilters);
-    };
+    const filteredProducts = useMemo(() => {
+        if (activeFilters.length === 0) return products;
+        return products.filter(p => 
+            activeFilters.includes(p.gender.slug) || 
+            p.categories.some(c => activeFilters.includes(c.meta.en?.slug || ''))
+        );
+    }, [products, activeFilters]);
 
     return (
-        <section>
-            <div className="container py-[72px]">
-                <div className="flex flex-col items-start justify-between gap-12 mb-16 md:flex-row md:gap-20">
-                    <div className="flex flex-wrap gap-8">
-                        {productFilters.map((filter, index) => {
-                            return (
-                                <FormCheck
-                                    key={index}
-                                    value={filter.value as string}
-                                    label={filter.label}
-                                    onCheck={(value) => setFilter(value)}
-                                    checked={!filter.active}
-                                />
-                            );
-                        })}
-                    </div>
-                    <button
-                        className="flex items-center gap-2 transition-colors duration-300 hover:text-appError"
-                        onClick={clearFilters}
-                    >
-                        <div
-                            dangerouslySetInnerHTML={{
-                                __html: TrashIcon,
-                            }}
-                            className="w-6 h-6"
+        <section className="bg-white py-12">
+            <div className="container mx-auto">
+                <div className="flex flex-wrap justify-center gap-4 mb-12 max-w-[1200px] mx-auto px-4">
+                    {allFilters.map((f) => (
+                        <FormCheck 
+                            key={f.value}
+                            value={f.value.toString()}
+                            label={f.label} 
+                            checked={activeFilters.includes(f.value)} 
+                            onCheck={() => setActiveFilters(prev => 
+                                prev.includes(f.value) ? prev.filter(v => v !== f.value) : [...prev, f.value]
+                            )} 
                         />
-                        <span className="text-lg leading-none tracking-[-2%] mb-1 md:text-[24px]">
-                            Clear filters
-                        </span>
-                    </button>
+                    ))}
                 </div>
-                <div className="grid grid-cols-1 gap-8 mb-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-y-12">
-                    {filteredProducts.map((card, index) => {
-                        return (
-                            <ProductCard key={index} card={card} bcms={bcms} />
-                        );
-                    })}
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                    gap: isMobile ? '15px' : '25px',
+                    maxWidth: '1300px',
+                    margin: '0 auto',
+                    padding: '0 20px',
+                    width: '100%'
+                }}>
+                    {filteredProducts.map((product) => (
+                        <ProductCard key={product.slug} card={product} bcms={bcms} />
+                    ))}
                 </div>
-                <a
-                    href="/shop"
-                    className="flex max-w-max text-2xl leading-none tracking-[-0.5px] px-14 pt-3.5 pb-[18px] bg-white border border-appGray-400 mx-auto transition-colors duration-300 hover:bg-appText hover:text-white"
-                >
-                    See all
-                </a>
             </div>
         </section>
     );

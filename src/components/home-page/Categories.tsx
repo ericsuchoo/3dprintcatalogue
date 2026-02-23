@@ -21,42 +21,47 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                     return (
                         <div
                             key={index}
-                            className="group relative aspect-square flex items-end p-8 overflow-hidden"
+                            className="group relative aspect-square flex items-end p-8 overflow-hidden bg-black"
                         >
-                            <div className="relative z-10 transition-opacity duration-300 group-hover:opacity-0">
-                                <h2 className="flex items-end flex-wrap gap-4 text-white leading-none">
-                                    <span className="text-[32px] md:text-[40px]">
+                            {/* Título y contador (Estado inicial) */}
+                            <div className="relative z-20 transition-all duration-500 ease-out group-hover:translate-y-4 group-hover:opacity-0">
+                                <h2 className="flex items-end flex-wrap gap-4 text-white leading-none drop-shadow-lg">
+                                    <span className="text-[32px] md:text-[40px] font-bold">
                                         {category.meta.title}
                                     </span>
-                                    <span className="text-[18px] md:text-[24px]">
+                                    <span className="text-[18px] md:text-[24px] opacity-80">
                                         ({category.productsCount} Product
-                                        {category.productsCount === 0 ||
-                                        category.productsCount > 1
-                                            ? 's'
-                                            : ''}
-                                        )
+                                        {category.productsCount !== 1 ? 's' : ''})
                                     </span>
                                 </h2>
                             </div>
+
+                            {/* Overlay de acción (Estado Hover) */}
                             <a
                                 href={`/shop${
                                     category.productsCount > 0
                                         ? '?category=' + category.meta.slug
                                         : ''
                                 }`}
-                                className="absolute z-10 inset-0 bg-black/60 flex flex-col items-center justify-center text-center transition-all duration-300 ease-in-out opacity-0 group-hover:opacity-100"
+                                className="absolute z-30 inset-0 bg-black/50 flex flex-col items-center justify-center text-center transition-all duration-500 ease-in-out opacity-0 group-hover:opacity-100 backdrop-blur-[2px]"
                             >
-                                <div className="text-white text-[28px] leading-none mb-6 md:text-[32px]">
+                                <div className="text-white text-[28px] font-bold leading-none mb-6 md:text-[32px] translate-y-4 transition-transform duration-500 group-hover:translate-y-0">
                                     {category.meta.title}
                                 </div>
-                                <Btn theme={ctaTheme} label="Shop now" />
+                                <div className="translate-y-8 transition-transform duration-500 group-hover:translate-y-0">
+                                    <Btn theme={ctaTheme} label="Shop now" />
+                                </div>
                             </a>
-                            <div className="absolute top-0 left-0 size-full">
+
+                            {/* Imagen con efecto de Zoom */}
+                            <div className="absolute top-0 left-0 size-full z-0">
                                 <BCMSImage
                                     media={category.meta.gallery[0]}
                                     clientConfig={bcms}
-                                    className="size-full object-cover"
+                                    className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                 />
+                                {/* Overlay oscuro sutil constante para legibilidad del texto blanco */}
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
                             </div>
                         </div>
                     );

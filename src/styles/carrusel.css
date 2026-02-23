@@ -1,0 +1,11 @@
+.custom-swiper .swiper-pagination-bullet { background: white !important; opacity: 0.7; }
+.custom-swiper .swiper-pagination-bullet-active { background: #000000 !important; opacity: 1; }
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-product {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
+}

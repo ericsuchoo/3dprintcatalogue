@@ -34,20 +34,28 @@ const HomePageWrapper: React.FC<Props> = ({
     filters,
     bcms,
 }) => {
+    // Obtenemos la config de BCMS una sola vez para limpiar el código
+    const bcmsConfig = bcmsPublic.getConfig();
+
     return (
         <ContextWrapper>
             <InnerPageWrapper bcms={bcms}>
+                {/* CAMBIO: Ahora pasamos 'gallery' en lugar de 'image' */}
                 <HomeHero
                     title={meta.hero_title}
                     description={meta.hero_description}
-                    image={meta.hero_cover_image}
-                    bcms={bcmsPublic.getConfig()}
+                    // Si tienes un campo de galería en BCMS llamado 'hero_gallery', úsalo.
+                    // Si no, metemos la imagen actual en un array [meta.hero_cover_image]
+                    gallery={(meta as any).hero_gallery || [meta.hero_cover_image]}
+                    bcms={bcmsConfig}
                 />
+                
                 <HomeCategories
                     data={categories.slice(0, 6)}
                     ctaTheme="dark-green"
-                    bcms={bcmsPublic.getConfig()}
+                    bcms={bcmsConfig}
                 />
+                
                 <HomeCta
                     title={meta.cta_title}
                     description={meta.cta_description}
@@ -56,17 +64,19 @@ const HomePageWrapper: React.FC<Props> = ({
                         label: meta.cta_label,
                         href: meta.cta_link,
                     }}
-                    bcms={bcmsPublic.getConfig()}
+                    bcms={bcmsConfig}
                 />
+                
                 <HomeCategories
                     data={categories.slice(6, 12)}
                     ctaTheme="orange"
-                    bcms={bcmsPublic.getConfig()}
+                    bcms={bcmsConfig}
                 />
+                
                 <HomeProducts
                     products={products}
                     filters={filters}
-                    bcms={bcmsPublic.getConfig()}
+                    bcms={bcmsConfig}
                 />
             </InnerPageWrapper>
         </ContextWrapper>
