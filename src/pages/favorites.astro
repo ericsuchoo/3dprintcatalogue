@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { bcmsPrivate } from '../bcms-private'; 
+import FavoritesGrid from '../components/FavoritesGrid';
+import { FavoritesProvider } from '../context/FavoritesContext';
+
+// Obtenemos datos sin tipos estrictos para evitar fallos de compilación ts(2307)
+const products = await bcmsPrivate.entry.getAll('product');
+const productMetas = products.map((p: any) => p.meta.en);
+---
+
+<Layout title="Mis Favoritos">
+  <div class="container pb-20 pt-32 md:pb-40 md:pt-48">
+    <div class="flex flex-col mb-12 md:mb-20 text-center">
+      <h1 class="text-4xl md:text-6xl font-bold uppercase italic tracking-tighter mb-4">
+        Mis Favoritos
+      </h1>
+      <p class="text-[10px] text-appGray-500 uppercase tracking-[2px] font-black opacity-70">
+        Tu selección personal
+      </p>
+    </div>
+
+    {/* Envolvemos aquí para que la grid tenga acceso a los favoritos */}
+    <FavoritesProvider client:load>
+        <FavoritesGrid client:load allProducts={productMetas} />
+    </FavoritesProvider>
+  </div>
+</Layout>

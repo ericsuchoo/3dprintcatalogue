@@ -1,62 +1,27 @@
 ---
-import '../styles/fonts.css';
-import '../styles/carrusel.css';
+import Header from '../components/layout/Header';
+import ContextWrapper from '../components/ContextWrapper';
 
 interface Props {
-	title: string;
+    title?: string;
 }
 
-const { title } = Astro.props;
+const { title = "3D Print Catalogue" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<title>{title}</title>
-	</head>
-	<body class="font-Helvetica overflow-x-hidden bg-appBody text-appText pt-[84px] md:pt-[100px]">
-		<slot />
-	</body>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>{title}</title>
+    </head>
+    <body class="overflow-x-hidden">
+        <ContextWrapper client:load>
+            <Header client:load />
+            <main>
+                <slot />
+            </main>
+        </ContextWrapper>
+    </body>
 </html>
-
-<style is:global>
-	@tailwind base;
-	@tailwind components;
-	@tailwind utilities;
-
-	/* RECUPERAMOS EL FRONT: GRID DE 4 COLUMNAS */
-	.product-grid-container {
-		display: grid !important;
-		grid-template-cols: repeat(2, 1fr) !important;
-		gap: 1.5rem !important;
-		width: 100% !important;
-		max-width: 1300px !important;
-		margin: 0 auto !important;
-		padding: 40px 20px !important;
-	}
-
-	@media (min-width: 1024px) {
-		.product-grid-container {
-			grid-template-cols: repeat(4, 1fr) !important;
-			gap: 2rem !important;
-		}
-	}
-
-	/* RECUPERAMOS EL FRONT: IMÁGENES CUADRADAS */
-	.product-card-image-container {
-		width: 100% !important;
-		aspect-ratio: 1 / 1 !important;
-		overflow: hidden !important;
-		border-radius: 12px;
-		background: #f7f7f7;
-	}
-
-	.product-card-image-container img {
-		width: 100% !important;
-		height: 100% !important;
-		object-fit: cover !important;
-	}
-</style>

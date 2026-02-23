@@ -5,6 +5,7 @@ import type {
 } from '../../../../bcms/types/ts';
 import { BCMSContentManager } from '@thebcms/components-react';
 import classNames from 'classnames';
+import { useFavorites } from '../../../context/FavoritesContext'; // Importamos el nuevo hook
 
 interface Props {
     meta: ProductEntryMetaItem;
@@ -14,8 +15,22 @@ interface Props {
 
 export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => {
     const [selectedSize, setSelectedSize] = useState<string>('');
-    const [isFavorite, setIsFavorite] = useState(false); // Estado para el botón de Me Gusta
+    const [showNotify, setShowNotify] = useState(false);
+    
+    // Lógica de favoritos desde el Contexto
+    const { favorites, toggleFavorite } = useFavorites();
+    const isFavorite = favorites.includes(meta.slug);
 
+    const handleFavoriteClick = () => {
+        toggleFavorite(meta.slug);
+        // Solo disparamos la notificación si lo estamos agregando (no quitando)
+        if (!isFavorite) {
+            setShowNotify(true);
+            setTimeout(() => setShowNotify(false), 3000);
+        }
+    };
+
+    // --- Mapeos dinámicos del BCMS ---
     const availableSizesMap = useMemo(() => {
         const map: Record<string, boolean> = {};
         meta.sizes?.forEach((s: any) => {
@@ -37,8 +52,21 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
     }, [meta.description]);
 
     return (
-        <div className="flex flex-col">
-            {/* 1. CABECERA: TÍTULO Y PRECIO */}
+        <div className="flex flex-col relative">
+            {/* NOTIFICACIÓN TIPO TOAST (Aparece al dar Me Gusta) */}
+            {showNotify && (
+                <div className="fixed top-24 right-5 md:right-10 z-[60] bg-black text-white px-6 py-4 shadow-2xl animate-fade-in-down border-l-4 border-red-500">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">❤️</span>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest">Añadido a favoritos</p>
+                            <p className="text-xs italic opacity-80 uppercase">{meta.title}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 1. CABECERA */}
             <div className="flex items-start justify-between mb-1">
                 <h1 className="text-3xl font-bold uppercase italic tracking-tighter">
                     {meta.title}
@@ -50,7 +78,7 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 { (meta as any).units_sold || '0' } Unidades en catálogo
             </div>
 
-            {/* 2. SELECTOR DE TALLAS/ESCALAS */}
+            {/* 2. SELECTOR DE TALLAS */}
             <div className="mb-8">
                 <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
                     Escalas / Tallas Disponibles
@@ -121,35 +149,35 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 </div>
             </div>
 
-            {/* 4. BLOQUE DE ACCIÓN: MODO CATÁLOGO */}
+            {/* 4. BOTONES DE ACCIÓN (Persistentes) */}
             <div className="flex flex-col gap-2 mb-12">
                 <button 
-                    onClick={() => setIsFavorite(!isFavorite)}
+                    onClick={handleFavoriteClick}
                     className={classNames(
-                        "w-full py-4 font-bold uppercase text-sm transition-all duration-300 flex items-center justify-center gap-2 tracking-widest shadow-sm",
+                        "w-full py-4 font-bold uppercase text-sm transition-all duration-300 flex items-center justify-center gap-2 tracking-[0.1em] shadow-sm",
                         isFavorite 
                             ? "bg-red-500 text-white" 
                             : "bg-black text-white hover:bg-gray-900"
                     )}
                 >
-                    {isFavorite ? '❤️ EN MIS ME GUSTA' : '♡ AGREGAR A MIS ME GUSTA'}
+                    {isFavorite ? '❤️ EN MIS FAVORITOS' : '♡ AGREGAR A FAVORITOS'}
                 </button>
                 
-                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-black hover:text-white transition-all tracking-widest">
+                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-black hover:text-white transition-all tracking-[0.1em]">
                     Añadir al carrito
                 </button>
             </div>
 
-            {/* 5. SECCIÓN DE DESCRIPCIÓN */}
+            {/* 5. DESCRIPCIÓN */}
             <div className="border-t border-gray-200 pt-8">
                 <div className="text-[10px] font-black uppercase tracking-[2px] mb-6">
                     Descripción del modelo
                 </div>
-                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap uppercase">
+                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap uppercase font-Helvetica">
                     {descriptionNodes.length > 0 ? (
                         <BCMSContentManager items={descriptionNodes as any} />
                     ) : (
-                        <p className="italic text-gray-400 text-xs text-center uppercase">Sin descripción disponible.</p>
+                        <p className="italic text-gray-400 text-xs">Sin descripción disponible.</p>
                     )}
                 </div>
             </div>

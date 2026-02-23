@@ -1,31 +1,19 @@
+import React, { type PropsWithChildren } from 'react';
+import Header from './layout/Header';
 import type { ClientConfig } from '@thebcms/client';
-import { useEffect, type PropsWithChildren } from 'react';
-import { useCart } from '../context/CartContext';
-import { Header } from './layout/Header';
-import { Footer } from './layout/Footer';
 
-interface WrapperProps {
+interface Props extends PropsWithChildren {
     bcms: ClientConfig;
 }
 
-const InnerPageWrapper: React.FC<PropsWithChildren<WrapperProps>> = ({
-    bcms,
-    children,
-}) => {
-    const { setBcms } = useCart();
-
-    // Set BCMS configuration
-    useEffect(() => {
-        setBcms(bcms);
-    }, [bcms]);
-
+const InnnerPageWrapper: React.FC<Props> = ({ children }) => {
     return (
-        <div className="overflow-hidden flex flex-col min-h-screen">
+        <div className="relative">
+            {/* Quitamos la prop bcms del Header si tu Header no la espera */}
             <Header />
-            <main className="flex flex-col flex-1">{children}</main>
-            <Footer />
+            <main>{children}</main>
         </div>
     );
 };
 
-export default InnerPageWrapper;
+export default InnnerPageWrapper;
