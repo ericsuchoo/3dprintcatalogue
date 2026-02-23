@@ -5,7 +5,7 @@ import type {
 } from '../../../../bcms/types/ts';
 import { BCMSContentManager } from '@thebcms/components-react';
 import classNames from 'classnames';
-import { useFavorites } from '../../../context/FavoritesContext'; // Importamos el nuevo hook
+import { useFavorites } from '../../../context/FavoritesContext';
 
 interface Props {
     meta: ProductEntryMetaItem;
@@ -17,20 +17,22 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [showNotify, setShowNotify] = useState(false);
     
-    // Lógica de favoritos desde el Contexto
     const { favorites, toggleFavorite } = useFavorites();
-    const isFavorite = favorites.includes(meta.slug);
+
+    // ID para favoritos: usamos el model_id si existe, si no el slug
+    const modelId = (meta as any).model_id || '';
+    const favoriteId = modelId || meta.slug;
+    const isFavorite = favorites.includes(favoriteId);
 
     const handleFavoriteClick = () => {
-        toggleFavorite(meta.slug);
-        // Solo disparamos la notificación si lo estamos agregando (no quitando)
+        toggleFavorite(favoriteId);
         if (!isFavorite) {
             setShowNotify(true);
             setTimeout(() => setShowNotify(false), 3000);
         }
     };
 
-    // --- Mapeos dinámicos del BCMS ---
+    // --- Lógica de Tallas ---
     const availableSizesMap = useMemo(() => {
         const map: Record<string, boolean> = {};
         meta.sizes?.forEach((s: any) => {
@@ -45,6 +47,7 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
         return meta.sizes?.map((s: any) => s.size.meta.en.title.toUpperCase()) || [];
     }, [meta.sizes]);
 
+    // --- Lógica de Descripción ---
     const descriptionNodes = useMemo(() => {
         const desc = meta.description as any;
         if (!desc) return [];
@@ -53,9 +56,9 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
 
     return (
         <div className="flex flex-col relative">
-            {/* NOTIFICACIÓN TIPO TOAST (Aparece al dar Me Gusta) */}
+            {/* NOTIFICACIÓN */}
             {showNotify && (
-                <div className="fixed top-24 right-5 md:right-10 z-[60] bg-black text-white px-6 py-4 shadow-2xl animate-fade-in-down border-l-4 border-red-500">
+                <div className="fixed top-24 right-5 md:right-10 z-[60] bg-black text-white px-6 py-4 shadow-2xl border-l-4 border-red-500 animate-fade-in-down">
                     <div className="flex items-center gap-3">
                         <span className="text-xl">❤️</span>
                         <div>
@@ -66,19 +69,19 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 </div>
             )}
 
-            {/* 1. CABECERA */}
+            {/* CABECERA */}
             <div className="flex items-start justify-between mb-1">
-                <h1 className="text-3xl font-bold uppercase italic tracking-tighter">
+                <h1 className="text-3xl font-bold uppercase italic tracking-tighter text-black">
                     {meta.title}
                 </h1>
-                <div className="text-2xl font-light">${meta.price}</div>
+                <div className="text-2xl font-light text-black">${meta.price}</div>
             </div>
 
             <div className="text-[10px] font-medium text-gray-500 mb-8 uppercase tracking-widest">
                 { (meta as any).units_sold || '0' } Unidades en catálogo
             </div>
 
-            {/* 2. SELECTOR DE TALLAS */}
+            {/* SELECTOR DE TALLAS */}
             <div className="mb-8">
                 <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
                     Escalas / Tallas Disponibles
@@ -97,7 +100,7 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                                         ? "bg-black text-white border-black"
                                         : isAvailable
                                         ? "border-gray-200 hover:border-black text-black bg-white"
-                                        : "bg-gray-200 border-gray-200 text-gray-500 cursor-not-allowed italic"
+                                        : "bg-gray-100 border-gray-100 text-gray-400 cursor-not-allowed italic"
                                 )}
                             >
                                 {sizeLabel}
@@ -107,9 +110,9 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 </div>
             </div>
 
-            {/* 3. SELECCIÓN DE VERSIÓN */}
+            {/* SELECCIÓN DE VERSIÓN (RESTAURADO) */}
             <div className="mb-8">
-                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
+                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50 text-black">
                     Seleccionar Versión
                 </div>
                 <div className="flex flex-col gap-2">
@@ -149,31 +152,35 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 </div>
             </div>
 
-            {/* 4. BOTONES DE ACCIÓN (Persistentes) */}
+            {/* BOTONES DE ACCIÓN */}
             <div className="flex flex-col gap-2 mb-12">
                 <button 
                     onClick={handleFavoriteClick}
                     className={classNames(
-                        "w-full py-4 font-bold uppercase text-sm transition-all duration-300 flex items-center justify-center gap-2 tracking-[0.1em] shadow-sm",
-                        isFavorite 
-                            ? "bg-red-500 text-white" 
-                            : "bg-black text-white hover:bg-gray-900"
+                        "w-full py-4 font-bold uppercase text-sm transition-all duration-300 flex items-center justify-center gap-2 tracking-[0.1em]",
+                        isFavorite ? "bg-red-500 text-white" : "bg-black text-white hover:bg-gray-900"
                     )}
                 >
                     {isFavorite ? '❤️ EN MIS FAVORITOS' : '♡ AGREGAR A FAVORITOS'}
                 </button>
-                
-                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-black hover:text-white transition-all tracking-[0.1em]">
+                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-black hover:text-white transition-all tracking-[0.1em] text-black">
                     Añadir al carrito
                 </button>
             </div>
 
-            {/* 5. DESCRIPCIÓN */}
+            {/* DESCRIPCIÓN */}
             <div className="border-t border-gray-200 pt-8">
-                <div className="text-[10px] font-black uppercase tracking-[2px] mb-6">
-                    Descripción del modelo
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="text-[10px] font-black uppercase tracking-[2px] text-black">
+                        Descripción del modelo:
+                    </div>
+                    {modelId && (
+                        <span className="text-[10px] font-black bg-red-50 px-2 py-1 rounded text-red-500 border border-red-100 uppercase">
+                            {modelId}
+                        </span>
+                    )}
                 </div>
-                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap uppercase font-Helvetica">
+                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed uppercase font-Helvetica italic">
                     {descriptionNodes.length > 0 ? (
                         <BCMSContentManager items={descriptionNodes as any} />
                     ) : (

@@ -23,12 +23,14 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }, []);
 
     const toggleFavorite = (slug: string) => {
-        const newFavs = favorites.includes(slug)
-            ? favorites.filter((id) => id !== slug)
-            : [...favorites, slug];
+        const saved = localStorage.getItem('user_favorites');
+        const current = saved ? JSON.parse(saved) : [];
+        const newFavs = current.includes(slug)
+            ? current.filter((id: string) => id !== slug)
+            : [...current, slug];
         
-        setFavorites(newFavs);
         localStorage.setItem('user_favorites', JSON.stringify(newFavs));
+        setFavorites(newFavs);
     };
 
     return (
@@ -38,8 +40,11 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
 };
 
-export const useFavorites = () => {
+export function useFavorites() {
     const context = useContext(FavoritesContext);
-    if (!context) return { favorites: [], toggleFavorite: () => {}, favCount: 0 };
+    if (context === undefined) {
+        // Fallback para evitar que la app explote si se usa fuera del provider
+        return { favorites: [], toggleFavorite: () => {}, favCount: 0 };
+    }
     return context;
-};
+}

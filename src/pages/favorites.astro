@@ -1,28 +1,28 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { bcmsPrivate } from '../bcms-private'; 
-import FavoritesGrid from '../components/FavoritesGrid';
-import { FavoritesProvider } from '../context/FavoritesContext';
+import { FavoritesGrid } from '../components/FavoritesGrid';
+import { productUtils } from '../utils/product';
 
-// Obtenemos datos sin tipos estrictos para evitar fallos de compilación ts(2307)
-const products = await bcmsPrivate.entry.getAll('product');
-const productMetas = products.map((p: any) => p.meta.en);
+// Traemos los productos desde BCMS en el servidor
+const products = await productUtils.all();
 ---
 
-<Layout title="Mis Favoritos">
-  <div class="container pb-20 pt-32 md:pb-40 md:pt-48">
-    <div class="flex flex-col mb-12 md:mb-20 text-center">
-      <h1 class="text-4xl md:text-6xl font-bold uppercase italic tracking-tighter mb-4">
-        Mis Favoritos
-      </h1>
-      <p class="text-[10px] text-appGray-500 uppercase tracking-[2px] font-black opacity-70">
-        Tu selección personal
-      </p>
-    </div>
+<Layout title="Favoritos | Store">
+  <section class="pt-32 pb-20 bg-white min-h-screen">
+    <div class="container mx-auto px-6">
+      <header class="mb-16 border-l-4 border-black pl-6">
+        <h1 class="text-5xl font-black uppercase italic tracking-tighter">
+          Mis Favoritos
+        </h1>
+        <p class="text-[10px] text-gray-400 uppercase tracking-[4px] mt-2">
+          Sincronizado con tu selección local
+        </p>
+      </header>
 
-    {/* Envolvemos aquí para que la grid tenga acceso a los favoritos */}
-    <FavoritesProvider client:load>
-        <FavoritesGrid client:load allProducts={productMetas} />
-    </FavoritesProvider>
-  </div>
+      <main>
+        {/* client:only es la clave para que lea tus favoritos guardados */}
+        <FavoritesGrid client:only="react" products={products} />
+      </main>
+    </div>
+  </section>
 </Layout>
