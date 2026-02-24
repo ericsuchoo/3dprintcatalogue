@@ -14,12 +14,18 @@ import HomePageWrapper from '../components/home-page/PageWrapper';
 import { bcmsPrivate } from '../bcms-private';
 import { bcmsPublic } from '../bcms-public';
 
+// 1. Obtenemos la entrada de la Home
 const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
-const homeMeta = home.meta.en as HomeEntryMetaItem;
 
+// 2. Extraemos el meta. Usamos 'as any' para acceder a 'logo_dc3' 
+// sin que TypeScript bloquee la compilación si el tipo no se ha actualizado.
+const homeMeta = home.meta.en as any;
+
+// 3. Obtenemos productos y los convertimos a versión ligera
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 
+// 4. Procesamos categorías
 const categories = (
     (await bcmsPrivate.entry.getAll('product-category')) as ProductCategoryEntry[]
 ).map((e) => {
@@ -31,6 +37,7 @@ const categories = (
     };
 });
 
+// 5. Configuramos filtros para la tienda
 const filters = {
     categories: products.slice(0, 8).reduce((acc, e) => {
         e.meta.en?.categories.forEach((i) => {
@@ -42,7 +49,6 @@ const filters = {
                 acc.push(i.meta.en);
             }
         });
-
         return acc;
     }, [] as ProductCategoryEntryMetaItem[]),
     genders: products.slice(0, 8).reduce((acc, e) => {
@@ -52,7 +58,6 @@ const filters = {
         ) {
             acc.push(e.meta.en.gender.meta.en);
         }
-
         return acc;
     }, [] as ProductGenderEntryMetaItem[]),
 };
@@ -60,7 +65,7 @@ const filters = {
 const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} - Moda`}>
+<Layout title={`${homeMeta.seo?.title || homeMeta.title} |  3D`}>
     <HomePageWrapper
         client:load
         bcms={clientConfig}

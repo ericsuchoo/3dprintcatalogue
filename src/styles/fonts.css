@@ -87,3 +87,19 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Orbitron Font';
+  src:
+      url('/fonts/Orbitron[wght].woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Orbitron Font';
+  src:
+      url('/fonts/Orbitron[wght].woff') format('woff');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
