@@ -103,3 +103,35 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: 'Danymeka-lxx2D';
+  src:
+      url('/fonts/Danymeka-lxx2D.woff') format('woff');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Syncopate-Regular';
+  src:
+      url('/fonts/Syncopate-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Danymeka-lxx2D';
+  src:
+      url('/fonts/Danymeka-lxx2D.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Voga-Medium';
+  src:
+      url('/fonts/Voga-Medium.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

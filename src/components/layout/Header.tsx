@@ -5,18 +5,21 @@ const Header: React.FC = () => {
     const { favCount } = useFavorites();
 
     return (
-        <header className="fixed top-0 left-0 w-full z-50 bg-white border-b border-gray-100">
-            <div className="container flex justify-between items-center py-4">
-                <a href="/" className="font-bold text-xl uppercase tracking-tighter">
+        <header className="fixed top-0 left-0 w-full z-50 text-white bg-black border-b border-gray-100">
+            <div className="container flex justify-between items-center py-3">
+                <a href="/" className="font-bold text-[24px] uppercase tracking-tighter">
                     DCImpress 3D Store
                 </a>
-                <nav className="flex gap-6 items-center">
-                    <a href="/shop" className="text-[10px] font-black uppercase tracking-widest">Tienda</a>
-                    <a href="/shop-2" className="text-[10px] font-black uppercase tracking-widest">Mis Me gusta</a>
-                    <a href="/favorites" className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest">
-                        Favoritos 
+                <nav className="flex gap-8 items-center">
+                    <a href="/shop" className="text-[18px] text-white uppercase tracking-widest hover:text-red-500 transition-colors">
+                        Tienda
+                    </a>
+                    
+                    {/* Contenedor relativo para posicionar el badge */}
+                    <a href="/shop-2" className="relative text-[18px] text-white uppercase tracking-widest hover:text-red-500 transition-colors">
+                        Mis Me gusta
                         {favCount > 0 && (
-                            <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px] animate-pulse">
+                            <span className="absolute -top-2 -right-4 bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse leading-none flex items-center justify-center min-w-[18px] h-[18px]">
                                 {favCount}
                             </span>
                         )}

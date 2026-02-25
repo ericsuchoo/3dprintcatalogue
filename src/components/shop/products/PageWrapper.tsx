@@ -23,7 +23,7 @@ const ProductsPageWrapper: React.FC<Props> = ({ data, bcms }) => {
     return (
         <ContextWrapper>
             <InnerPageWrapper bcms={bcms}>
-                <div className="container pb-14 md:pb-20 lg:pb-[136px]">
+                <div className="container bg-black/10 pb-14 md:pb-20 lg:pb-[136px]">
                     <Main
                         products={data.products}
                         genders={data.genders}

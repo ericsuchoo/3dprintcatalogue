@@ -18,7 +18,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ card, className, style
     return (
         <div 
             style={style} 
-            className={classNames('group flex flex-col h-full bg-white relative border border-transparent hover:border-gray-100 transition-all duration-300', className)}
+            className={classNames('group flex flex-col h-full bg-black/90 relative border border-transparent hover:border-gray-100 transition-all duration-300', className)}
             title={card.title}
         >
             <button 
@@ -26,7 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ card, className, style
                     e.preventDefault();
                     toggleFavorite(productID);
                 }}
-                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:scale-110 active:scale-95 transition-all"
+                className="absolute top-4 right-4 z-30 p-2.5 bg-white/10 backdrop-blur-sm rounded-full shadow-md hover:scale-110 active:scale-95 transition-all"
             >
                 <svg 
                     className={classNames("w-5 h-5 transition-colors", isFavorite ? "fill-red-500 stroke-red-500" : "fill-none stroke-black")}

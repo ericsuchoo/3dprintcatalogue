@@ -19,7 +19,7 @@ export const Gallery: React.FC<Props> = ({ gallery, activeColor }) => {
     });
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 ">
             {images.map((item, index) => {
                 // Priorizamos la URL de Cloudflare si existe
                 const imageUrl = (item as any).cloudflare_url || item.image.url;

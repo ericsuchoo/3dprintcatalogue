@@ -36,9 +36,9 @@ export const HomeProducts: React.FC<{ products: ProductLite[]; filters: any; bcm
     }, [products, activeFilters]);
 
     return (
-        <section className="bg-white py-12">
+        <section className="bg-black py-12">
             <div className="container mx-auto">
-                <div className="flex flex-wrap justify-center gap-4 mb-12 max-w-[1200px] mx-auto px-4">
+                <div className="flex flex-wrap justify-center gap-4 mb-12 max-w-[1200px] mx-auto px-4 ">
                     {allFilters.map((f) => (
                         <FormCheck 
                             key={f.value}
