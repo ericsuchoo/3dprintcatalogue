@@ -1,151 +1,90 @@
 import React, { useMemo, useState } from 'react';
-import type {
-    ProductColorEntry,
-    ProductEntryMetaItem,
-} from '../../../../bcms/types/ts';
-import { BCMSContentManager } from '@thebcms/components-react';
 import classNames from 'classnames';
+import { BCMSContentManager } from '@thebcms/components-react';
 import { useFavorites } from '../../../context/FavoritesContext';
 
 interface Props {
-    meta: ProductEntryMetaItem;
-    activeColor: ProductColorEntry;
-    colorChange: (color: ProductColorEntry) => void;
+    meta: any;
+    activeColor: any;
+    colorChange: (color: any) => void;
 }
 
 export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => {
-    const [selectedSize, setSelectedSize] = useState<string>('');
-    const [showNotify, setShowNotify] = useState(false);
-    
+    const [selectedSize, setSelectedSize] = useState<string>(meta.sizes?.[0]?.size.meta.en.title || '');
     const { favorites, toggleFavorite } = useFavorites();
 
-    // ID para favoritos: usamos el model_id si existe, si no el slug
-    const modelId = (meta as any).model_id || '';
-    const favoriteId = modelId || meta.slug;
+    const favoriteId = meta.model_id || meta.slug;
     const isFavorite = favorites.includes(favoriteId);
 
-    const handleFavoriteClick = () => {
-        toggleFavorite(favoriteId);
-        if (!isFavorite) {
-            setShowNotify(true);
-            setTimeout(() => setShowNotify(false), 3000);
-        }
-    };
-
-    // --- Lógica de Tallas ---
-    const availableSizesMap = useMemo(() => {
-        const map: Record<string, boolean> = {};
-        meta.sizes?.forEach((s: any) => {
-            if (s.size?.meta?.en?.title) {
-                map[s.size.meta.en.title.toUpperCase()] = s.available;
-            }
-        });
-        return map;
-    }, [meta.sizes]);
-
-    const displaySizes = useMemo(() => {
-        return meta.sizes?.map((s: any) => s.size.meta.en.title.toUpperCase()) || [];
-    }, [meta.sizes]);
-
-    // --- Lógica de Descripción ---
-    const descriptionNodes = useMemo(() => {
-        const desc = meta.description as any;
-        if (!desc) return [];
-        return desc.en?.nodes || desc.nodes || (Array.isArray(desc.en) ? desc.en : desc);
-    }, [meta.description]);
+    const uniqueVersions = useMemo(() => {
+        if (!meta.gallery) return [];
+        return meta.gallery
+            .map((item: any) => item.version || item.color)
+            .filter((v: any, i: number, self: any[]) => 
+                v && self.findIndex(t => t?.meta.en?.slug === v.meta.en?.slug) === i
+            );
+    }, [meta.gallery]);
 
     return (
-        <div className="flex flex-col relative">
-            {/* NOTIFICACIÓN */}
-            {showNotify && (
-                <div className="fixed top-24 right-5 md:right-10 z-[60] bg-black text-white px-6 py-4 shadow-2xl border-l-4 border-red-500 animate-fade-in-down">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xl">❤️</span>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest">Añadido a favoritos</p>
-                            <p className="text-xs italic opacity-80 uppercase">{meta.title}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* CABECERA */}
-            <div className="flex items-start justify-between mb-1">
-                <h1 className="text-3xl font-bold uppercase italic tracking-tighter text-black">
+        /* AJUSTE DE ALINEACIÓN Y ESCALA:
+           - lg:mt-24: Para bajar el bloque junto con el carrusel.
+           - lg:pt-[4%]: Este es el "ajuste fino" para que el título baje y se alinee con la imagen.
+           - max-w-md: Para que no se vea gigante en monitores grandes.
+        */
+        <div className="flex flex-col relative p-6 lg:p-8 lg:pt-[4%] bg-white mt-10 lg:mt-24 lg:max-w-md mx-auto lg:ml-0">
+            
+            {/* HEADER: TAMAÑO REDUCIDO Y ALINEADO */}
+            <div className="flex flex-col mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold uppercase italic tracking-tighter leading-tight text-black mb-3">
                     {meta.title}
                 </h1>
-                <div className="text-2xl font-light text-black">${meta.price}</div>
-            </div>
-
-            <div className="text-[10px] font-medium text-gray-500 mb-8 uppercase tracking-widest">
-                { (meta as any).units_sold || '0' } Unidades en catálogo
-            </div>
-
-            {/* SELECTOR DE TALLAS */}
-            <div className="mb-8">
-                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50">
-                    Escalas / Tallas Disponibles
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                    <span className="text-[9px] font-medium text-zinc-400 uppercase tracking-widest">
+                        Ref: { meta.model_id || '3D-DC' }
+                    </span>
+                    <span className="text-xl font-light text-black">${meta.price?.toFixed(2)}</span>
                 </div>
+            </div>
+
+            {/* SELECCIÓN DE ESCALA */}
+            <div className="mb-8">
+                <p className="text-[8px] font-black uppercase tracking-[2px] mb-3 text-zinc-400">Escala Disponible</p>
                 <div className="flex flex-wrap gap-2">
-                    {displaySizes.map((sizeLabel) => {
-                        const isAvailable = availableSizesMap[sizeLabel];
-                        return (
-                            <button
-                                key={sizeLabel}
-                                disabled={!isAvailable}
-                                onClick={() => setSelectedSize(sizeLabel)}
-                                className={classNames(
-                                    "px-4 h-10 border flex items-center justify-center text-[10px] font-bold transition-all duration-200",
-                                    selectedSize === sizeLabel
-                                        ? "bg-black text-white border-black"
-                                        : isAvailable
-                                        ? "border-gray-200 hover:border-black text-black bg-white"
-                                        : "bg-gray-100 border-gray-100 text-gray-400 cursor-not-allowed italic"
-                                )}
-                            >
-                                {sizeLabel}
-                            </button>
-                        );
-                    })}
+                    {meta.sizes?.map((s: any, i: number) => (
+                        <button
+                            key={i}
+                            disabled={!s.available}
+                            onClick={() => setSelectedSize(s.size.meta.en.title)}
+                            className={classNames(
+                                "w-10 h-10 border flex items-center justify-center text-[10px] font-bold transition-all duration-300",
+                                selectedSize === s.size.meta.en.title 
+                                    ? "bg-black text-white border-black" 
+                                    : "border-zinc-200 text-zinc-600 hover:border-black"
+                            )}
+                        >
+                            {s.size.meta.en.title}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* SELECCIÓN DE VERSIÓN (RESTAURADO) */}
+            {/* SELECCIÓN DE VERSIÓN */}
             <div className="mb-8">
-                <div className="text-[10px] font-black uppercase tracking-[2px] mb-4 opacity-50 text-black">
-                    Seleccionar Versión
-                </div>
-                <div className="flex flex-col gap-2">
-                    {meta.gallery?.map((item: any, index: number) => {
-                        const version = item.version || item.color;
-                        if (!version) return null;
-                        const isActive = activeColor?.meta.en?.slug === version.meta.en?.slug;
-                        
+                <p className="text-[8px] font-black uppercase tracking-[2px] mb-3 text-zinc-400">Versión del Modelo</p>
+                <div className="grid grid-cols-1 gap-1.5">
+                    {uniqueVersions.map((v: any, i: number) => {
+                        const isActive = activeColor?.meta.en.slug === v.meta.en.slug;
                         return (
                             <button
-                                key={index}
-                                onClick={() => colorChange(version)}
+                                key={i}
+                                onClick={() => colorChange(v)}
                                 className={classNames(
-                                    "group flex items-center justify-between p-4 border transition-all duration-300",
-                                    isActive 
-                                        ? "bg-black text-white border-black" 
-                                        : "border-gray-200 hover:border-black bg-white text-black"
+                                    "flex items-center justify-between px-4 py-3 border text-[11px] transition-all duration-300",
+                                    isActive ? "bg-black text-white border-black" : "border-zinc-100 bg-white text-zinc-800 hover:border-zinc-400"
                                 )}
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className={classNames(
-                                        "w-2 h-2 rounded-full",
-                                        isActive ? "bg-white" : "bg-gray-300 group-hover:bg-black"
-                                    )} />
-                                    <span className="text-sm font-bold uppercase tracking-tight">
-                                        {version.meta.en?.title}
-                                    </span>
-                                </div>
-                                {isActive && (
-                                    <span className="text-[9px] font-black opacity-70 italic tracking-widest">
-                                        ACTIVO
-                                    </span>
-                                )}
+                                <span className="font-bold uppercase tracking-tight">{v.meta.en.title}</span>
+                                {isActive && <div className="w-1 h-1 bg-white rounded-full animate-pulse" />}
                             </button>
                         );
                     })}
@@ -153,39 +92,25 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
             </div>
 
             {/* BOTONES DE ACCIÓN */}
-            <div className="flex flex-col gap-2 mb-12">
+            <div className="flex flex-col gap-2 mb-8">
+                <button className="w-full bg-black text-white py-4 font-bold uppercase text-[10px] tracking-[2px] hover:bg-zinc-800 transition-colors">
+                    Comprar Ahora
+                </button>
                 <button 
-                    onClick={handleFavoriteClick}
+                    onClick={() => toggleFavorite(favoriteId)}
                     className={classNames(
-                        "w-full py-4 font-bold uppercase text-sm transition-all duration-300 flex items-center justify-center gap-2 tracking-[0.1em]",
-                        isFavorite ? "bg-red-500 text-white" : "bg-black text-white hover:bg-gray-900"
+                        "w-full py-4 font-bold uppercase text-[10px] tracking-[2px] border transition-colors",
+                        isFavorite ? "bg-red-500 border-red-500 text-white" : "border-black text-black hover:bg-black hover:text-white"
                     )}
                 >
-                    {isFavorite ? '❤️ EN MIS FAVORITOS' : '♡ AGREGAR A FAVORITOS'}
-                </button>
-                <button className="w-full border border-black py-4 font-bold uppercase text-sm hover:bg-black hover:text-white transition-all tracking-[0.1em] text-black">
-                    Añadir al carrito
+                    {isFavorite ? 'En Favoritos' : 'Añadir a Favoritos'}
                 </button>
             </div>
 
             {/* DESCRIPCIÓN */}
-            <div className="border-t border-gray-200 pt-8">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="text-[10px] font-black uppercase tracking-[2px] text-black">
-                        Descripción del modelo:
-                    </div>
-                    {modelId && (
-                        <span className="text-[10px] font-black bg-red-50 px-2 py-1 rounded text-red-500 border border-red-100 uppercase">
-                            {modelId}
-                        </span>
-                    )}
-                </div>
-                <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed uppercase font-Helvetica italic">
-                    {descriptionNodes.length > 0 ? (
-                        <BCMSContentManager items={descriptionNodes as any} />
-                    ) : (
-                        <p className="italic text-gray-400 text-xs">Sin descripción disponible.</p>
-                    )}
+            <div className="border-t border-zinc-100 pt-6">
+                <div className="prose prose-sm text-zinc-500 font-sans italic text-[10px] leading-snug tracking-tight">
+                    <BCMSContentManager items={meta.description.nodes as any} />
                 </div>
             </div>
         </div>

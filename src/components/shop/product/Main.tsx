@@ -41,9 +41,9 @@ export const Main: React.FC<Props> = ({ meta, otherProducts, bcms }) => {
             
             {otherProducts.length > 0 && (
                 <div className="mt-20">
-                    <div className="flex flex-col bg-red-50items-center gap-5 justify-between text-xl mb-8 lg:flex-row">
-                        <div className="font-bold">Others you may like</div>
-                        <a href="/shop" className="underline text-sm">See all</a>
+                    <div className="flex flex-col items-center gap-5 justify-between text-xl mb-8 lg:flex-row">
+                        <div className="font-bold">Otras Opciones Gloriosas</div>
+                        <a href="/shop" className="underline text-sm">ver </a>
                     </div>
                     <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {otherProducts.map((product, index) => (

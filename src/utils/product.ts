@@ -11,7 +11,7 @@ import type {
 } from '../../bcms/types/ts';
 
 export interface ProductLite {
-    _id: string; // Importante para tu lógica de favoritos previa
+    _id: string;
     title: string;
     slug: string;
     cover: PropMediaDataParsed;
@@ -30,38 +30,60 @@ export interface ProductLite {
 
 export function productToLite(product: ProductEntry): ProductLite {
     const meta = product.meta.en as ProductEntryMetaItem;
+
+    // 1. Galería estándar (se mantiene pura para evitar errores de tipos)
+    const gallery = meta.gallery || [];
+    const firstGalleryItem = gallery.length > 0 ? gallery[0] : null;
+
+    /**
+     * 2. OPTIMIZACIÓN SOLO PARA PORTADA:
+     * Usamos el Banner Card ligero para las miniaturas del catálogo.
+     */
+    const bannerCard = (meta as any).banner_card;
+    const optimizedCover = bannerCard || firstGalleryItem?.image;
+
     return {
         _id: product._id,
-        title: meta.title,
-        slug: meta.slug,
-        // Restauramos la ruta exacta de la imagen que usabas ayer
-        cover: meta.gallery[0].image,
-        cloudflare_cover: (meta.gallery[0] as any).cloudflare_url, 
-        price: meta.price,
+        title: meta.title || 'Sin título',
+        slug: meta.slug || '',
+        
+        cover: optimizedCover as PropMediaDataParsed,
+        cloudflare_cover: bannerCard ? undefined : (firstGalleryItem as any)?.cloudflare_url, 
+        
+        price: meta.price || 0,
         discounted_price: meta.discounted_price,
-        sizes: meta.sizes,
-        gender: meta.gender.meta.en as ProductGenderEntryMetaItem,
-        categories: meta.categories,
-        brand: meta.brand.meta.en as ProductBrandEntryMetaItem,
+        sizes: meta.sizes || [],
+
+        gender: (meta.gender?.meta?.en || { title: 'Otro', slug: 'otro' }) as ProductGenderEntryMetaItem,
+        categories: meta.categories || [],
+        brand: (meta.brand?.meta?.en || { title: 'Dino Cat 3D', slug: 'dino-cat' }) as ProductBrandEntryMetaItem,
+        
         units_sold: meta.units_sold || 0,
-        date: product.createdAt,
-        version: meta.gallery[0].version.meta.en as ProductColorEntryMetaItem,
-        gallery: meta.gallery.map(item => ({
+        date: product.createdAt || Date.now(),
+        version: (firstGalleryItem?.version?.meta?.en || { title: 'Estándar', slug: 'estandar' }) as ProductColorEntryMetaItem,
+
+        gallery: gallery.map(item => ({
             ...item,
             cloudflare_url: (item as any).cloudflare_url
         })),
     };
 }
 
+/**
+ * AQUÍ ESTÁ LA SOLUCIÓN:
+ * Añadimos el export que le falta a tu página de Favoritos
+ */
 export const productUtils = {
     all: async (): Promise<ProductLite[]> => {
         try {
-            // Usamos la plantilla "product" que ya confirmamos que responde
             const entries = (await bcmsPublic.entry.getAll('product')) as ProductEntry[];
             if (!entries) return [];
-            return entries.map(p => productToLite(p));
+            
+            return entries
+                .filter(p => p && p.meta && p.meta.en)
+                .map(p => productToLite(p));
         } catch (error) {
-            console.error("Error cargando productos:", error);
+            console.error("Error cargando productos para favoritos:", error);
             return [];
         }
     }
