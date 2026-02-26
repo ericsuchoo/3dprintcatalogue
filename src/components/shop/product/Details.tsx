@@ -16,6 +16,11 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
     const favoriteId = meta.model_id || meta.slug;
     const isFavorite = favorites.includes(favoriteId);
 
+    const currentSizeDescription = useMemo(() => {
+        const found = meta.sizes?.find((s: any) => s.size.meta.en.title === selectedSize);
+        return found?.size.meta.en.description_size || '';
+    }, [selectedSize, meta.sizes]);
+
     const uniqueVersions = useMemo(() => {
         if (!meta.gallery) return [];
         return meta.gallery
@@ -26,51 +31,27 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
     }, [meta.gallery]);
 
     return (
-        /* AJUSTE DE ALINEACIÓN Y ESCALA:
-           - lg:mt-24: Para bajar el bloque junto con el carrusel.
-           - lg:pt-[4%]: Este es el "ajuste fino" para que el título baje y se alinee con la imagen.
-           - max-w-md: Para que no se vea gigante en monitores grandes.
-        */
-        <div className="flex flex-col relative p-6 lg:p-8 lg:pt-[4%] bg-white mt-10 lg:mt-24 lg:max-w-md mx-auto lg:ml-0">
-            
-            {/* HEADER: TAMAÑO REDUCIDO Y ALINEADO */}
-            <div className="flex flex-col mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold uppercase italic tracking-tighter leading-tight text-black mb-3">
+        /* lg:ml-auto empuja el cuadro a la derecha. lg:mr-0 quita margen derecho 'rgba(255, 0, 0, 0.93)'*/
+        <div 
+            className="flex flex-col relative p-6 lg:p-8 lg:pt-[5%] mt-10 lg:mt-24 lg:max-w-md mx-auto lg:ml-auto lg:mr-20"
+           style={{ background: 'rgba(255, 255, 255, 0.93)'}}
+        >
+            <div className="flex flex-col mb-2">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tighter leading-tight text-black mb-1
+                [text-shadow:_-2px_-2px_0_#fff,_2px_-2px_0_#fff,_-2px_2px_0_#fff drop-shadow-[2px_2px_2px_rgba(255,0,0,1)] "
+                 style={{ textAlign:'center',fontFamily: 'Voga-Medium, sans-serif', background: 'rgb(255, 255, 255)' ,}}>
                     {meta.title}
                 </h1>
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-                    <span className="text-[9px] font-medium text-zinc-400 uppercase tracking-widest">
+                <div className="flex items-center justify-between border-b border-zinc-10 pb-4">
+                    <span className="text-[10px] font-medium text-black uppercase tracking-widest">
                         Ref: { meta.model_id || '3D-DC' }
                     </span>
                     <span className="text-xl font-light text-black">${meta.price?.toFixed(2)}</span>
                 </div>
             </div>
 
-            {/* SELECCIÓN DE ESCALA */}
-            <div className="mb-8">
-                <p className="text-[8px] font-black uppercase tracking-[2px] mb-3 text-zinc-400">Escala Disponible</p>
-                <div className="flex flex-wrap gap-2">
-                    {meta.sizes?.map((s: any, i: number) => (
-                        <button
-                            key={i}
-                            disabled={!s.available}
-                            onClick={() => setSelectedSize(s.size.meta.en.title)}
-                            className={classNames(
-                                "w-10 h-10 border flex items-center justify-center text-[10px] font-bold transition-all duration-300",
-                                selectedSize === s.size.meta.en.title 
-                                    ? "bg-black text-white border-black" 
-                                    : "border-zinc-200 text-zinc-600 hover:border-black"
-                            )}
-                        >
-                            {s.size.meta.en.title}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* SELECCIÓN DE VERSIÓN */}
-            <div className="mb-8">
-                <p className="text-[8px] font-black uppercase tracking-[2px] mb-3 text-zinc-400">Versión del Modelo</p>
+            <div className="mb-1">
+                <p className="text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">Versión del Modelo</p>
                 <div className="grid grid-cols-1 gap-1.5">
                     {uniqueVersions.map((v: any, i: number) => {
                         const isActive = activeColor?.meta.en.slug === v.meta.en.slug;
@@ -79,23 +60,47 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                                 key={i}
                                 onClick={() => colorChange(v)}
                                 className={classNames(
-                                    "flex items-center justify-between px-4 py-3 border text-[11px] transition-all duration-300",
-                                    isActive ? "bg-black text-white border-black" : "border-zinc-100 bg-white text-zinc-800 hover:border-zinc-400"
+                                    "flex items-center justify-between px-4 py-1 border text-[11px] transition-all duration-300",
+                                    isActive ? "bg-white text-black border-black" : "border-zinc-100 bg-black text-white hover:border-zinc-400"
                                 )}
                             >
                                 <span className="font-bold uppercase tracking-tight">{v.meta.en.title}</span>
-                                {isActive && <div className="w-1 h-1 bg-white rounded-full animate-pulse" />}
+                                {isActive && <div className="w-1 h-1 bg-black rounded-full animate-pulse" />}
                             </button>
                         );
                     })}
                 </div>
             </div>
 
-            {/* BOTONES DE ACCIÓN */}
-            <div className="flex flex-col gap-2 mb-8">
-                <button className="w-full bg-black text-white py-4 font-bold uppercase text-[10px] tracking-[2px] hover:bg-zinc-800 transition-colors">
-                    Comprar Ahora
-                </button>
+            <div className="mb-8">
+                <p className="text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">Escala Disponible</p>  
+                   {currentSizeDescription && (
+                    <div className="animate-fadeIn">
+                        <p className="text-[12px] font-medium text-black italic  px-2 py-1 border-l-2 border-zinc-200"style={{ background: 'rgba(255, 255, 255, 0)' }}>
+                            {currentSizeDescription}
+                        </p>
+                    </div>
+                )}
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {meta.sizes?.map((s: any, i: number) => (
+                        <button
+                            key={i}
+                            disabled={!s.available}
+                            onClick={() => setSelectedSize(s.size.meta.en.title)}
+                            className={classNames(
+                                "w-10 h-10 border flex items-center justify-center text-[10px] font-bold transition-all duration-300",
+                                selectedSize === s.size.meta.en.title ? "bg-white text-black border-black" : " bg-black border-zinc-200 text-white hover:border-black"
+                            )}
+                        >
+                            {s.size.meta.en.title}
+                        </button>
+                    ))}
+                </div>
+                
+           
+            </div>
+
+            <div className="flex flex-col gap-2 mb-8"style={{ background: 'rgba(255, 255, 255, 0.92)' }}>
                 <button 
                     onClick={() => toggleFavorite(favoriteId)}
                     className={classNames(
@@ -107,9 +112,8 @@ export const Details: React.FC<Props> = ({ meta, activeColor, colorChange }) => 
                 </button>
             </div>
 
-            {/* DESCRIPCIÓN */}
-            <div className="border-t border-zinc-100 pt-6">
-                <div className="prose prose-sm text-zinc-500 font-sans italic text-[10px] leading-snug tracking-tight">
+            <div className="border-t border-zinc-100 pt-1 ">
+                <div className="prose prose-sm text-black font-sans italic text-[13px] leading-snug tracking-tight">
                     <BCMSContentManager items={meta.description.nodes as any} />
                 </div>
             </div>
