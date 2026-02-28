@@ -15,7 +15,7 @@ export const Btn: React.FC<BtnProps> = ({ to, theme, label, ...rest }) => {
         'relative flex items-center px-8 py-4 rounded-[40px] focus:outline-none transition-all duration-300 hover:brightness-110 hover:shadow-lg font-Helvetica',
         {
             'bg-appAccent-darkGreen text-white': theme === 'dark-green',
-            'bg-appAccent-lightGreen text-appText': theme === 'light-green',
+            'bg-appAccent-lightGreen text-appText': theme === 'dark-green',
             'bg-appAccent-orange text-white': theme === 'orange',
         },
     );
