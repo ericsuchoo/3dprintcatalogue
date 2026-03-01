@@ -1,8 +1,6 @@
 ---
 import type {
     HomeEntry,
-    HomeEntryMetaItem,
-    ProductCategoryEntry,
     ProductCategoryEntryMetaItem,
     ProductEntry,
     ProductGenderEntryMetaItem,
@@ -17,60 +15,62 @@ import { bcmsPublic } from '../bcms-public';
 // 1. Obtenemos la entrada de la Home
 const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
 
-// 2. Extraemos el meta. Usamos 'as any' para acceder a 'logo_dc3' 
-// sin que TypeScript bloquee la compilación si el tipo no se ha actualizado.
+// 2. Extraemos el meta (con any para evitar bloqueos por el logo personalizado)
 const homeMeta = home.meta.en as any;
 
-// 3. Obtenemos productos y los convertimos a versión ligera
+// 3. Obtenemos productos y géneros
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
+const genderEntries = await bcmsPrivate.entry.getAll('product-gender');
 
-// 4. Procesamos categorías
-const categories = (
-    (await bcmsPrivate.entry.getAll('product-category')) as ProductCategoryEntry[]
-).map((e) => {
+// 4. Procesamos GÉNEROS (Inyectados en la variable 'categories' para el Wrapper)
+const categories = (genderEntries as any[]).map((e) => {
+    const meta = e.meta.en;
+    
+    // Filtramos productos que pertenecen a este género específicamente
+    const productsInGender = products.filter((p) => 
+        p.meta?.en?.gender?._id === e._id
+    );
+
+    // Buscamos una imagen de respaldo (fallback) del primer producto del género
+    const fallbackImage = productsInGender[0]?.meta?.en?.gallery?.[0];
+
     return {
-        meta: e.meta.en as ProductCategoryEntryMetaItem,
-        productsCount: products.filter((p) =>
-            p.meta?.en?.categories.find((i) => i._id === e._id),
-        ).length,
+        meta: {
+            ...meta,
+            // CORRECCIÓN ts(2322): Aseguramos que gallery nunca sea undefined
+            gallery: meta.gallery && meta.gallery.length > 0 
+                ? meta.gallery 
+                : (fallbackImage ? [fallbackImage] : [])
+        },
+        productsCount: productsInGender.length,
     };
-});
+}).filter(item => item.meta.gallery.length > 0); // Evitamos que items sin imagen rompan el sitio
 
-// 5. Configuramos filtros para la tienda
+// 5. Configuramos filtros para la tienda (Consolidando Categorías y Géneros)
 const filters = {
-    categories: products.slice(0, 8).reduce((acc, e) => {
+    categories: products.reduce((acc, e) => {
         e.meta.en?.categories.forEach((i) => {
-            if (
-                i.meta.en &&
-                !acc.find((c) => c.slug === i.meta.en?.slug) &&
-                categories.find((c) => c.meta.slug === i.meta.en?.slug)
-            ) {
+            if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
                 acc.push(i.meta.en);
             }
         });
         return acc;
     }, [] as ProductCategoryEntryMetaItem[]),
-    genders: products.slice(0, 8).reduce((acc, e) => {
-        if (
-            e.meta.en?.gender.meta.en &&
-            !acc.find((i) => i.slug === e.meta.en?.gender.meta.en?.slug)
-        ) {
-            acc.push(e.meta.en.gender.meta.en);
-        }
-        return acc;
-    }, [] as ProductGenderEntryMetaItem[]),
+    
+    genders: (genderEntries as any[]).map(e => e.meta.en as ProductGenderEntryMetaItem),
 };
 
 const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} |  3D`}>
+<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
     <HomePageWrapper
         client:load
         bcms={clientConfig}
         meta={homeMeta}
-        categories={categories}
+     
+        categories={categories as any}
         products={productsLite}
         filters={filters}
     />

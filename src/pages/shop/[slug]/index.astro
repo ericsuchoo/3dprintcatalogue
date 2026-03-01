@@ -1,10 +1,6 @@
 ---
-import type {
-    ProductEntry,
-    ProductEntryMetaItem,
-} from '../../../../bcms/types/ts';
+import type { ProductEntry, ProductEntryMetaItem } from '../../../../bcms/types/ts';
 import { productToLite } from '../../../utils/product';
-
 import Layout from '../../../layouts/Layout.astro';
 import ProductPageWrapper from '../../../components/shop/product/PageWrapper';
 import { bcmsPrivate } from '../../../bcms-private';
@@ -13,20 +9,25 @@ import { bcmsPublic } from '../../../bcms-public';
 export async function getStaticPaths() {
     const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
     return products.map((e) => ({
-        params: {
-            slug: e.meta.en?.slug || '',
-        },
+        params: { slug: e.meta.en?.slug || '' },
     }));
 }
 
 const { slug } = Astro.params;
-
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
-const meta = products.find((e) => e.meta.en?.slug === slug)?.meta
-    .en as ProductEntryMetaItem;
+const entry = products.find((e) => e.meta.en?.slug === slug);
+
+if (!entry || !entry.meta.en) return Astro.redirect('/404');
+
+// Procesamos el producto para obtener la galería inyectada
+const productLite = productToLite(entry);
 
 const data = {
-    meta,
+    // FUSIONAMOS: Mantenemos todos los nodos originales pero inyectamos la galería rápida
+    meta: {
+        ...entry.meta.en,
+        gallery: productLite.gallery,
+    },
     otherProducts: products
         .filter((e) => e.meta.en?.slug !== slug)
         .map((e) => productToLite(e))
@@ -37,6 +38,6 @@ const data = {
 const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`${meta.title} - Moda`}>
+<Layout title={`${productLite.title} - Dino Cat 3D`}>
     <ProductPageWrapper client:load data={data} bcms={clientConfig} />
 </Layout>
