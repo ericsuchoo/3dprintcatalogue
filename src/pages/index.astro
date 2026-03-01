@@ -1,104 +1,102 @@
 ---
+// 1. FORZAR MODO SERVIDOR (Vital para D1)
 export const prerender = false;
+
+import type {
+    HomeEntry,
+    ProductCategoryEntryMetaItem,
+    ProductEntry,
+} from '../../bcms/types/ts';
+import { productToLite } from '../utils/product';
 
 import Layout from '../layouts/Layout.astro';
 import HomePageWrapper from '../components/home-page/PageWrapper';
+import { bcmsPrivate } from '../bcms-private';
+import { bcmsPublic } from '../bcms-public';
 
-// 1. DEFINICIÓN DE INTERFACES
+// 2. Interfaz para Personajes D1
 interface PersonajeD1 {
-    id_universo: number;
     id_personaje: number;
     nombre_personaje: string;
     img_personaje: string;
-}
-
-interface ProductoD1 {
-    id_producto: number;
-    nombre_producto: string;
-    precio: number;
-    descuento: number;
-    img_producto: string;
-    id_personaje: number;
     id_universo: number;
 }
 
-// 2. CONEXIÓN A D1 (Extracción segura)
+// 3. CONEXIÓN CORREGIDA (Evitamos el error ts(2339))
+// Usamos 'as any' para que el build de Astro no se detenga por tipos
 const runtime = (Astro.locals as any).runtime;
 const DB = runtime?.env?.DB;
 
+// 4. Obtención de datos de BCMS
+const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
+const homeMeta = home.meta.en as any;
+
+const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
+const productsLite = products.map((e) => productToLite(e));
+
+// 5. CONSULTA SQL SEGURA
 let personajesD1: PersonajeD1[] = [];
-let productosD1: ProductoD1[] = [];
 
 if (DB) {
     try {
-        const charRes = await DB.prepare("SELECT * FROM personajes").all();
-        personajesD1 = (charRes.results as any) || [];
-
-        const prodRes = await DB.prepare("SELECT * FROM productos").all();
-        productosD1 = (prodRes.results as any) || [];
+        const { results } = await DB.prepare("SELECT * FROM personajes").all();
+        personajesD1 = (results || []) as unknown as PersonajeD1[];
     } catch (e) {
-        console.error("Error consultando D1:", e);
+        console.error("Error en la consulta D1:", e);
     }
 }
 
-// 3. MAPEO DE DATOS UNIFICADO
-const categories = personajesD1.map((p: PersonajeD1) => {
-    const productsForThisChar = productosD1.filter((prod: ProductoD1) => prod.id_personaje === p.id_personaje);
-    
+// 6. Mapeo de Personajes D1 a Categorías
+const categories = personajesD1.map((p) => {
+    const productsWithThisChar = products.filter((prod) => {
+        const pMeta = prod.meta?.en as any;
+        return (
+            pMeta?.nom_personaje_filt?._id === p.id_personaje.toString() ||
+            pMeta?.nom_personaje_filt?.title === p.nombre_personaje
+        );
+    });
+
+    const fallbackImage = productsWithThisChar[0]?.meta?.en?.gallery?.[0];
+
     return {
         meta: {
             title: p.nombre_personaje,
             slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-'),
-            // Estructura de galería compatible con el componente React
-            gallery: [
-                { 
-                    src: p.img_personaje || '/placeholder.webp', 
-                    alt: p.nombre_personaje 
-                }
-            ]
+            gallery: p.img_personaje 
+                ? [{ src: p.img_personaje, alt: p.nombre_personaje }] 
+                : (fallbackImage ? [fallbackImage] : [])
         },
-        productsCount: productsForThisChar.length,
+        productsCount: productsWithThisChar.length,
     };
-});
+}).filter(item => item.meta.gallery.length > 0);
 
-const productsLite = productosD1.map((p: ProductoD1) => ({
-    title: p.nombre_producto,
-    slug: p.nombre_producto.toLowerCase().replace(/\s+/g, '-'),
-    price: p.precio,
-    discount: p.descuento || 0,
-    thumbnail: {
-        src: p.img_producto || '/placeholder.webp',
-        alt: p.nombre_producto
-    }
-}));
-
-// 4. CONFIGURACIÓN DE MOCK PARA EL WRAPPER
-const clientConfig = { apiKey: 'd1-only' }; 
-const homeMeta = { 
-    title: 'Catálogo 3D', 
-    seo: { title: 'DC Impresiones 3D | Tienda de Coleccionables' },
-    // Mock del Hero para que la parte superior de la web no salga vacía
-    hero: { 
-        title: 'Tu colección cobra vida', 
-        subtitle: 'Modelos coleccionables de alta calidad impresos en 3D',
-        gallery: categories.length > 0 ? categories[0].meta.gallery : [] 
-    }
-};
-
-// Mock de filtros para que el componente de búsqueda funcione
+// 7. Filtros para la UI
 const filters = {
-    categories: categories.map(c => ({ title: c.meta.title, slug: c.meta.slug })),
-    genders: [] 
+    categories: products.reduce((acc, e) => {
+        e.meta.en?.categories.forEach((i) => {
+            if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
+                acc.push(i.meta.en);
+            }
+        });
+        return acc;
+    }, [] as ProductCategoryEntryMetaItem[]),
+    
+    genders: personajesD1.map(p => ({
+        title: p.nombre_personaje,
+        slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-')
+    })),
 };
+
+const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title="Catálogo 3D | DC Impresiones">
+<Layout title={`${homeMeta.seo?.title || homeMeta.title} | DC Impresiones 3D`}>
     <HomePageWrapper
         client:load
-        bcms={clientConfig as any}
-        meta={homeMeta as any}
+        bcms={clientConfig}
+        meta={homeMeta}
         categories={categories as any}
-        products={productsLite as any}
+        products={productsLite}
         filters={filters as any}
     />
 </Layout>
