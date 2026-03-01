@@ -1,102 +1,84 @@
 ---
-// 1. FORZAR MODO SERVIDOR (Vital para D1)
 export const prerender = false;
-
-import type {
-    HomeEntry,
-    ProductCategoryEntryMetaItem,
-    ProductEntry,
-} from '../../bcms/types/ts';
-import { productToLite } from '../utils/product';
 
 import Layout from '../layouts/Layout.astro';
 import HomePageWrapper from '../components/home-page/PageWrapper';
-import { bcmsPrivate } from '../bcms-private';
-import { bcmsPublic } from '../bcms-public';
 
-// 2. Interfaz para Personajes D1
+// 1. DEFINICIÓN DE INTERFACES (Para que TypeScript no dé error)
 interface PersonajeD1 {
+    id_universo: number;
     id_personaje: number;
     nombre_personaje: string;
     img_personaje: string;
+}
+
+interface ProductoD1 {
+    id_producto: number;
+    nombre_producto: string;
+    precio: number;
+    descuento: number;
+    img_producto: string;
+    id_personaje: number;
     id_universo: number;
 }
 
-// 3. CONEXIÓN CORREGIDA (Evitamos el error ts(2339))
-// Usamos 'as any' para que el build de Astro no se detenga por tipos
+// 2. CONEXIÓN A D1
 const runtime = (Astro.locals as any).runtime;
 const DB = runtime?.env?.DB;
 
-// 4. Obtención de datos de BCMS
-const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
-const homeMeta = home.meta.en as any;
-
-const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
-const productsLite = products.map((e) => productToLite(e));
-
-// 5. CONSULTA SQL SEGURA
 let personajesD1: PersonajeD1[] = [];
+let productosD1: ProductoD1[] = [];
 
 if (DB) {
     try {
-        const { results } = await DB.prepare("SELECT * FROM personajes").all();
-        personajesD1 = (results || []) as unknown as PersonajeD1[];
+        const charRes = await DB.prepare("SELECT * FROM personajes").all();
+        personajesD1 = (charRes.results as any) || [];
+
+        const prodRes = await DB.prepare("SELECT * FROM productos").all();
+        productosD1 = (prodRes.results as any) || [];
     } catch (e) {
-        console.error("Error en la consulta D1:", e);
+        console.error("Error consultando D1:", e);
     }
 }
 
-// 6. Mapeo de Personajes D1 a Categorías
-const categories = personajesD1.map((p) => {
-    const productsWithThisChar = products.filter((prod) => {
-        const pMeta = prod.meta?.en as any;
-        return (
-            pMeta?.nom_personaje_filt?._id === p.id_personaje.toString() ||
-            pMeta?.nom_personaje_filt?.title === p.nombre_personaje
-        );
-    });
-
-    const fallbackImage = productsWithThisChar[0]?.meta?.en?.gallery?.[0];
-
+// 3. MAPEO DE DATOS (Con tipos explícitos para evitar error ts(7006))
+const categories = personajesD1.map((p: PersonajeD1) => {
+    const productsForThisChar = productosD1.filter((prod: ProductoD1) => prod.id_personaje === p.id_personaje);
+    
     return {
         meta: {
             title: p.nombre_personaje,
             slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-'),
-            gallery: p.img_personaje 
-                ? [{ src: p.img_personaje, alt: p.nombre_personaje }] 
-                : (fallbackImage ? [fallbackImage] : [])
+            gallery: [{ src: p.img_personaje, alt: p.nombre_personaje }]
         },
-        productsCount: productsWithThisChar.length,
+        productsCount: productsForThisChar.length,
     };
-}).filter(item => item.meta.gallery.length > 0);
+});
 
-// 7. Filtros para la UI
-const filters = {
-    categories: products.reduce((acc, e) => {
-        e.meta.en?.categories.forEach((i) => {
-            if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
-                acc.push(i.meta.en);
-            }
-        });
-        return acc;
-    }, [] as ProductCategoryEntryMetaItem[]),
-    
-    genders: personajesD1.map(p => ({
-        title: p.nombre_personaje,
-        slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-')
-    })),
+const productsLite = productosD1.map((p: ProductoD1) => ({
+    title: p.nombre_producto,
+    slug: p.nombre_producto.toLowerCase().replace(/\s+/g, '-'),
+    price: p.precio,
+    discount: p.descuento || 0,
+    thumbnail: p.img_producto,
+}));
+
+// Configuración simulada para mantener compatibilidad con el componente React
+const clientConfig = { apiKey: 'd1-only' }; 
+const homeMeta = { 
+    title: 'Catálogo 3D', 
+    seo: { title: 'DC Impresiones 3D | Tienda de Coleccionables' },
+    hero: { title: 'Tu colección cobra vida', gallery: [] } // Agregado para evitar warnings
 };
-
-const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} | DC Impresiones 3D`}>
+<Layout title="Catálogo 3D | DC Impresiones">
     <HomePageWrapper
         client:load
-        bcms={clientConfig}
-        meta={homeMeta}
+        bcms={clientConfig as any}
+        meta={homeMeta as any}
         categories={categories as any}
-        products={productsLite}
-        filters={filters as any}
+        products={productsLite as any}
+        filters={{ categories: [], genders: [] } as any}
     />
 </Layout>
