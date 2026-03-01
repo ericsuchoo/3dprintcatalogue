@@ -4,7 +4,7 @@ export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import HomePageWrapper from '../components/home-page/PageWrapper';
 
-// 1. DEFINICIÓN DE INTERFACES (Para que TypeScript no dé error)
+// 1. DEFINICIÓN DE INTERFACES
 interface PersonajeD1 {
     id_universo: number;
     id_personaje: number;
@@ -22,7 +22,7 @@ interface ProductoD1 {
     id_universo: number;
 }
 
-// 2. CONEXIÓN A D1
+// 2. CONEXIÓN A D1 (Extracción segura)
 const runtime = (Astro.locals as any).runtime;
 const DB = runtime?.env?.DB;
 
@@ -41,7 +41,7 @@ if (DB) {
     }
 }
 
-// 3. MAPEO DE DATOS (Con tipos explícitos para evitar error ts(7006))
+// 3. MAPEO DE DATOS UNIFICADO
 const categories = personajesD1.map((p: PersonajeD1) => {
     const productsForThisChar = productosD1.filter((prod: ProductoD1) => prod.id_personaje === p.id_personaje);
     
@@ -49,7 +49,13 @@ const categories = personajesD1.map((p: PersonajeD1) => {
         meta: {
             title: p.nombre_personaje,
             slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-'),
-            gallery: [{ src: p.img_personaje, alt: p.nombre_personaje }]
+            // Estructura de galería compatible con el componente React
+            gallery: [
+                { 
+                    src: p.img_personaje || '/placeholder.webp', 
+                    alt: p.nombre_personaje 
+                }
+            ]
         },
         productsCount: productsForThisChar.length,
     };
@@ -60,15 +66,29 @@ const productsLite = productosD1.map((p: ProductoD1) => ({
     slug: p.nombre_producto.toLowerCase().replace(/\s+/g, '-'),
     price: p.precio,
     discount: p.descuento || 0,
-    thumbnail: p.img_producto,
+    thumbnail: {
+        src: p.img_producto || '/placeholder.webp',
+        alt: p.nombre_producto
+    }
 }));
 
-// Configuración simulada para mantener compatibilidad con el componente React
+// 4. CONFIGURACIÓN DE MOCK PARA EL WRAPPER
 const clientConfig = { apiKey: 'd1-only' }; 
 const homeMeta = { 
     title: 'Catálogo 3D', 
     seo: { title: 'DC Impresiones 3D | Tienda de Coleccionables' },
-    hero: { title: 'Tu colección cobra vida', gallery: [] } // Agregado para evitar warnings
+    // Mock del Hero para que la parte superior de la web no salga vacía
+    hero: { 
+        title: 'Tu colección cobra vida', 
+        subtitle: 'Modelos coleccionables de alta calidad impresos en 3D',
+        gallery: categories.length > 0 ? categories[0].meta.gallery : [] 
+    }
+};
+
+// Mock de filtros para que el componente de búsqueda funcione
+const filters = {
+    categories: categories.map(c => ({ title: c.meta.title, slug: c.meta.slug })),
+    genders: [] 
 };
 ---
 
@@ -79,6 +99,6 @@ const homeMeta = {
         meta={homeMeta as any}
         categories={categories as any}
         products={productsLite as any}
-        filters={{ categories: [], genders: [] } as any}
+        filters={filters as any}
     />
 </Layout>
