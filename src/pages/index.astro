@@ -1,5 +1,5 @@
 ---
-// 1. FORZAR MODO SERVIDOR (Imprescindible para D1)
+// 1. FORZAR MODO SERVIDOR (Vital para D1)
 export const prerender = false;
 
 import type {
@@ -22,9 +22,9 @@ interface PersonajeD1 {
     id_universo: number;
 }
 
-// 3. CONEXIÓN BLINDADA A D1
-// Esta línea intenta todas las formas posibles de encontrar tu base de datos
-const runtime = Astro.locals.runtime || (Astro as any).locals?.runtime;
+// 3. CONEXIÓN CORREGIDA (Evitamos el error ts(2339))
+// Usamos 'as any' para que el build de Astro no se detenga por tipos
+const runtime = (Astro.locals as any).runtime;
 const DB = runtime?.env?.DB;
 
 // 4. Obtención de datos de BCMS
@@ -44,16 +44,12 @@ if (DB) {
     } catch (e) {
         console.error("Error en la consulta D1:", e);
     }
-} else {
-    // Si llegas aquí, es que el Binding 'DB' no está configurado en el panel de Cloudflare
-    console.warn("Binding DB no detectado");
 }
 
 // 6. Mapeo de Personajes D1 a Categorías
 const categories = personajesD1.map((p) => {
     const productsWithThisChar = products.filter((prod) => {
         const pMeta = prod.meta?.en as any;
-        // Comparamos por ID o por nombre exacto
         return (
             pMeta?.nom_personaje_filt?._id === p.id_personaje.toString() ||
             pMeta?.nom_personaje_filt?.title === p.nombre_personaje
