@@ -11,7 +11,7 @@ import HomePageWrapper from '../components/home-page/PageWrapper';
 import { bcmsPrivate } from '../bcms-private';
 import { bcmsPublic } from '../bcms-public';
 
-// Definimos la interfaz local para lo que devuelve D1
+// 1. Definimos la interfaz para que TypeScript no se queje
 interface PersonajeD1 {
     id_personaje: number;
     nombre_personaje: string;
@@ -19,26 +19,30 @@ interface PersonajeD1 {
     id_universo: number;
 }
 
-// --- CONEXIÓN D1 ---
-// Usamos el casting 'as any' o el tipo D1Database si ya configuraste env.d.ts
+// 2. CONEXIÓN D1 (Solo funciona en el servidor de Cloudflare)
 const { DB } = (Astro.locals as any).runtime.env;
 
-// 1. Datos de Home (BCMS)
+// 3. Datos de Home y Productos (BCMS)
 const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
 const homeMeta = home.meta.en as any;
 
-// 2. Productos (BCMS)
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 
-// 3. CONSULTA SQL
-const { results } = await DB.prepare("SELECT * FROM personajes").all();
-const personajesD1 = results as unknown as PersonajeD1[];
+// 4. CONSULTA SQL A TU NUEVA TABLA
+// Intentamos obtener los personajes de la base de datos D1
+let personajesD1: PersonajeD1[] = [];
+try {
+    const { results } = await DB.prepare("SELECT * FROM personajes").all();
+    personajesD1 = results as unknown as PersonajeD1[];
+} catch (e) {
+    console.error("Error al conectar con D1:", e);
+}
 
-// 4. Procesamiento de categorías
+// 5. Procesamiento de categorías (Convertimos personajes de D1 en categorías de la web)
 const categories = personajesD1.map((p) => {
     
-    // Filtramos productos de BCMS comparando con los datos de D1
+    // Filtramos productos de BCMS que pertenezcan a este personaje
     const productsWithThisChar = products.filter((prod) => {
         const pMeta = prod.meta?.en as any;
         return (
@@ -53,6 +57,7 @@ const categories = personajesD1.map((p) => {
         meta: {
             title: p.nombre_personaje,
             slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-'),
+            // Usamos la imagen de D1, si no hay, usamos la del primer producto de BCMS
             gallery: p.img_personaje 
                 ? [{ src: p.img_personaje, alt: p.nombre_personaje }] 
                 : (fallbackImage ? [fallbackImage] : [])
@@ -61,7 +66,7 @@ const categories = personajesD1.map((p) => {
     };
 }).filter(item => item.meta.gallery.length > 0);
 
-// 5. Filtros
+// 6. Configuración de Filtros
 const filters = {
     categories: products.reduce((acc, e) => {
         e.meta.en?.categories.forEach((i) => {
@@ -72,6 +77,7 @@ const filters = {
         return acc;
     }, [] as ProductCategoryEntryMetaItem[]),
     
+    // Usamos los nombres de personajes de D1 como filtro de "Género/Personaje"
     genders: personajesD1.map(p => ({
         title: p.nombre_personaje,
         slug: p.nombre_personaje.toLowerCase().replace(/\s+/g, '-')
@@ -81,7 +87,9 @@ const filters = {
 const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
+<Layout title={`${homeMeta.seo?.title || homeMeta.title} | DC Impresiones 3D`}>
+    <div style="display:none">Conexión D1 establecida con {personajesD1.length} personajes.</div>
+
     <HomePageWrapper
         client:load
         bcms={clientConfig}
