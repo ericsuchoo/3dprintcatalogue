@@ -1,77 +1,91 @@
 ---
+export const prerender = false;
+
 import type {
     HomeEntry,
     ProductCategoryEntryMetaItem,
     ProductEntry,
-    ProductGenderEntryMetaItem,
 } from '../../bcms/types/ts';
 import { productToLite } from '../utils/product';
-
 import Layout from '../layouts/Layout.astro';
 import HomePageWrapper from '../components/home-page/PageWrapper';
 import { bcmsPrivate } from '../bcms-private';
 import { bcmsPublic } from '../bcms-public';
 
-// 1. Obtenemos la entrada de la Home
+// 1. Datos de BCMS
 const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
-
-// 2. Extraemos el meta (con any para evitar bloqueos por el logo personalizado)
 const homeMeta = home.meta.en as any;
-
-// 3. Obtenemos productos y géneros
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
-const genderEntries = await bcmsPrivate.entry.getAll('product-gender');
 
-// 4. Procesamos GÉNEROS (Inyectados en la variable 'categories' para el Wrapper)
-const categories = (genderEntries as any[]).map((e) => {
-    const meta = e.meta.en;
-    
-    // Filtramos productos que pertenecen a este género específicamente
-    const productsInGender = products.filter((p) => 
-        p.meta?.en?.gender?._id === e._id
-    );
+// 2. OBTENER DATOS DE CLOUDFLARE D1 (DINÁMICO)
+const runtime = (Astro.locals as any).runtime;
+let universosDB: any[] = [];
 
-    // Buscamos una imagen de respaldo (fallback) del primer producto del género
-    const fallbackImage = productsInGender[0]?.meta?.en?.gallery?.[0];
+if (runtime?.env?.DB) {
+    try {
+        // Consultamos tu tabla real en la nube
+        const { results } = await runtime.env.DB.prepare("SELECT * FROM universos").all();
+        universosDB = results;
+    } catch (e) {
+        console.error("D1 Production Error:", e);
+    }
+}
+
+// 3. MAPEAR CATEGORÍAS BASADO EN D1
+const categories = universosDB.map((uni: any) => {
+    const productsInUniverso = products.filter((p: any) => {
+        const brandTitle = p.meta?.en?.brand?.meta?.en?.title;
+        const hasCategory = p.meta?.en?.categories?.some((cat: any) => 
+            cat.meta?.en?.title === uni.nombre_universo
+        );
+        return brandTitle === uni.nombre_universo || hasCategory;
+    });
 
     return {
         meta: {
-            ...meta,
-            // CORRECCIÓN ts(2322): Aseguramos que gallery nunca sea undefined
-            gallery: meta.gallery && meta.gallery.length > 0 
-                ? meta.gallery 
-                : (fallbackImage ? [fallbackImage] : [])
+            title: uni.nombre_universo,
+            slug: uni.nombre_universo.toLowerCase().trim().replace(/\s+/g, '-'),
+            gallery: [{
+                src: uni.img_universo, // URL de R2 desde tu D1
+                alt: uni.nombre_universo,
+                _id: `d1_${uni.id_universo}`,
+                name: uni.nombre_universo,
+                extension: "webp", 
+                width: 1000, 
+                height: 1000,
+            }]
         },
-        productsCount: productsInGender.length,
+        productsCount: productsInUniverso.length,
     };
-}).filter(item => item.meta.gallery.length > 0); // Evitamos que items sin imagen rompan el sitio
+});
 
-// 5. Configuramos filtros para la tienda (Consolidando Categorías y Géneros)
+// 4. Filtros Dinámicos
 const filters = {
     categories: products.reduce((acc, e) => {
-        e.meta.en?.categories.forEach((i) => {
-            if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
+        e.meta.en?.categories.forEach((i: any) => {
+            if (i.meta?.en && !acc.find((c: any) => c.slug === i.meta.en?.slug)) {
                 acc.push(i.meta.en);
             }
         });
         return acc;
     }, [] as ProductCategoryEntryMetaItem[]),
-    
-    genders: (genderEntries as any[]).map(e => e.meta.en as ProductGenderEntryMetaItem),
+    genders: universosDB.map((uni: any) => ({
+        title: uni.nombre_universo,
+        slug: uni.nombre_universo.toLowerCase().trim().replace(/\s+/g, '-')
+    })),
 };
 
 const clientConfig = bcmsPublic.getConfig();
 ---
-
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
+<Layout title={`${homeMeta?.seo?.title || homeMeta?.title} | 3D Shop`}>
     <HomePageWrapper
         client:load
         bcms={clientConfig}
         meta={homeMeta}
-     
         categories={categories as any}
         products={productsLite}
         filters={filters}
+        logo_dc3={homeMeta.logo_dc3 || homeMeta.hero_logo} 
     />
 </Layout>
