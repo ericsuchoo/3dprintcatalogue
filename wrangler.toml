@@ -1,5 +1,9 @@
-"d1_databases": [{
-    "binding": "DB",
-    "database_name": "dcimpress3d",
-    "database_id": "bc61bd9f-a493-443d-a859-7087b9c43b11"
- }]
+name = "3dprintcatalogue"
+pages_build_output_dir = "./dist"
+compatibility_flags = [ "nodejs_compat" ]
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dcimpress3d"
+database_id = "bc61bd9f-a493-443d-a859-7087b9c43b11"
