@@ -1,0 +1,20 @@
+---
+import Header from '../components/layout/Header';
+import { FavoritesProvider } from '../context/FavoritesContext';
+const { title = "3D Print Catalogue" } = Astro.props;
+---
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{title}</title>
+    </head>
+    <body>
+        <FavoritesProvider client:load>
+            <Header client:load />
+            <main>
+                <slot />
+            </main>
+        </FavoritesProvider>
+    </body>
+</html>
