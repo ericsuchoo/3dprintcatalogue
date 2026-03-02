@@ -1,0 +1,5 @@
+
+[[d1_databases]]
+binding = "DB" # Este nombre debe coincidir con el que uses en el código
+database_name = "dcimpress3d"
+database_id = "bc61bd9f-a493-443d-a859-7087b9c43b11"

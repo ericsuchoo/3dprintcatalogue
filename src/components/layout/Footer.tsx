@@ -7,10 +7,7 @@ export const Footer: React.FC = () => {
                     label: 'Shop',
                     to: '/shop',
                 },
-                {
-                    label: 'Blog',
-                    to: '/blog',
-                },
+               
             ],
         },
         {
