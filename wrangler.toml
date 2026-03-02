@@ -1,9 +1,9 @@
 name = "3dprintcatalogue"
 pages_build_output_dir = "./dist"
-compatibility_flags = [ "nodejs_compat" ]
-
+compatibility_flags = [ "nodejs_compat" ] # <-- AÑADE ESTA LÍNEA
+compatibility_date = "2026-03-02"         # <-- También añade esto para quitar el warning amarillo
 
 [[d1_databases]]
 binding = "DB"
 database_name = "dcimpress3d"
-database_id = "bc61bd9f-a493-443d-a859-7087b9c43b11"
+database_id = "bc61bd9f-7bea-430b-beca-644fec63eb1a"
