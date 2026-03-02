@@ -12,42 +12,66 @@ import HomePageWrapper from '../components/home-page/PageWrapper';
 import { bcmsPrivate } from '../bcms-private';
 import { bcmsPublic } from '../bcms-public';
 
-// 1. Obtenemos la entrada de la Home
-const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
+// 1. D1 Connection & Verification Logic
+const runtime = (Astro.locals as any).runtime;
+const DB = runtime?.env?.DB;
 
-// 2. Extraemos el meta (con any para evitar bloqueos por el logo personalizado)
+let d1Universos: any[] = [];
+
+if (DB) {
+    try {
+        const { results } = await DB.prepare("SELECT * FROM universos").all();
+        d1Universos = results || [];
+        console.log(`[D1 SUCCESS] Conectado a dcimpress3d. Registros: ${d1Universos.length}`);
+    } catch (error) {
+        console.error("[D1 DATABASE ERROR]", error);
+    }
+} else {
+    // Este es el mensaje que ves en tu captura: indica falta de entorno Wrangler
+    console.warn("[D1 WARN] No se detectó el binding 'DB'. Verifica tu wrangler.toml.");
+}
+
+// 2. Original BCMS Logic
+const home = (await bcmsPrivate.entry.getById('home', 'home')) as HomeEntry;
 const homeMeta = home.meta.en as any;
 
-// 3. Obtenemos productos y géneros
 const products = (await bcmsPrivate.entry.getAll('product')) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 const genderEntries = await bcmsPrivate.entry.getAll('product-gender');
 
-// 4. Procesamos GÉNEROS (Inyectados en la variable 'categories' para el Wrapper)
-const categories = (genderEntries as any[]).map((e) => {
+// 3. Process BCMS Categories
+const bcmsCategories = (genderEntries as any[]).map((e) => {
     const meta = e.meta.en;
-    
-    // Filtramos productos que pertenecen a este género específicamente
-    const productsInGender = products.filter((p) => 
-        p.meta?.en?.gender?._id === e._id
-    );
-
-    // Buscamos una imagen de respaldo (fallback) del primer producto del género
+    const productsInGender = products.filter((p) => p.meta?.en?.gender?._id === e._id);
     const fallbackImage = productsInGender[0]?.meta?.en?.gallery?.[0];
 
     return {
         meta: {
             ...meta,
-            // CORRECCIÓN ts(2322): Aseguramos que gallery nunca sea undefined
-            gallery: meta.gallery && meta.gallery.length > 0 
-                ? meta.gallery 
-                : (fallbackImage ? [fallbackImage] : [])
+            _id: e._id,
+            gallery: meta.gallery?.length > 0 ? meta.gallery : (fallbackImage ? [fallbackImage] : [])
         },
         productsCount: productsInGender.length,
     };
-}).filter(item => item.meta.gallery.length > 0); // Evitamos que items sin imagen rompan el sitio
+});
 
-// 5. Configuramos filtros para la tienda (Consolidando Categorías y Géneros)
+// 4. Map D1 Universos (Marvel, DC, SAD)
+const d1Categories = d1Universos.map((u) => ({
+    meta: {
+        _id: `d1-${u.id_universo}`, // ID único para evitar error de consola
+        title: u.nombre_universo,
+        slug: `d1-${u.nombre_universo.toLowerCase().replace(/\s+/g, '-')}`,
+        gallery: [{
+            src: u.img_universo,
+            alt: u.nombre_universo
+        }]
+    },
+    productsCount: 0 
+}));
+
+// 5. Merge and Filter
+const categories = [...bcmsCategories, ...d1Categories].filter(item => item.meta.gallery?.length > 0);
+
 const filters = {
     categories: products.reduce((acc, e) => {
         e.meta.en?.categories.forEach((i) => {
@@ -58,7 +82,10 @@ const filters = {
         return acc;
     }, [] as ProductCategoryEntryMetaItem[]),
     
-    genders: (genderEntries as any[]).map(e => e.meta.en as ProductGenderEntryMetaItem),
+    genders: [
+        ...(genderEntries as any[]).map(e => e.meta.en as ProductGenderEntryMetaItem),
+        ...d1Categories.map(c => c.meta as any)
+    ],
 };
 
 const clientConfig = bcmsPublic.getConfig();
@@ -69,7 +96,6 @@ const clientConfig = bcmsPublic.getConfig();
         client:load
         bcms={clientConfig}
         meta={homeMeta}
-     
         categories={categories as any}
         products={productsLite}
         filters={filters}
