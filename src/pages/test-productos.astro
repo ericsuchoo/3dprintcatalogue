@@ -6,50 +6,98 @@ type Producto = {
   nombre_producto: string | null;
   precio: number | null;
   img_producto: string | null;
+  // por si luego agregas más campos
+  [key: string]: unknown;
 };
 
-const res = await fetch(new URL("/api/productos", Astro.url));
+let productos: Producto[] = [];
+let debug = {
+  url: "",
+  ok: false,
+  status: 0,
+  statusText: "",
+  contentType: "",
+  previewHint: "",
+  error: "",
+};
 
-if (!res.ok) {
+try {
+  const url = new URL("/api/productos", Astro.url);
+  debug.url = url.toString();
+
+  const res = await fetch(url, {
+    headers: { accept: "application/json" },
+  });
+
+  debug.ok = res.ok;
+  debug.status = res.status;
+  debug.statusText = res.statusText;
+  debug.contentType = res.headers.get("content-type") ?? "";
+
   const text = await res.text().catch(() => "");
-  throw new Error(`Error /api/productos: ${res.status} ${res.statusText} ${text}`);
-}
+  if (!res.ok) {
+    debug.error = text || "(sin body)";
+  } else {
+    // Intentamos parsear JSON desde el texto (más robusto que res.json())
+    try {
+      const parsed = JSON.parse(text);
+      productos = Array.isArray(parsed) ? (parsed as Producto[]) : [];
+      if (!Array.isArray(parsed)) {
+        debug.error = "La respuesta NO es un array JSON.";
+      }
+    } catch (e) {
+      debug.error = `No se pudo parsear JSON: ${String(e)}. Body: ${text.slice(0, 300)}`;
+    }
+  }
 
-const productos = (await res.json()) as Producto[];
+  // pista útil: si esto corre en preview pero no tiene bindings, suele fallar en runtime
+  debug.previewHint = "Si en Preview sale vacío/objeto, revisa que el binding D1 exista también en Preview (Settings > Bindings > Preview).";
+} catch (e) {
+  debug.error = String(e);
+}
 ---
 
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Test Productos</title>
-    <style>
-      body { font-family: system-ui, sans-serif; padding: 16px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-      .card { background: #1e1e1e; color: white; padding: 12px; border-radius: 12px; }
-      img { width: 100%; border-radius: 10px; display: block; }
-      .price { font-weight: 700; margin-top: 8px; }
-      a { color: #4ea1ff; }
-    </style>
-  </head>
+<style>
+  :global(body) { font-family: system-ui, sans-serif; padding: 16px; }
+  .muted { opacity: .75; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+  .card { background: #1e1e1e; color: #fff; padding: 12px; border-radius: 12px; }
+  img { width: 100%; border-radius: 10px; display: block; }
+  .price { font-weight: 700; margin-top: 8px; }
+  a { color: #4ea1ff; }
+  pre { background: #0f0f0f; color: #d7d7d7; padding: 12px; border-radius: 12px; overflow: auto; }
+  .err { color: #ff6b6b; font-weight: 700; }
+</style>
 
-  <body>
-    <h1>Productos desde D1 (Preview)</h1>
-    <p>Fuente: <a href="/api/productos">/api/productos</a></p>
+<h1>Test productos</h1>
+<p class="muted">Fuente: <a href="/api/productos">/api/productos</a></p>
+<p class="muted">Fetch URL: <code>{debug.url}</code></p>
 
-    {productos.length === 0 ? (
-      <p>No hay productos.</p>
-    ) : (
-      <div class="grid">
-        {productos.map((p: Producto) => (
-          <div class="card">
-            {p.img_producto ? <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} /> : null}
-            <h2>{p.nombre_producto ?? "Sin nombre"}</h2>
-            <div class="price">{p.precio ?? "—"}</div>
-          </div>
-        ))}
+{debug.error ? (
+  <>
+    <p class="err">ERROR detectado</p>
+    <pre>{debug.error}</pre>
+  </>
+) : null}
+
+<h2>DEBUG</h2>
+<pre>{JSON.stringify(debug, null, 2)}</pre>
+
+<h2>Productos ({productos.length})</h2>
+
+{productos.length === 0 ? (
+  <p>No hay productos (o la API no devolvió un array).</p>
+) : (
+  <div class="grid">
+    {productos.map((p) => (
+      <div class="card">
+        {p.img_producto ? <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} /> : null}
+        <h3>{p.nombre_producto ?? "Sin nombre"}</h3>
+        <div class="price">{p.precio ?? "—"}</div>
+        <div class="muted">id: {p.id_producto}</div>
       </div>
-    )}
-  </body>
-</html>
+    ))}
+  </div>
+)}
+
+<p class="muted" style="margin-top:16px">{debug.previewHint}</p>

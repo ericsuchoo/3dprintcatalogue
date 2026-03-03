@@ -4,10 +4,21 @@ export async function GET({ locals }: any) {
   const db = locals.runtime.env.DB;
 
   const { results } = await db
-    .prepare("SELECT id_unive, nombre_universo, img_universo FROM universos ORDER BY id_unive DESC")
+    .prepare(`
+      SELECT *
+      FROM universos
+      ORDER BY id_unive DESC
+      LIMIT 200
+    `)
     .all();
 
-  return new Response(JSON.stringify(results), {
-    headers: { "content-type": "application/json" },
+  const url = new URL(locals.request.url);
+  const pretty = url.searchParams.get("pretty") === "1";
+
+  return new Response(pretty ? JSON.stringify(results, null, 2) : JSON.stringify(results), {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
   });
 }
