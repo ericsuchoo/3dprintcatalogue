@@ -6,12 +6,15 @@ type Producto = {
   nombre_producto: string | null;
   precio: number | null;
   img_producto: string | null;
-  subtitulo?: string | null;
-  descripcion?: string | null;
-  descuento?: number | null;
 };
 
 const res = await fetch(new URL("/api/productos", Astro.url));
+
+if (!res.ok) {
+  const text = await res.text().catch(() => "");
+  throw new Error(`Error /api/productos: ${res.status} ${res.statusText} ${text}`);
+}
+
 const productos = (await res.json()) as Producto[];
 ---
 
@@ -20,24 +23,20 @@ const productos = (await res.json()) as Producto[];
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Test productos</title>
+    <title>Test Productos</title>
     <style>
-      body { font-family: system-ui, sans-serif; padding: 24px; }
+      body { font-family: system-ui, sans-serif; padding: 16px; }
       .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-      .card { border: 1px solid #333; border-radius: 10px; padding: 12px; background: #111; color: #eee; }
-      img { width: 100%; border-radius: 8px; display: block; }
-      h2 { margin: 10px 0 6px; font-size: 16px; }
-      .price { font-weight: 700; }
-      .muted { opacity: 0.8; font-size: 13px; }
-      a { color: #7dd3fc; }
+      .card { background: #1e1e1e; color: white; padding: 12px; border-radius: 12px; }
+      img { width: 100%; border-radius: 10px; display: block; }
+      .price { font-weight: 700; margin-top: 8px; }
+      a { color: #4ea1ff; }
     </style>
   </head>
 
   <body>
     <h1>Productos desde D1 (Preview)</h1>
-    <p class="muted">
-      Fuente: <a href="/api/productos" target="_blank">/api/productos</a>
-    </p>
+    <p>Fuente: <a href="/api/productos">/api/productos</a></p>
 
     {productos.length === 0 ? (
       <p>No hay productos.</p>
@@ -45,17 +44,9 @@ const productos = (await res.json()) as Producto[];
       <div class="grid">
         {productos.map((p: Producto) => (
           <div class="card">
-            {p.img_producto ? (
-              <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} />
-            ) : null}
-
-            <h2>{p.nombre_producto ?? "(sin nombre)"}</h2>
-
-            {p.subtitulo ? <div class="muted">{p.subtitulo}</div> : null}
-
-            <div class="price">
-              {p.precio ?? 0} {p.descuento && p.descuento > 0 ? <span> (-{p.descuento}%)</span> : null}
-            </div>
+            {p.img_producto ? <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} /> : null}
+            <h2>{p.nombre_producto ?? "Sin nombre"}</h2>
+            <div class="price">{p.precio ?? "—"}</div>
           </div>
         ))}
       </div>
