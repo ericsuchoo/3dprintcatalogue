@@ -1,10 +1,14 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { FavoritesGrid } from '../components/FavoritesGrid';
-import { productUtils } from '../utils/product';
+import Layout from "../layouts/Layout.astro";
+import { FavoritesGrid } from "../components/FavoritesGrid";
+import { productUtils } from "../utils/product";
+import { getBcmsPublic } from "../bcms-public";
+
+// ✅ Crear cliente BCMS público usando runtime env (Cloudflare Pages)
+const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
 
 // Traemos los productos desde BCMS en el servidor
-const products = await productUtils.all();
+const products = await productUtils.all(bcmsPublic);
 ---
 
 <Layout title="Favoritos | Store">
