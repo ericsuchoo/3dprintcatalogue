@@ -1,0 +1,30 @@
+---
+interface Producto {
+  id_producto: number;
+  nombre_producto: string;
+  precio: number;
+  img_producto: string | null;
+  subtitulo: string | null;
+  descripcion: string | null;
+  unidades: number | null;
+  descuento: number | null;
+  id_proveedor: number | null;
+  id_universo: number | null;
+  id_personaje: number | null;
+  fecha_creacion: string | null;
+  fecha_modifica: string | null;
+}
+
+const res = await fetch(new URL('/api/productos', Astro.url));
+const productos: Producto[] = await res.json();
+---
+
+<h1>Productos desde D1</h1>
+
+<ul>
+  {productos.map((p) => (
+    <li>
+      {p.nombre_producto} - ${p.precio}
+    </li>
+  ))}
+</ul>
