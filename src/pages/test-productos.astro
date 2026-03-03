@@ -1,44 +1,71 @@
 ---
-interface Producto {
+export const prerender = false;
+
+type Producto = {
   id_producto: number;
   nombre_producto: string | null;
   precio: number | null;
   img_producto: string | null;
-}
+  subtitulo?: string | null;
+  descuento?: number | null;
+};
 
-const res = await fetch(new URL('/api/productos', Astro.url));
-const productos: Producto[] = await res.json();
+let productos: Producto[] = [];
+let errorMsg: string | null = null;
+
+try {
+  // Llama a tu endpoint en el mismo dominio (Pages)
+  const res = await fetch(new URL("/api/productos", Astro.url), {
+    headers: { accept: "application/json" },
+  });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText} ${txt}`.trim());
+  }
+
+  productos = (await res.json()) as Producto[];
+} catch (err) {
+  errorMsg = err instanceof Error ? err.message : String(err);
+}
 ---
 
-<h1>Productos desde D1 (Preview)</h1>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Test productos</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+      .card { background: #111; color: #fff; padding: 16px; border-radius: 12px; }
+      img { width: 100%; border-radius: 10px; display: block; }
+      h2 { margin: 10px 0 6px; font-size: 16px; }
+      .muted { opacity: .75; font-size: 13px; }
+      .price { font-weight: 700; margin-top: 8px; }
+      .error { background: #2a0f0f; color: #ffb4b4; padding: 12px; border-radius: 10px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Productos desde D1 (Preview)</h1>
 
-{productos.length === 0 && <p>No hay productos.</p>}
+    {errorMsg && <div class="error">Error: {errorMsg}</div>}
 
-<div class="grid">
-  {productos.map((p) => (
-    <div class="card">
-      {p.img_producto && (
-        <img src={p.img_producto} alt={p.nombre_producto ?? ""} />
-      )}
-      <h2>{p.nombre_producto}</h2>
-      <p>${p.precio}</p>
-    </div>
-  ))}
-</div>
+    {!errorMsg && productos.length === 0 && <p class="muted">No hay productos.</p>}
 
-<style>
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-  }
-  .card {
-    background: #1e1e1e;
-    padding: 20px;
-    border-radius: 10px;
-  }
-  img {
-    width: 100%;
-    border-radius: 8px;
-  }
-</style>
+    {!errorMsg && productos.length > 0 && (
+      <div class="grid">
+        {productos.map((p) => (
+          <div class="card">
+            {p.img_producto && <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} />}
+            <h2>{p.nombre_producto ?? "(sin nombre)"}</h2>
+            {p.subtitulo && <div class="muted">{p.subtitulo}</div>}
+            <div class="price">${p.precio ?? "-"}</div>
+            {p.descuento && p.descuento > 0 && <div class="muted">Descuento: {p.descuento}%</div>}
+          </div>
+        ))}
+      </div>
+    )}
+  </body>
+</html>
