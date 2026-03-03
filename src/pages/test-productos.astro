@@ -6,87 +6,46 @@ type Producto = {
   nombre_producto: string | null;
   precio: number | null;
   img_producto: string | null;
-  subtitulo?: string | null;
-  descuento?: number | null;
 };
 
-let productos: Producto[] = [];
-let errorMsg: string | null = null;
+const res = await fetch(new URL("/api/productos", Astro.url));
 
-try {
-  // OJO: Astro.url es la URL real de la request (en preview/prod)
-  const apiUrl = new URL("/api/productos", Astro.url);
-
-  const res = await fetch(apiUrl.toString(), {
-    headers: { accept: "application/json" },
-  });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`API ${res.status} ${res.statusText} :: ${txt.slice(0, 200)}`);
-  }
-
-  const data = (await res.json()) as unknown;
-
-  if (!Array.isArray(data)) {
-    throw new Error("La API no devolvió un array.");
-  }
-
-  productos = data as Producto[];
-} catch (e) {
-  errorMsg = e instanceof Error ? e.message : String(e);
+if (!res.ok) {
+  const text = await res.text().catch(() => "");
+  throw new Error(`Error /api/productos: ${res.status} ${res.statusText} ${text}`);
 }
+
+const productos = (await res.json()) as Producto[];
 ---
 
 <!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Test productos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test Productos</title>
     <style>
       body { font-family: system-ui, sans-serif; padding: 16px; }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 16px;
-      }
-      .card {
-        background: #111;
-        color: #fff;
-        border-radius: 12px;
-        padding: 12px;
-      }
-      img { width: 100%; border-radius: 10px; display:block; }
-      .price { font-weight: 700; margin-top: 6px; }
-      .muted { opacity: .75; font-size: 14px; }
-      .err { background:#300; color:#fff; padding:12px; border-radius:10px; }
-      a { color: #7dd3fc; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+      .card { background: #1e1e1e; color: white; padding: 12px; border-radius: 12px; }
+      img { width: 100%; border-radius: 10px; display: block; }
+      .price { font-weight: 700; margin-top: 8px; }
+      a { color: #4ea1ff; }
     </style>
   </head>
+
   <body>
     <h1>Productos desde D1 (Preview)</h1>
-    <div class="muted">Fuente: <a href="/api/productos">/api/productos</a></div>
+    <p>Fuente: <a href="/api/productos">/api/productos</a></p>
 
-    {errorMsg && (
-      <div class="err">
-        <b>Error cargando productos:</b>
-        <div>{errorMsg}</div>
-        <div class="muted" style="margin-top:8px;">
-          Tip: prueba directo <a href="/api/productos">/api/productos</a> en este mismo deploy.
-        </div>
-      </div>
-    )}
-
-    {!errorMsg && productos.length === 0 && <p>No hay productos.</p>}
-
-    {!errorMsg && productos.length > 0 && (
+    {productos.length === 0 ? (
+      <p>No hay productos.</p>
+    ) : (
       <div class="grid">
         {productos.map((p: Producto) => (
           <div class="card">
-            {p.img_producto ? <img src={p.img_producto} alt={p.nombre_producto ?? ""} /> : null}
-            <h3>{p.nombre_producto ?? "(sin nombre)"}</h3>
-            {p.subtitulo ? <div class="muted">{p.subtitulo}</div> : null}
+            {p.img_producto ? <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} /> : null}
+            <h2>{p.nombre_producto ?? "Sin nombre"}</h2>
             <div class="price">{p.precio ?? "—"}</div>
           </div>
         ))}
