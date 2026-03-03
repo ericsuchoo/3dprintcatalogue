@@ -1,0 +1,64 @@
+---
+export const prerender = false;
+
+type Producto = {
+  id_producto: number;
+  nombre_producto: string | null;
+  precio: number | null;
+  img_producto: string | null;
+  subtitulo?: string | null;
+  descripcion?: string | null;
+  descuento?: number | null;
+};
+
+const res = await fetch(new URL("/api/productos", Astro.url));
+const productos = (await res.json()) as Producto[];
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Test productos</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+      .card { border: 1px solid #333; border-radius: 10px; padding: 12px; background: #111; color: #eee; }
+      img { width: 100%; border-radius: 8px; display: block; }
+      h2 { margin: 10px 0 6px; font-size: 16px; }
+      .price { font-weight: 700; }
+      .muted { opacity: 0.8; font-size: 13px; }
+      a { color: #7dd3fc; }
+    </style>
+  </head>
+
+  <body>
+    <h1>Productos desde D1 (Preview)</h1>
+    <p class="muted">
+      Fuente: <a href="/api/productos" target="_blank">/api/productos</a>
+    </p>
+
+    {productos.length === 0 ? (
+      <p>No hay productos.</p>
+    ) : (
+      <div class="grid">
+        {productos.map((p: Producto) => (
+          <div class="card">
+            {p.img_producto ? (
+              <img src={p.img_producto} alt={p.nombre_producto ?? "Producto"} />
+            ) : null}
+
+            <h2>{p.nombre_producto ?? "(sin nombre)"}</h2>
+
+            {p.subtitulo ? <div class="muted">{p.subtitulo}</div> : null}
+
+            <div class="price">
+              {p.precio ?? 0} {p.descuento && p.descuento > 0 ? <span> (-{p.descuento}%)</span> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </body>
+</html>
