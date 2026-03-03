@@ -5,44 +5,45 @@ import type {
   ProductEntry,
   ProductGenderEntryMetaItem,
 } from "../../bcms/types/ts";
+
 import { productToLite } from "../utils/product";
 
 import Layout from "../layouts/Layout.astro";
 import HomePageWrapper from "../components/home-page/PageWrapper";
+
 import { getBcmsPrivate } from "../bcms-private";
-import { bcmsPublic } from "../bcms-public";
+import { getBcmsPublic } from "../bcms-public";
 
-// ✅ Crear cliente privado usando runtime env (Cloudflare)
+// ✅ Crear clientes usando runtime env (Cloudflare Pages SSR)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
+const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
+const clientConfig = bcmsPublic.getConfig();
 
-// 1. Obtenemos la entrada de la Home
+// 1) Obtenemos la entrada de la Home
 const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
 
-// 2. Extraemos el meta (con any para evitar bloqueos por el logo personalizado)
+// 2) Extraemos el meta
 const homeMeta = home.meta.en as any;
 
-// 3. Obtenemos productos y géneros
+// 3) Obtenemos productos y géneros
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 const genderEntries = await bcmsPrivate.entry.getAll("product-gender");
 
-// 4. Procesamos GÉNEROS (Inyectados en la variable 'categories' para el Wrapper)
+// 4) Procesamos GÉNEROS (para categories)
 const categories = (genderEntries as any[])
   .map((e) => {
     const meta = e.meta.en;
 
-    // Filtramos productos que pertenecen a este género específicamente
     const productsInGender = products.filter(
       (p) => p.meta?.en?.gender?._id === e._id
     );
 
-    // Imagen de respaldo (fallback) del primer producto del género
     const fallbackImage = productsInGender[0]?.meta?.en?.gallery?.[0];
 
     return {
       meta: {
         ...meta,
-        // Aseguramos que gallery nunca sea undefined
         gallery:
           meta.gallery && meta.gallery.length > 0
             ? meta.gallery
@@ -53,9 +54,9 @@ const categories = (genderEntries as any[])
       productsCount: productsInGender.length,
     };
   })
-  .filter((item) => item.meta.gallery.length > 0); // Evitamos items sin imagen
+  .filter((item) => item.meta.gallery.length > 0);
 
-// 5. Configuramos filtros para la tienda
+// 5) Configuramos filtros
 const filters = {
   categories: products.reduce((acc, e) => {
     e.meta.en?.categories.forEach((i) => {
@@ -70,8 +71,6 @@ const filters = {
     (e) => e.meta.en as ProductGenderEntryMetaItem
   ),
 };
-
-const clientConfig = bcmsPublic.getConfig();
 ---
 
 <Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>

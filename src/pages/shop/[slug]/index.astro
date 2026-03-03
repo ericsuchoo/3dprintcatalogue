@@ -1,15 +1,18 @@
 ---
 import type { ProductEntry } from "../../../../bcms/types/ts";
 import { productToLite } from "../../../utils/product";
+
 import Layout from "../../../layouts/Layout.astro";
 import ProductPageWrapper from "../../../components/shop/product/PageWrapper";
+
 import { getBcmsPrivateBuild } from "../../../bcms-private";
-import { bcmsPublic } from "../../../bcms-public";
+import { getBcmsPublic } from "../../../bcms-public";
 
-const bcmsPrivate = getBcmsPrivateBuild();
-
+// ✅ Build-time client (para getStaticPaths y prerender)
 export async function getStaticPaths() {
+  const bcmsPrivate = getBcmsPrivateBuild();
   const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
+
   return products.map((e) => ({
     params: { slug: e.meta.en?.slug || "" },
   }));
@@ -17,6 +20,8 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 
+// ✅ Build-time client (esta página es estática por getStaticPaths)
+const bcmsPrivate = getBcmsPrivateBuild();
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 const entry = products.find((e) => e.meta.en?.slug === slug);
 
@@ -37,6 +42,9 @@ const data = {
     .slice(0, 4),
 };
 
+// ✅ Para pasar config al wrapper sin instanciar cliente en global scope del bundle
+// Como esta página es build-time, podemos usar import.meta.env aquí sin problema:
+const bcmsPublic = getBcmsPublic(import.meta.env);
 const clientConfig = bcmsPublic.getConfig();
 ---
 

@@ -6,37 +6,47 @@ import type {
   ProductCategoryEntryMetaItem,
 } from "../../../bcms/types/ts";
 import type { ProductBrandEntryMetaItem } from "../../../bcms/types/ts";
+
 import { productToLite } from "../../utils/product";
 
 import Layout from "../../layouts/Layout.astro";
 import ProductsPageWrapper from "../../components/shop/products/PageWrapper";
+
 import { getBcmsPrivate } from "../../bcms-private";
-import { bcmsPublic } from "../../bcms-public";
+import { getBcmsPublic } from "../../bcms-public";
 
 // ✅ Cliente BCMS privado usando runtime env (Cloudflare)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
+
+// ✅ Cliente BCMS público usando runtime env (Cloudflare)
+const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
+const clientConfig = bcmsPublic.getConfig();
 
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 
 const data = {
   products: products.map((e) => productToLite(e)),
+
   genders: products
-    .map((e) => e.meta.en?.gender.meta.en as ProductGenderEntryMetaItem)
+    .map((e) => e.meta.en?.gender?.meta?.en as ProductGenderEntryMetaItem)
+    .filter(Boolean)
     .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
+
   categories: products
     .map((e) =>
-      (e.meta.en?.categories as ProductCategoryEntry[]).map(
+      (e.meta.en?.categories as ProductCategoryEntry[] | undefined)?.map(
         (i) => i.meta.en as ProductCategoryEntryMetaItem
-      )
+      ) ?? []
     )
     .flat()
+    .filter(Boolean)
     .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
+
   brands: products
-    .map((e) => e.meta.en?.brand.meta.en as ProductBrandEntryMetaItem)
+    .map((e) => e.meta.en?.brand?.meta?.en as ProductBrandEntryMetaItem)
+    .filter(Boolean)
     .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
 };
-
-const clientConfig = bcmsPublic.getConfig();
 ---
 
 <Layout title={`Products - Moda`}>

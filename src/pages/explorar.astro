@@ -7,22 +7,25 @@ import type {
 import { productToLite } from "../utils/product";
 
 import Layout from "../layouts/Layout.astro";
-import NewPageWrapper from "../components/home-page/PageWrapperfil"; // tu wrapper mini
+import NewPageWrapper from "../components/home-page/PageWrapperfil";
+
 import { getBcmsPrivate } from "../bcms-private";
-import { bcmsPublic } from "../bcms-public";
+import { getBcmsPublic } from "../bcms-public";
 
-// ✅ Cliente BCMS privado usando runtime env (Cloudflare)
+// ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
+const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
+const clientConfig = bcmsPublic.getConfig();
 
-// 1. Obtenemos la entrada de la Home
+// 1) Obtenemos la entrada de la Home
 const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
 const homeMeta = home.meta.en as any;
 
-// 2. Obtenemos los productos (Base de toda nuestra lógica)
+// 2) Obtenemos productos
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 
-// 3. EXTRAER PERSONAJES DESDE LOS PRODUCTOS (Usando nom_personaje_filt)
+// 3) EXTRAER PERSONAJES DESDE LOS PRODUCTOS (nom_personaje_filt)
 const categories = products.reduce((acc, p) => {
   const pMeta = p.meta.en as any;
   const personajeEntry = pMeta.nom_personaje_filt; // Entry Pointer
@@ -30,11 +33,10 @@ const categories = products.reduce((acc, p) => {
   if (personajeEntry && personajeEntry.meta?.en) {
     const charMeta = personajeEntry.meta.en;
 
-    // Evitamos duplicados
     if (!acc.find((item) => item.meta.slug === charMeta.slug)) {
-      // Contamos cuántos productos tienen este mismo ID de personaje
       const productsWithThisChar = products.filter(
-        (prod) => (prod.meta.en as any).nom_personaje_filt?._id === personajeEntry._id
+        (prod) =>
+          (prod.meta.en as any).nom_personaje_filt?._id === personajeEntry._id
       );
 
       const fallbackImage = pMeta.gallery?.[0];
@@ -42,7 +44,6 @@ const categories = products.reduce((acc, p) => {
       acc.push({
         meta: {
           ...charMeta,
-          // Prioridad: Imagen del template Personaje > Imagen del primer producto que lo usa
           gallery:
             charMeta.gallery && charMeta.gallery.length > 0
               ? charMeta.gallery
@@ -58,7 +59,7 @@ const categories = products.reduce((acc, p) => {
   return acc;
 }, [] as any[]);
 
-// 4. Configuramos filtros para el Wrapper
+// 4) Filtros para el Wrapper
 const filters = {
   categories: products.reduce((acc, e) => {
     e.meta.en?.categories.forEach((i) => {
@@ -69,14 +70,11 @@ const filters = {
     return acc;
   }, [] as ProductCategoryEntryMetaItem[]),
 
-  // Inyectamos los personajes extraídos como el filtro principal
   personajes: categories.map((c) => c.meta),
 };
-
-const clientConfig = bcmsPublic.getConfig();
 ---
 
-<Layout title={`Explorar Personajes | 3D Shop`}>
+<Layout title="Explorar Personajes | 3D Shop">
   <NewPageWrapper
     client:load
     bcms={clientConfig}

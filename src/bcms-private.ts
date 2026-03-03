@@ -1,4 +1,3 @@
-// src/bcms-private.ts
 import { Client } from "@thebcms/client";
 
 type RuntimeEnv = Record<string, string | undefined>;
@@ -15,7 +14,12 @@ export function getBcmsPrivate(env: RuntimeEnv) {
   const keyId = assert(env.BCMS_API_KEY_ID, "BCMS_API_KEY_ID");
   const keySecret = assert(env.BCMS_API_KEY_SECRET, "BCMS_API_KEY_SECRET");
 
-  return new Client(orgId, instanceId, { id: keyId, secret: keySecret }, { injectSvg: true });
+  return new Client(
+    orgId,
+    instanceId,
+    { id: keyId, secret: keySecret },
+    { injectSvg: true },
+  );
 }
 
 // ✅ Build-time (Astro build / getStaticPaths)
@@ -25,5 +29,10 @@ export function getBcmsPrivateBuild() {
   const keyId = assert(import.meta.env.BCMS_API_KEY_ID, "BCMS_API_KEY_ID");
   const keySecret = assert(import.meta.env.BCMS_API_KEY_SECRET, "BCMS_API_KEY_SECRET");
 
-  return new Client(orgId, instanceId, { id: keyId, secret: keySecret }, { injectSvg: true });
+  return new Client(
+    orgId,
+    instanceId,
+    { id: keyId, secret: keySecret },
+    { injectSvg: true },
+  );
 }
