@@ -5,27 +5,20 @@ export async function GET({ locals }: any) {
 
   const { results } = await db
     .prepare(`
-      SELECT
-        id_producto,
-        nombre_producto,
-        subtitulo,
-        descripcion,
-        img_producto,
-        unidades,
-        precio,
-        descuento,
-        id_proveedor,
-        id_universo,
-        id_personaje,
-        fecha_creacion,
-        fecha_modifica
+      SELECT *
       FROM productos
       ORDER BY id_producto DESC
-      LIMIT 50
+      LIMIT 200
     `)
     .all();
 
-  return new Response(JSON.stringify(results), {
-    headers: { "content-type": "application/json" },
+  const url = new URL(locals.request.url);
+  const pretty = url.searchParams.get("pretty") === "1";
+
+  return new Response(pretty ? JSON.stringify(results, null, 2) : JSON.stringify(results), {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
   });
 }
