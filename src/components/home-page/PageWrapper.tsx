@@ -13,10 +13,9 @@ import { HomeCta } from "./Cta";
 import { HomeProducts } from "./Products";
 import type { ClientConfig } from "@thebcms/client";
 
-// ✅ NUEVO: barra de "orígenes"
-import { OriginsBar } from "./OriginsBar";
+// ✅ barra de "orígenes"
+import { OriginsBar } from "./OriginsBar"; // <- si OriginsBar es default export, cambia esto (ver nota abajo)
 
-// ✅ Nuevo tipo genérico para cards (sirve para BCMS y para D1)
 export type CategoryCardMeta = {
   title: string;
   slug: string;
@@ -34,14 +33,13 @@ interface Props {
   meta: HomeEntryMetaItem;
   categories: CategoryCard[];
   products: ProductLite[];
-
   filters: {
     genders: ProductGenderEntryMetaItem[];
     categories: ProductCategoryEntryMetaItem[];
   };
 
-  // ✅ NUEVO: viene desde index.astro (D1 etiquetas tipo "origen")
-  origins: OriginItem[];
+  // ✅ hazlo opcional para que no reviente si no llega desde index.astro
+  origins?: OriginItem[];
 
   bcms: ClientConfig;
 }
@@ -51,7 +49,7 @@ const HomePageWrapper: React.FC<Props> = ({
   categories,
   products,
   filters,
-  origins,
+  origins = [],
   bcms,
 }) => {
   return (
@@ -65,14 +63,9 @@ const HomePageWrapper: React.FC<Props> = ({
           bcms={bcms}
         />
 
-        {/* ✅ AQUÍ VA: justo encima de la sección de universos */}
         <OriginsBar items={origins} />
 
-        <HomeCategories
-          data={categories.slice(0, 6)}
-          ctaTheme="dark-green"
-          bcms={bcms}
-        />
+        <HomeCategories data={categories.slice(0, 6)} ctaTheme="dark-green" bcms={bcms} />
 
         <HomeCta
           title={meta.cta_title}
@@ -82,11 +75,7 @@ const HomePageWrapper: React.FC<Props> = ({
           bcms={bcms}
         />
 
-        <HomeCategories
-          data={categories.slice(6, 12)}
-          ctaTheme="orange"
-          bcms={bcms}
-        />
+        <HomeCategories data={categories.slice(6, 12)} ctaTheme="orange" bcms={bcms} />
 
         <HomeProducts products={products} filters={filters} bcms={bcms} />
       </InnerPageWrapper>
