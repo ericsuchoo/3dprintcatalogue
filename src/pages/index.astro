@@ -47,6 +47,30 @@ const filters = {
 
 // 5) 🔥 D1: universos + conteo de personajes (1 query)
 const db = Astro.locals.runtime.env.DB;
+type EtiquetaRow = {
+  id_etiqueta: string;
+  nombre_etiqueta: string;
+  tipo_etiqueta: string;
+};
+
+// 5.4 🔥 Etiquetas tipo "origen"
+const etiquetasRes = await db
+  .prepare(
+    `SELECT id_etiqueta, nombre_etiqueta, tipo_etiqueta
+     FROM etiquetas
+     WHERE tipo_etiqueta = ?
+     ORDER BY nombre_etiqueta ASC`,
+  )
+  .bind("origen")
+  .all();
+
+const etiquetas = etiquetasRes as { results: EtiquetaRow[] };
+
+// Solo mandamos lo necesario al cliente
+const origins = etiquetas.results.map((e: EtiquetaRow) => ({
+  id: e.id_etiqueta,
+  label: e.nombre_etiqueta,
+}));
 
 type UniversoCardRow = {
   id_universo: number;
@@ -101,5 +125,6 @@ const categories = universosAgg.map((u) => ({
     categories={categories}
     products={productsLite}
     filters={filters}
+    origins={origins}
   />
 </Layout>
