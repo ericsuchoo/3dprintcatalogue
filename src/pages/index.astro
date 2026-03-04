@@ -14,49 +14,37 @@ import HomePageWrapper from "../components/home-page/PageWrapper";
 import { getBcmsPrivate } from "../bcms-private";
 import { getBcmsPublic } from "../bcms-public";
 
-// ✅ Crear clientes usando runtime env (Cloudflare Pages SSR)
+// Tipos para las filas de D1
+type UniversoRow = {
+  id_universo: number;
+  nombre_universo: string;
+  img_universo: string;
+};
+
+type PersonajeRow = {
+  id_personaje: number;
+  nombre_personaje: string;
+  img_personaje: string;
+  id_universo: number;
+};
+
+// ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
 const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
 const clientConfig = bcmsPublic.getConfig();
 
-// 1) Obtenemos la entrada de la Home
+// 1) Obtenemos la entrada de la Home (BCMS)
 const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-
-// 2) Extraemos el meta
 const homeMeta = home.meta.en as any;
 
-// 3) Obtenemos productos y géneros
+// 2) Obtenemos productos (BCMS) para la parte de tienda / destacados
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
+
+// 3) Obtenemos géneros (BCMS) para filtros de la tienda
 const genderEntries = await bcmsPrivate.entry.getAll("product-gender");
 
-// 4) Procesamos GÉNEROS (para categories)
-const categories = (genderEntries as any[])
-  .map((e) => {
-    const meta = e.meta.en;
-
-    const productsInGender = products.filter(
-      (p) => p.meta?.en?.gender?._id === e._id
-    );
-
-    const fallbackImage = productsInGender[0]?.meta?.en?.gallery?.[0];
-
-    return {
-      meta: {
-        ...meta,
-        gallery:
-          meta.gallery && meta.gallery.length > 0
-            ? meta.gallery
-            : fallbackImage
-              ? [fallbackImage]
-              : [],
-      },
-      productsCount: productsInGender.length,
-    };
-  })
-  .filter((item) => item.meta.gallery.length > 0);
-
-// 5) Configuramos filtros
+// 4) Filtros (igual que antes)
 const filters = {
   categories: products.reduce((acc, e) => {
     e.meta.en?.categories.forEach((i) => {
@@ -68,18 +56,49 @@ const filters = {
   }, [] as ProductCategoryEntryMetaItem[]),
 
   genders: (genderEntries as any[]).map(
-    (e) => e.meta.en as ProductGenderEntryMetaItem
+    (e) => e.meta.en as ProductGenderEntryMetaItem,
   ),
 };
----
+// 5) 🔥 NUEVO: universos + conteo de personajes desde D1
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
-  <HomePageWrapper
-    client:load
-    bcms={clientConfig}
-    meta={homeMeta}
-    categories={categories as any}
-    products={productsLite}
-    filters={filters}
-  />
-</Layout>
+// 5.0 Obtenemos la instancia de D1 desde el binding
+const db = Astro.locals.runtime.env.DB as any;
+if (!db) {
+  throw new Error("D1 binding 'DB' no está configurado en este proyecto.");
+}
+
+// 5.1 Universos
+const universosRes = await db
+  .prepare(
+    `SELECT id_universo, nombre_universo, img_universo FROM universos`,
+  )
+  .all();
+
+const universos = universosRes as { results: UniversoRow[] };
+
+// 5.2 Personajes (sólo necesitamos id_universo para el conteo)
+const personajesRes = await db
+  .prepare(`SELECT id_personaje, id_universo FROM personajes`)
+  .all();
+
+const personajes = personajesRes as { results: PersonajeRow[] };
+
+// 5.3 Adaptamos a la forma que espera HomeCategories
+const universosCards = universos.results.map((u: UniversoRow) => {
+  const count = personajes.results.filter(
+    (p: PersonajeRow) => p.id_universo === u.id_universo,
+  ).length;
+
+  return {
+    meta: {
+      title: u.nombre_universo,
+      slug: u.nombre_universo.toLowerCase().replace(/\s+/g, "-"),
+      gallery: [
+        {
+          url: u.img_universo,
+        },
+      ],
+    },
+    productsCount: count,
+  };
+});
