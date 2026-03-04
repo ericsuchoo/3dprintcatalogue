@@ -70,9 +70,9 @@ html, body {
 /* ========================= */
 
 .originPill {
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.78);
+  border: 1px solid rgba(255, 0, 0, 0.459);
+  background: rgba(255, 255, 255, 0);
+  color: rgb(255, 255, 255);
   padding: 12px 18px;
   border-radius: 999px;
 
@@ -98,7 +98,7 @@ html, body {
 /* Hover estilo neón verde del sitio */
 .originPill:hover {
   transform: scale(1.15) translateY(-2px);
-  background: rgba(173, 255, 0, 0.16);
+  background: rgba(0, 0, 0, 0);
   border-color: rgba(0, 153, 255, 0.6);
   color: #ffffff;
   box-shadow: 
@@ -169,8 +169,8 @@ html, body {
 /* Texto estilo “stroke + reveal” (Uiverse adaptado a tu pill) */
 .originText {
   --border-right: 1px;
-  --text-stroke-color: rgba(255, 255, 255, 0.438);
-  --animation-color: rgba(0, 162, 255, 0.836); /* tu verde */
+  --text-stroke-color: rgba(255, 255, 255, 0.925);
+  --animation-color: rgb(197, 8, 2); /* tu verde */
   --fs-size: 16px;
 
   position: relative;
