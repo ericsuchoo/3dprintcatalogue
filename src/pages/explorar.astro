@@ -1,10 +1,5 @@
 ---
-import type {
-  HomeEntry,
-  ProductCategoryEntryMetaItem,
-  ProductEntry,
-} from "../../bcms/types/ts";
-import { productToLite } from "../utils/product";
+import type { HomeEntry } from "../../bcms/types/ts";
 
 import Layout from "../layouts/Layout.astro";
 import NewPageWrapper from "../components/home-page/PageWrapperfil";
@@ -12,64 +7,115 @@ import NewPageWrapper from "../components/home-page/PageWrapperfil";
 import { getBcmsPrivate } from "../bcms-private";
 import { getBcmsPublic } from "../bcms-public";
 
-// ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
+// Tipos D1 (según tus schemas)
+type PersonajeRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  img_personaje: string | null;
+  id_universo?: number | null;
+};
+
+type ProductoRow = {
+  id_producto: number | string;
+  nombre_producto: string;
+  subtitulo?: string | null;
+  descripcion?: string | null;
+  img_producto?: string | null;
+  unidades?: number | null;
+  precio?: number | null;
+  descuento?: number | null;
+  id_proveedor?: number | null;
+  id_universo?: number | null;
+  id_personaje?: number | null;
+  fecha_creacion?: string | null;
+  fecha_modifica?: string | null;
+};
+
+// Helper slug
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
+}
+
+// BCMS clients (seguimos usando clientConfig para componentes que lo necesiten)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
 const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
 const clientConfig = bcmsPublic.getConfig();
 
-// 1) Obtenemos la entrada de la Home
+// (opcional) leer meta home del BCMS para encabezado
 const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-const homeMeta = home.meta.en as any;
+const homeMeta = home?.meta?.en ?? { title: "Explorar Personajes" };
 
-// 2) Obtenemos productos
-const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
-const productsLite = products.map((e) => productToLite(e));
+// D1 binding
+const db = Astro.locals.runtime.env.DB as any;
+if (!db) {
+  throw new Error("D1 binding 'DB' no está disponible. Revisa wrangler.toml y bindings.");
+}
 
-// 3) EXTRAER PERSONAJES DESDE LOS PRODUCTOS (nom_personaje_filt)
-const categories = products.reduce((acc, p) => {
-  const pMeta = p.meta.en as any;
-  const personajeEntry = pMeta.nom_personaje_filt; // Entry Pointer
+// Traer personajes
+const personajesRes = await db
+  .prepare(`SELECT id_personaje, nombre_personaje, img_personaje, id_universo FROM personajes ORDER BY nombre_personaje ASC`)
+  .all();
+const personajes = (personajesRes?.results || []) as PersonajeRow[];
 
-  if (personajeEntry && personajeEntry.meta?.en) {
-    const charMeta = personajeEntry.meta.en;
+// Traer productos
+const productosRes = await db
+  .prepare(`SELECT id_producto, nombre_producto, subtitulo, descripcion, img_producto, unidades, precio, descuento, id_proveedor, id_universo, id_personaje, fecha_creacion, fecha_modifica FROM productos`)
+  .all();
+const productos = (productosRes?.results || []) as ProductoRow[];
 
-    if (!acc.find((item) => item.meta.slug === charMeta.slug)) {
-      const productsWithThisChar = products.filter(
-        (prod) =>
-          (prod.meta.en as any).nom_personaje_filt?._id === personajeEntry._id
-      );
+/**
+ * categories: una card por personaje con meta {title, slug, gallery[]} y productsCount
+ */
+const categories = personajes.map((p) => {
+  const count = productos.filter((pr) => String(pr.id_personaje) === String(p.id_personaje)).length;
 
-      const fallbackImage = pMeta.gallery?.[0];
+  return {
+    meta: {
+      title: p.nombre_personaje,
+      slug: slugify(p.nombre_personaje),
+      gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
+    },
+    productsCount: count,
+  };
+});
 
-      acc.push({
-        meta: {
-          ...charMeta,
-          gallery:
-            charMeta.gallery && charMeta.gallery.length > 0
-              ? charMeta.gallery
-              : fallbackImage
-                ? [fallbackImage]
-                : [],
-        },
-        productsCount: productsWithThisChar.length,
-      });
-    }
-  }
+/**
+ * productsLite: mapeo sencillo de tus productos de D1 hacia una forma útil para ProductCard.
+ * Nota: tu ProductCard puede esperar campos distintos del BCMS. Aquí construyo un objeto
+ * con campos comunes (slug, title, price, gallery, personajeId).
+ *
+ * Si ProductCard usa campos distintos, dime y lo adapto.
+ */
+const productsLite = productos.map((pr) => {
+  return {
+    id: pr.id_producto,
+    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
+    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
+    subtitle: pr.subtitulo ?? "",
+    description: pr.descripcion ?? "",
+    price: pr.precio ?? null,
+    discount: pr.descuento ?? null,
+    units: pr.unidades ?? null,
+    gallery: pr.img_producto ? [{ url: pr.img_producto }] : [],
+    personajeId: pr.id_personaje ?? null,
+    universoId: pr.id_universo ?? null,
+    providerId: pr.id_proveedor ?? null,
+    createdAt: pr.fecha_creacion ?? null,
+    updatedAt: pr.fecha_modifica ?? null,
+  };
+});
 
-  return acc;
-}, [] as any[]);
-
-// 4) Filtros para el Wrapper
+// Filtros mínimos (puedes adaptarlos más tarde)
 const filters = {
-  categories: products.reduce((acc, e) => {
-    e.meta.en?.categories.forEach((i) => {
-      if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
-        acc.push(i.meta.en);
-      }
-    });
-    return acc;
-  }, [] as ProductCategoryEntryMetaItem[]),
-
+  categories: [], // si más tarde quieres categories desde D1, lo añadimos
   personajes: categories.map((c) => c.meta),
 };
 ---
@@ -80,7 +126,7 @@ const filters = {
     bcms={clientConfig}
     meta={homeMeta}
     categories={categories as any}
-    products={productsLite}
+    products={productsLite as any}
     filters={filters}
   />
 </Layout>
