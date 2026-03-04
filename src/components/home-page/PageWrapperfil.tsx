@@ -1,32 +1,29 @@
-import React, { useMemo } from "react";
+import React from "react";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
-import type {
-  ProductCategoryEntryMetaItem,
-} from "../../../bcms/types/ts";
+import type { ProductCategoryEntryMetaItem } from "../../../bcms/types/ts";
 import { type ProductLite } from "../../utils/product";
 import { CategoriesMini } from "./CategoriesMini";
 import { HomeProducts } from "./Products";
 import type { ClientConfig } from "@thebcms/client";
-
 import type { HomeEntryMetaItem } from "../../../bcms/types/ts";
 
 interface Props {
-  meta: Partial<HomeEntryMetaItem>; // <- permite campos faltantes
+  meta: Partial<HomeEntryMetaItem> & { title?: string };
   categories: { meta: any; productsCount: number }[];
-  products: ProductLite[];
-  filters?: {
-    personajes?: any[];
-    categories?: ProductCategoryEntryMetaItem[];
+  products: any[];
+  filters: {
+    personajes: any[];
+    categories: ProductCategoryEntryMetaItem[];
   };
   bcms: ClientConfig;
 }
 
 const NewPageWrapper: React.FC<Props> = ({
   meta,
-  categories = [],
-  products = [],
-  filters = { personajes: [], categories: [] },
+  categories,
+  products,
+  filters,
   bcms,
 }) => {
   const chunkCategories = (arr: any[], size: number) => {
@@ -41,36 +38,17 @@ const NewPageWrapper: React.FC<Props> = ({
   const categoryChunks = chunkCategories(categories, 12);
   const themes: Array<"dark-green" | "orange"> = ["dark-green", "orange"];
 
-  // ===== Map personajes -> genders que espera HomeProducts =====
-  const gendersForProducts = useMemo(() => {
-    const list = (filters?.personajes || []) as any[];
-    return list.map((p: any) => {
-      const title =
-        p.title ||
-        p.nombre_personaje ||
-        p.meta?.title ||
-        p.meta?.nombre ||
-        "";
-      const slug =
-        p.slug ||
-        (typeof title === "string"
-          ? title
-              .toString()
-              .normalize("NFKD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .toLowerCase()
-              .trim()
-              .replace(/\s+/g, "-")
-              .replace(/[^\w-]+/g, "")
-          : "");
-      return { title, slug };
-    });
-  }, [filters?.personajes]);
+  // mapeo personajes -> filters.genders (para HomeProducts)
+  const gendersForProducts = (filters?.personajes || []).map((p: any) => {
+    const title = p.title || p.nombre_personaje || "";
+    const slug = p.slug || "";
+    return { title, slug };
+  });
 
   const filtersToPass = {
     ...filters,
     genders: gendersForProducts,
-  } as any;
+  };
 
   return (
     <ContextWrapper>
@@ -105,11 +83,7 @@ const NewPageWrapper: React.FC<Props> = ({
         </div>
 
         <div className="bg-[#0a0a0a] pb-20">
-          <HomeProducts
-            products={products}
-            filters={filtersToPass}
-            bcms={bcms}
-          />
+          <HomeProducts products={products as any} filters={filtersToPass as any} bcms={bcms} />
         </div>
       </InnerPageWrapper>
     </ContextWrapper>

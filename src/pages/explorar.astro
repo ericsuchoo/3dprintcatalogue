@@ -1,18 +1,14 @@
 ---
-import type { HomeEntry } from "../../bcms/types/ts";
-
 import Layout from "../layouts/Layout.astro";
 import NewPageWrapper from "../components/home-page/PageWrapperfil";
 
-import { getBcmsPrivate } from "../bcms-private";
-import { getBcmsPublic } from "../bcms-public";
-
-// Tipos D1 (según tus schemas)
+// Tipos D1
 type PersonajeRow = {
   id_personaje: number | string;
   nombre_personaje: string;
   img_personaje: string | null;
   id_universo?: number | null;
+  productsCount?: number; // viene del query (COUNT)
 };
 
 type ProductoRow = {
@@ -44,32 +40,16 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
-// BCMS clients (seguimos usando clientConfig para componentes que lo necesiten)
-const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
-const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
-const clientConfig = bcmsPublic.getConfig();
-
-// (opcional) leer meta home del BCMS para encabezado
-let homeMeta: any = { title: "Explorar Personajes" };
-try {
-  const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-  homeMeta = home?.meta?.en ?? { title: "Explorar Personajes" };
-} catch (e) {
-  // Si BCMS falla en algún entorno, no rompemos SSR
-  console.warn("[explorar] No se pudo cargar meta desde BCMS. Usando fallback.");
-}
-
 // D1 binding
 const db = Astro.locals.runtime.env.DB as any;
 
-// Fallback seguro (para preview / si el binding no está)
-let personajes: Array<PersonajeRow & { productsCount?: number }> = [];
+let personajes: PersonajeRow[] = [];
 let productos: ProductoRow[] = [];
 
 if (!db) {
-  console.warn("[explorar] DB binding no disponible en este entorno. Renderizando vacío.");
+  console.warn("[explorar] DB binding no disponible. Render vacío pero sin crashear.");
 } else {
-  // 1) Personajes + conteo de productos por personaje (SQL)
+  // Personajes + conteo de productos
   const personajesRes = await db
     .prepare(`
       SELECT
@@ -86,9 +66,9 @@ if (!db) {
     `)
     .all();
 
-  personajes = (personajesRes?.results || []) as Array<PersonajeRow & { productsCount?: number }>;
+  personajes = (personajesRes?.results || []) as PersonajeRow[];
 
-  // 2) Productos (para la sección inferior HomeProducts)
+  // Productos
   const productosRes = await db
     .prepare(`
       SELECT
@@ -112,57 +92,70 @@ if (!db) {
   productos = (productosRes?.results || []) as ProductoRow[];
 }
 
-/**
- * categories: una card por personaje con meta {title, slug, gallery[]} y productsCount
- */
-const categories = personajes.map((p) => {
-  return {
-    meta: {
-      title: p.nombre_personaje,
-      slug: slugify(p.nombre_personaje),
-      gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
-    },
-    productsCount: Number((p as any).productsCount || 0),
-  };
+// categories: 1 card por personaje (formato compatible con tu UI)
+const categories = personajes.map((p) => ({
+  meta: {
+    title: p.nombre_personaje,
+    slug: slugify(p.nombre_personaje),
+    // D1 -> { url }
+    gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
+  },
+  productsCount: Number((p as any).productsCount || 0),
+}));
+
+// mapa id_personaje -> slug (para filtrar productos por personaje)
+const personajeSlugMap = new Map<string, string>();
+personajes.forEach((p) => {
+  personajeSlugMap.set(String(p.id_personaje), slugify(p.nombre_personaje));
 });
 
-/**
- * productsLite: mapeo sencillo de tus productos de D1 hacia una forma útil para ProductCard.
- * Si tu ProductCard/HomeProducts espera otros campos, lo ajustamos luego.
- */
+// productsLite: forma “BCMS-like” mínima para tu ProductCard/HomeProducts
 const productsLite = productos.map((pr) => {
+  const personajeSlug = personajeSlugMap.get(String(pr.id_personaje)) || "";
+
   return {
-    id: pr.id_producto,
+    _id: String(pr.id_producto),
     slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
     title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
-    subtitle: pr.subtitulo ?? "",
-    description: pr.descripcion ?? "",
-    price: pr.precio ?? null,
-    discount: pr.descuento ?? null,
-    units: pr.unidades ?? null,
+
+    // Precio
+    price: pr.precio ?? 0,
+
+    // Para el filtro (D1)
+    personajeSlug,
+
+    // Estas props las usa tu ProductCard aunque sean “fake”
+    gender: { title: "Personaje", slug: personajeSlug },
+    categories: [],
+    brand: { title: "Dino Cat 3D", slug: "dino-cat" },
+    sizes: [],
+
+    // Imagen (D1)
+    cover: pr.img_producto ? ({ url: pr.img_producto } as any) : null,
     gallery: pr.img_producto ? [{ url: pr.img_producto }] : [],
-    personajeId: pr.id_personaje ?? null,
-    universoId: pr.id_universo ?? null,
-    providerId: pr.id_proveedor ?? null,
-    createdAt: pr.fecha_creacion ?? null,
-    updatedAt: pr.fecha_modifica ?? null,
+
+    // extras
+    date: Date.now(),
   };
 });
 
-// Filtros mínimos (puedes adaptarlos más tarde)
+// filtros
 const filters = {
-  categories: [], // si más tarde quieres categories desde D1, lo añadimos
-  personajes: categories.map((c) => c.meta),
+  categories: [],
+  personajes: categories.map((c) => c.meta), // [{title,slug,...}]
 };
+
+// meta simple (sin BCMS)
+const meta = { title: "Explorar Personajes" };
 ---
 
 <Layout title="Explorar Personajes | 3D Shop">
   <NewPageWrapper
     client:load
-    bcms={clientConfig}
-    meta={homeMeta}
+    meta={meta}
     categories={categories as any}
     products={productsLite as any}
     filters={filters}
+    bcms={{} as any}
   />
 </Layout>
