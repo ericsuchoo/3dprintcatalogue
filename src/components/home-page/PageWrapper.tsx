@@ -47,8 +47,7 @@ interface Props {
 const HomePageWrapper: React.FC<Props> = ({
   meta,
   categories,
-  products,
-  filters,
+ 
   origins = [],
   bcms,
 }) => {
@@ -67,6 +66,8 @@ const HomePageWrapper: React.FC<Props> = ({
 
         <HomeCategories data={categories.slice(0, 6)} ctaTheme="dark-green" bcms={bcms} />
 
+        <HomeCategories data={categories.slice(6, 12)} ctaTheme="orange" bcms={bcms} />
+
         <HomeCta
           title={meta.cta_title}
           description={meta.cta_description}
@@ -74,10 +75,7 @@ const HomePageWrapper: React.FC<Props> = ({
           cta={{ label: meta.cta_label, href: meta.cta_link }}
           bcms={bcms}
         />
-
-        <HomeCategories data={categories.slice(6, 12)} ctaTheme="orange" bcms={bcms} />
-
-        <HomeProducts products={products} filters={filters} bcms={bcms} />
+        
       </InnerPageWrapper>
     </ContextWrapper>
   );
