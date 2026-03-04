@@ -50,49 +50,85 @@ const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
 const clientConfig = bcmsPublic.getConfig();
 
 // (opcional) leer meta home del BCMS para encabezado
-const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-const homeMeta = home?.meta?.en ?? { title: "Explorar Personajes" };
+let homeMeta: any = { title: "Explorar Personajes" };
+try {
+  const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
+  homeMeta = home?.meta?.en ?? { title: "Explorar Personajes" };
+} catch (e) {
+  // Si BCMS falla en algún entorno, no rompemos SSR
+  console.warn("[explorar] No se pudo cargar meta desde BCMS. Usando fallback.");
+}
 
 // D1 binding
 const db = Astro.locals.runtime.env.DB as any;
+
+// Fallback seguro (para preview / si el binding no está)
+let personajes: Array<PersonajeRow & { productsCount?: number }> = [];
+let productos: ProductoRow[] = [];
+
 if (!db) {
-  throw new Error("D1 binding 'DB' no está disponible. Revisa wrangler.toml y bindings.");
+  console.warn("[explorar] DB binding no disponible en este entorno. Renderizando vacío.");
+} else {
+  // 1) Personajes + conteo de productos por personaje (SQL)
+  const personajesRes = await db
+    .prepare(`
+      SELECT
+        p.id_personaje,
+        p.nombre_personaje,
+        p.img_personaje,
+        p.id_universo,
+        COUNT(pr.id_producto) AS productsCount
+      FROM personajes p
+      LEFT JOIN productos pr
+        ON pr.id_personaje = p.id_personaje
+      GROUP BY p.id_personaje
+      ORDER BY p.nombre_personaje ASC
+    `)
+    .all();
+
+  personajes = (personajesRes?.results || []) as Array<PersonajeRow & { productsCount?: number }>;
+
+  // 2) Productos (para la sección inferior HomeProducts)
+  const productosRes = await db
+    .prepare(`
+      SELECT
+        id_producto,
+        nombre_producto,
+        subtitulo,
+        descripcion,
+        img_producto,
+        unidades,
+        precio,
+        descuento,
+        id_proveedor,
+        id_universo,
+        id_personaje,
+        fecha_creacion,
+        fecha_modifica
+      FROM productos
+    `)
+    .all();
+
+  productos = (productosRes?.results || []) as ProductoRow[];
 }
-
-// Traer personajes
-const personajesRes = await db
-  .prepare(`SELECT id_personaje, nombre_personaje, img_personaje, id_universo FROM personajes ORDER BY nombre_personaje ASC`)
-  .all();
-const personajes = (personajesRes?.results || []) as PersonajeRow[];
-
-// Traer productos
-const productosRes = await db
-  .prepare(`SELECT id_producto, nombre_producto, subtitulo, descripcion, img_producto, unidades, precio, descuento, id_proveedor, id_universo, id_personaje, fecha_creacion, fecha_modifica FROM productos`)
-  .all();
-const productos = (productosRes?.results || []) as ProductoRow[];
 
 /**
  * categories: una card por personaje con meta {title, slug, gallery[]} y productsCount
  */
 const categories = personajes.map((p) => {
-  const count = productos.filter((pr) => String(pr.id_personaje) === String(p.id_personaje)).length;
-
   return {
     meta: {
       title: p.nombre_personaje,
       slug: slugify(p.nombre_personaje),
       gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
     },
-    productsCount: count,
+    productsCount: Number((p as any).productsCount || 0),
   };
 });
 
 /**
  * productsLite: mapeo sencillo de tus productos de D1 hacia una forma útil para ProductCard.
- * Nota: tu ProductCard puede esperar campos distintos del BCMS. Aquí construyo un objeto
- * con campos comunes (slug, title, price, gallery, personajeId).
- *
- * Si ProductCard usa campos distintos, dime y lo adapto.
+ * Si tu ProductCard/HomeProducts espera otros campos, lo ajustamos luego.
  */
 const productsLite = productos.map((pr) => {
   return {
