@@ -72,7 +72,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                     {title}
                   </span>
                   <span className="text-[18px] md:text-[24px] font-light opacity-80">
-                    ({card.productsCount} Model{card.productsCount !== 1 ? "s" : ""})
+                    ({card.productsCount} Producto{card.productsCount !== 1 ? "s" : ""})
                   </span>
                 </h2>
               </div>

@@ -1,16 +1,213 @@
-.custom-swiper .swiper-pagination-bullet { background: white !important; opacity: 0.7; }
-.custom-swiper .swiper-pagination-bullet-active { background: #000000 !important; opacity: 1; }
+/* ========================= */
+/* ORIGINS BAR – FULL BLEED  */
+/* ========================= */
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Evita scroll horizontal fantasma */
+html, body {
+  overflow-x: hidden;
 }
-.animate-product {
-    opacity: 0;
-    animation: fadeInUp 0.6s ease-out forwards;
+.originsBarWrap {
+  width: 100%;
+  background: rgb(10, 10, 10);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-@keyframes fade-in-down {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+
+.originsBarInner{
+  width: 100%;
+  max-width: none;     /* <- clave */
+  margin: 0;
+  padding: 14px 18px;  /* deja el aire */
 }
-.animate-fade-in-down { animation: fade-in-down 0.3s ease-out forwards; }
+/* Header */
+.originsBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.originsKicker {
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(255, 255, 255);
+}
+
+.originsHint {
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgb(255, 0, 0);
+}
+
+/* Scroll container */
+.originsScroller {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: auto;
+  padding: 14px 0;
+  scrollbar-width: none;
+}
+
+.originsScroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* Row */
+.originsRow {
+  display: inline-flex;
+  gap: 14px;
+  padding: 6px 0;
+}
+
+/* ========================= */
+/* ORIGIN PILL STYLE         */
+/* ========================= */
+
+.originPill {
+  border: 1px solid rgba(255, 0, 0, 0.459);
+  background: rgba(255, 255, 255, 0);
+  color: rgb(255, 255, 255);
+  padding: 12px 18px;
+  border-radius: 999px;
+
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+
+  transition: 
+    transform 220ms ease,
+    background 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease;
+
+  transform-origin: center;
+  will-change: transform;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hover estilo neón verde del sitio */
+.originPill:hover {
+  transform: scale(1.15) translateY(-2px);
+  background: rgba(0, 0, 0, 0);
+  border-color: rgba(0, 153, 255, 0.6);
+  color: #ffffff;
+  box-shadow: 
+    0 8px 30px rgba(0, 119, 255, 0.25),
+    0 0 12px rgba(0, 47, 255, 0.35);
+}
+
+/* Active click feel */
+.originPill:active {
+  transform: scale(1.08);
+}
+
+/* ========================= */
+/* LATERAL FADE EFFECT       */
+/* ========================= */
+
+.fadeLeft,
+.fadeRight {
+  pointer-events: none;
+  position: absolute;
+  top: 58px;
+  bottom: 10px;
+  width: 80px;
+  z-index: 3;
+}
+
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10,10,10,0.95),
+    rgba(10,10,10,0)
+  );
+}
+
+.fadeRight {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(10,10,10,0.95),
+    rgba(10,10,10,0)
+  );
+}
+.originsScroller {
+  overflow: hidden; /* importante para que se vea como “marquee” */
+  cursor: grab;
+}
+.originsScroller:active { cursor: grabbing; }
+/* ========================= */
+/* ORIGINS – Uiverse text FX */
+/* ========================= */
+
+/* Para que el zoom no se corte con el row */
+.originsRow {
+  overflow: visible;
+}
+
+/* Para que el botón que se agranda se ponga encima */
+.originPill {
+  position: relative;
+  z-index: 1;
+}
+.originPill:hover {
+  z-index: 10;
+  transform: scale(1.20) translateY(-3px); /* más grande que tu 1.15 */
+}
+
+/* Texto estilo “stroke + reveal” (Uiverse adaptado a tu pill) */
+.originText {
+  --border-right: 1px;
+  --text-stroke-color: rgba(255, 255, 255, 0.925);
+  --animation-color: rgb(197, 8, 2); /* tu verde */
+  --fs-size: 16px;
+
+  position: relative;
+  display: inline-block;
+
+  font-size: var(--fs-size);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-stroke-color);
+}
+
+/* Texto “animado” encima */
+.originText .hoverText {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  overflow: hidden;
+
+  color: var(--animation-color);
+  border-right: var(--border-right) solid var(--animation-color);
+
+  transition: width 0.45s ease;
+  -webkit-text-stroke: 1px var(--animation-color);
+
+  filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+}
+
+/* Hover -> reveal completo + glow */
+.originPill:hover .originText .hoverText {
+  width: 100%;
+  filter: drop-shadow(0 0 18px rgba(146, 5, 5, 0.55));
+}
+
+/* Opcional: outline un poco más suave al hover */
+.originPill:hover .originText {
+  --text-stroke-color: rgba(206, 145, 145, 0.863);
+}
