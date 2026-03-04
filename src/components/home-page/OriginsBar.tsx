@@ -1,59 +1,51 @@
-import React, { useEffect, useMemo, useRef } from "react";
 import "../../styles/carrusel.css";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type OriginItem = { id: string; label: string };
 
 type Props = {
   items: OriginItem[];
+  speedPxPerFrame?: number; // default 0.8 (notorio)
 };
 
-export const OriginsBar: React.FC<Props> = ({ items }) => {
+export const OriginsBar: React.FC<Props> = ({ items, speedPxPerFrame = 0.8 }) => {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [paused, setPaused] = useState(false);
 
-  // Duplicamos lista para “loop” visual
-  const loopItems = useMemo(() => [...items, ...items], [items]);
+  // ✅ duplicamos para que el loop sea seamless
+  const loopItems = useMemo(() => {
+    if (!items?.length) return [];
+    return [...items, ...items];
+  }, [items]);
 
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
-    let raf = 0;
-    let last = performance.now();
-    const speed = 18; // px/seg (lento)
+    // si no hay overflow, no se nota el movimiento → no animamos
+    const hasOverflow = el.scrollWidth > el.clientWidth + 5;
+    if (!hasOverflow) return;
 
-    const tick = (t: number) => {
-      const dt = (t - last) / 1000;
-      last = t;
+    const step = () => {
+      if (!paused) {
+        el.scrollLeft += speedPxPerFrame;
 
-      el.scrollLeft += speed * dt;
-
-      // cuando llegamos al final de la primera mitad, regresamos sin salto
-      const half = el.scrollWidth / 2;
-      if (el.scrollLeft >= half) el.scrollLeft -= half;
-
-      raf = requestAnimationFrame(tick);
+        // cuando llegamos a la mitad (primera lista completa), reiniciamos sin salto
+        const half = el.scrollWidth / 2;
+        if (el.scrollLeft >= half) el.scrollLeft = 0;
+      }
+      rafRef.current = requestAnimationFrame(step);
     };
 
-    raf = requestAnimationFrame(tick);
-
-    // pausa en hover
-    const onEnter = () => cancelAnimationFrame(raf);
-    const onLeave = () => {
-      last = performance.now();
-      raf = requestAnimationFrame(tick);
-    };
-
-    el.addEventListener("mouseenter", onEnter);
-    el.addEventListener("mouseleave", onLeave);
+    rafRef.current = requestAnimationFrame(step);
 
     return () => {
-      cancelAnimationFrame(raf);
-      el.removeEventListener("mouseenter", onEnter);
-      el.removeEventListener("mouseleave", onLeave);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [items]);
+  }, [paused, speedPxPerFrame, loopItems.length]);
 
-  if (!items || items.length === 0) return null;
+  if (!items?.length) return null;
 
   return (
     <section className="originsBarWrap">
@@ -66,11 +58,20 @@ export const OriginsBar: React.FC<Props> = ({ items }) => {
         <div className="fadeLeft" />
         <div className="fadeRight" />
 
-        <div ref={scrollerRef} className="originsScroller">
+        <div
+          ref={scrollerRef}
+          className="originsScroller"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
           <div className="originsRow">
-            {loopItems.map((it, idx) => (
-              <button key={`${it.id}-${idx}`} className="originPill" type="button">
-                {it.label}
+            {loopItems.map((o, idx) => (
+              <button
+                key={`${o.id}-${idx}`}
+                type="button"
+                className="originPill"
+              >
+                {o.label}
               </button>
             ))}
           </div>

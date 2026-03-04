@@ -147,3 +147,8 @@ html, body {
     rgba(10,10,10,0)
   );
 }
+.originsScroller {
+  overflow: hidden; /* importante para que se vea como “marquee” */
+  cursor: grab;
+}
+.originsScroller:active { cursor: grabbing; }
