@@ -8,7 +8,7 @@ html, body {
 }
 .originsBarWrap {
   width: 100%;
-  background: rgba(10, 10, 10, 0.75);
+  background: rgb(10, 10, 10);
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255,255,255,0.06);
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -33,14 +33,14 @@ html, body {
   font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .originsHint {
   font-size: 10px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
+  color: rgb(255, 0, 0);
 }
 
 /* Scroll container */
