@@ -204,7 +204,7 @@ html, body {
 /* Hover -> reveal completo + glow */
 .originPill:hover .originText .hoverText {
   width: 100%;
-  filter: drop-shadow(0 0 18px rgba(255, 0, 0, 0.55));
+  filter: drop-shadow(0 0 18px rgba(146, 5, 5, 0.55));
 }
 
 /* Opcional: outline un poco más suave al hover */
