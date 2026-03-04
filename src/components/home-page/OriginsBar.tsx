@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
+import "../../styles/carrusel.css";
 
 type OriginItem = { id: string; label: string };
 
