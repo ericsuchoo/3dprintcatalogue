@@ -6,25 +6,19 @@
 html, body {
   overflow-x: hidden;
 }
-
-/* Contenedor full width */
 .originsBarWrap {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  width: 100%;
   background: rgba(10, 10, 10, 0.75);
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255,255,255,0.06);
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-/* Inner centrado */
 .originsBarInner {
-  position: relative;
-  max-width: 1400px;
+  width: min(1400px, 100%);
   margin: 0 auto;
-  padding: 18px 20px;
+  padding: 14px 18px;
 }
-
 /* Header */
 .originsBarHeader {
   display: flex;
