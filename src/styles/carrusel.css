@@ -76,8 +76,8 @@ html, body {
   padding: 12px 18px;
   border-radius: 999px;
 
-  font-size: 12px;
-  letter-spacing: 0.14em;
+  font-size: 14px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 700;
 
@@ -102,8 +102,8 @@ html, body {
   border-color: rgba(0, 153, 255, 0.6);
   color: #ffffff;
   box-shadow: 
-    0 8px 30px rgba(173, 255, 0, 0.25),
-    0 0 12px rgba(173, 255, 0, 0.35);
+    0 8px 30px rgba(0, 119, 255, 0.25),
+    0 0 12px rgba(0, 47, 255, 0.35);
 }
 
 /* Active click feel */
@@ -163,15 +163,15 @@ html, body {
 }
 .originPill:hover {
   z-index: 10;
-  transform: scale(1.26) translateY(-3px); /* más grande que tu 1.15 */
+  transform: scale(1.20) translateY(-3px); /* más grande que tu 1.15 */
 }
 
 /* Texto estilo “stroke + reveal” (Uiverse adaptado a tu pill) */
 .originText {
-  --border-right: 2px;
-  --text-stroke-color: rgba(255,255,255,0.55);
-  --animation-color: rgba(173, 255, 0, 0.95); /* tu verde */
-  --fs-size: 12px;
+  --border-right: 1px;
+  --text-stroke-color: rgba(255, 255, 255, 0.438);
+  --animation-color: rgba(0, 162, 255, 0.836); /* tu verde */
+  --fs-size: 16px;
 
   position: relative;
   display: inline-block;
@@ -198,16 +198,16 @@ html, body {
   transition: width 0.45s ease;
   -webkit-text-stroke: 1px var(--animation-color);
 
-  filter: drop-shadow(0 0 0 rgba(173,255,0,0));
+  filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
 }
 
 /* Hover -> reveal completo + glow */
 .originPill:hover .originText .hoverText {
   width: 100%;
-  filter: drop-shadow(0 0 18px rgba(173,255,0,0.55));
+  filter: drop-shadow(0 0 18px rgba(255, 0, 0, 0.55));
 }
 
 /* Opcional: outline un poco más suave al hover */
 .originPill:hover .originText {
-  --text-stroke-color: rgba(255,255,255,0.35);
+  --text-stroke-color: rgba(206, 145, 145, 0.863);
 }
