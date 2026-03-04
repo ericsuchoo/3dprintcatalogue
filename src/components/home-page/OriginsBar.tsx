@@ -65,15 +65,20 @@ export const OriginsBar: React.FC<Props> = ({ items, speedPxPerFrame = 0.8 }) =>
           onMouseLeave={() => setPaused(false)}
         >
           <div className="originsRow">
-            {loopItems.map((o, idx) => (
-              <button
-                key={`${o.id}-${idx}`}
-                type="button"
-                className="originPill"
-              >
-                {o.label}
-              </button>
-            ))}
+           {loopItems.map((o, idx) => (
+  <button
+    key={`${o.id}-${idx}`}
+    type="button"
+    className="originPill"
+  >
+    <span className="originText">
+      {o.label}
+      <span className="hoverText" aria-hidden="true">
+        {o.label}
+      </span>
+    </span>
+  </button>
+))}
           </div>
         </div>
       </div>

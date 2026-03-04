@@ -33,7 +33,7 @@ html, body {
   font-size: 11px;
   letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.55);
+  color: rgb(255, 255, 255);
 }
 
 .originsHint {
@@ -99,7 +99,7 @@ html, body {
 .originPill:hover {
   transform: scale(1.15) translateY(-2px);
   background: rgba(173, 255, 0, 0.16);
-  border-color: rgba(173, 255, 0, 0.6);
+  border-color: rgba(0, 153, 255, 0.6);
   color: #ffffff;
   box-shadow: 
     0 8px 30px rgba(173, 255, 0, 0.25),
@@ -147,3 +147,67 @@ html, body {
   cursor: grab;
 }
 .originsScroller:active { cursor: grabbing; }
+/* ========================= */
+/* ORIGINS – Uiverse text FX */
+/* ========================= */
+
+/* Para que el zoom no se corte con el row */
+.originsRow {
+  overflow: visible;
+}
+
+/* Para que el botón que se agranda se ponga encima */
+.originPill {
+  position: relative;
+  z-index: 1;
+}
+.originPill:hover {
+  z-index: 10;
+  transform: scale(1.26) translateY(-3px); /* más grande que tu 1.15 */
+}
+
+/* Texto estilo “stroke + reveal” (Uiverse adaptado a tu pill) */
+.originText {
+  --border-right: 2px;
+  --text-stroke-color: rgba(255,255,255,0.55);
+  --animation-color: rgba(173, 255, 0, 0.95); /* tu verde */
+  --fs-size: 12px;
+
+  position: relative;
+  display: inline-block;
+
+  font-size: var(--fs-size);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-stroke-color);
+}
+
+/* Texto “animado” encima */
+.originText .hoverText {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  overflow: hidden;
+
+  color: var(--animation-color);
+  border-right: var(--border-right) solid var(--animation-color);
+
+  transition: width 0.45s ease;
+  -webkit-text-stroke: 1px var(--animation-color);
+
+  filter: drop-shadow(0 0 0 rgba(173,255,0,0));
+}
+
+/* Hover -> reveal completo + glow */
+.originPill:hover .originText .hoverText {
+  width: 100%;
+  filter: drop-shadow(0 0 18px rgba(173,255,0,0.55));
+}
+
+/* Opcional: outline un poco más suave al hover */
+.originPill:hover .originText {
+  --text-stroke-color: rgba(255,255,255,0.35);
+}
