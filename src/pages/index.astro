@@ -7,41 +7,26 @@ import type {
 } from "../../bcms/types/ts";
 
 import { productToLite } from "../utils/product";
-
 import Layout from "../layouts/Layout.astro";
 import HomePageWrapper from "../components/home-page/PageWrapper";
 
 import { getBcmsPrivate } from "../bcms-private";
 import { getBcmsPublic } from "../bcms-public";
 
-// Tipos para las filas de D1
-type UniversoRow = {
-  id_universo: number;
-  nombre_universo: string;
-  img_universo: string;
-};
-
-type PersonajeRow = {
-  id_personaje: number;
-  nombre_personaje: string;
-  img_personaje: string;
-  id_universo: number;
-};
-
 // ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
 const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
 const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
-const clientConfig = bcmsPublic.getConfig();
+const clientConfig = bcmsPublic.getConfig(); // 👈 NO ES NULL
 
-// 1) Obtenemos la entrada de la Home (BCMS)
+// 1) Home (BCMS)
 const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
 const homeMeta = home.meta.en as any;
 
-// 2) Obtenemos productos (BCMS) para la parte de tienda / destacados
+// 2) Productos (BCMS) para HomeProducts
 const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
 const productsLite = products.map((e) => productToLite(e));
 
-// 3) Obtenemos géneros (BCMS) para filtros de la tienda
+// 3) Géneros (BCMS) para filtros de HomeProducts
 const genderEntries = await bcmsPrivate.entry.getAll("product-gender");
 
 // 4) Filtros (igual que antes)
@@ -56,49 +41,65 @@ const filters = {
   }, [] as ProductCategoryEntryMetaItem[]),
 
   genders: (genderEntries as any[]).map(
-    (e) => e.meta.en as ProductGenderEntryMetaItem,
+    (e) => e.meta.en as ProductGenderEntryMetaItem
   ),
 };
-// 5) 🔥 NUEVO: universos + conteo de personajes desde D1
 
-// 5.0 Obtenemos la instancia de D1 desde el binding
-const db = Astro.locals.runtime.env.DB as any;
-if (!db) {
-  throw new Error("D1 binding 'DB' no está configurado en este proyecto.");
-}
+// 5) 🔥 D1: universos + conteo de personajes (1 query)
+const db = Astro.locals.runtime.env.DB;
 
-// 5.1 Universos
-const universosRes = await db
-  .prepare(
-    `SELECT id_universo, nombre_universo, img_universo FROM universos`,
-  )
+type UniversoCardRow = {
+  id_universo: number;
+  nombre_universo: string;
+  img_universo: string | null;
+  personajesCount: number;
+};
+
+const universosAggRes = await db
+  .prepare(`
+    SELECT
+      u.id_universo,
+      u.nombre_universo,
+      u.img_universo,
+      COALESCE(COUNT(p.id_personaje), 0) AS personajesCount
+    FROM universos u
+    LEFT JOIN personajes p
+      ON p.id_universo = u.id_universo
+    GROUP BY u.id_universo
+    ORDER BY u.nombre_universo ASC
+  `)
   .all();
 
-const universos = universosRes as { results: UniversoRow[] };
+const universosAgg = universosAggRes.results as unknown as UniversoCardRow[];
 
-// 5.2 Personajes (sólo necesitamos id_universo para el conteo)
-const personajesRes = await db
-  .prepare(`SELECT id_personaje, id_universo FROM personajes`)
-  .all();
+const toSlug = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 
-const personajes = personajesRes as { results: PersonajeRow[] };
+// ✅ Esto ahora alimenta tus cards
+const categories = universosAgg.map((u) => ({
+  meta: {
+    title: u.nombre_universo,
+    slug: toSlug(u.nombre_universo),
+    gallery: u.img_universo ? [{ url: u.img_universo }] : [],
+  },
+  productsCount: u.personajesCount,
+}));
+---
 
-// 5.3 Adaptamos a la forma que espera HomeCategories
-const universosCards = universos.results.map((u: UniversoRow) => {
-  const count = personajes.results.filter(
-    (p: PersonajeRow) => p.id_universo === u.id_universo,
-  ).length;
-
-  return {
-    meta: {
-      title: u.nombre_universo,
-      slug: u.nombre_universo.toLowerCase().replace(/\s+/g, "-"),
-      gallery: [
-        {
-          url: u.img_universo,
-        },
-      ],
-    },
-    productsCount: count,
-  };
-});
+<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
+  <HomePageWrapper
+    client:load
+    bcms={clientConfig}
+    meta={homeMeta}
+    categories={categories}
+    products={productsLite}
+    filters={filters}
+  />
+</Layout>

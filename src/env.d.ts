@@ -1,7 +1,7 @@
 /// <reference types="astro/client" />
 
 interface CloudflareRuntimeEnv {
-  DB?: D1Database;
+  DB: D1Database;
   [key: string]: any;
 }
 
