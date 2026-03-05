@@ -17,7 +17,7 @@ interface Props {
   categories: CategoryCard[];
 }
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 24;
 
 const NewPageWrapper: React.FC<Props> = ({ meta, categories }) => {
   const [currentPage, setCurrentPage] = useState(1);
