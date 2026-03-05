@@ -6,7 +6,8 @@ import { Btn, type BtnTheme } from "../Btn";
 interface Props {
   data: {
     meta: any;
-    productsCount: number;
+    productsCount: number; 
+      // realemente  cuenta productsCount = personajes" }
   }[];
   ctaTheme: BtnTheme;
   bcms: ClientConfig;
@@ -65,14 +66,14 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
               key={index}
               className="group relative aspect-square flex items-end p-8 overflow-hidden bg-black"
             >
-              {/* Título y contador (Estado inicial) */}
+              {/* Título y contador (Estado inicial) cards de universos  conteo de personajes no productos */}
               <div className="relative z-20 transition-all duration-500 ease-out group-hover:translate-y-4 group-hover:opacity-0">
                 <h2 className="flex items-end flex-wrap gap-4 text-white leading-none drop-shadow-lg">
                   <span className="text-[32px] md:text-[40px] font-bold uppercase italic tracking-tighter">
                     {title}
                   </span>
                   <span className="text-[18px] md:text-[24px] font-light opacity-80">
-                    ({card.productsCount} Producto{card.productsCount !== 1 ? "s" : ""})
+                    ({card.productsCount} Personajes{card.productsCount !== 1 ? "s" : ""})
                   </span>
                 </h2>
               </div>
@@ -86,7 +87,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                   {title}
                 </div>
                 <div className="translate-y-8 transition-transform duration-500 group-hover:translate-y-0">
-                  <Btn theme={ctaTheme} label="Ver Modelos" />
+                  <Btn theme={ctaTheme} label="Ver Personajes" />
                 </div>
               </a>
 

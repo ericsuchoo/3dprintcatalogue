@@ -22,7 +22,7 @@ export const CategoriesMini: React.FC<Props> = ({ data }) => {
             key={index}
             className="group relative aspect-[4/5] flex items-end p-4 overflow-hidden bg-zinc-900 rounded-xl border border-white/5 hover:border-red-500/60 transition-all duration-500"
           >
-            {/* Imagen de fondo */}
+            {/* Imagen de fondo este contador es de la pagina de  personajes */}
             {item.meta.gallery?.[0]?.url && (
               <img
                 src={item.meta.gallery[0].url}
