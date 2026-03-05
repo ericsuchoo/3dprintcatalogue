@@ -9,7 +9,7 @@ export interface ProductLiteD1 {
   subtitle?: string;
   description?: string;
   price: number;
-  discount?: number;
+  discount?: number; // porcentaje (ej 10) o monto (según tu DB). Si es porcentaje, ajustamos abajo.
   units?: number | null;
   coverUrl: string;
 
@@ -24,20 +24,37 @@ export interface ProductCardD1Props {
   style?: React.CSSProperties;
 }
 
+function formatMoney(n: number) {
+  // si quieres sin decimales: return `$${Math.round(n)}`
+  return `$${Number(n).toFixed(0)}`;
+}
+
+// Si tu `discount` es porcentaje (0-100), usa esto.
+// Si es monto fijo, dime y lo cambio.
+function calcFinalPrice(price: number, discount?: number) {
+  if (!discount) return { final: price, hasDiscount: false };
+  const pct = Number(discount);
+  if (!Number.isFinite(pct) || pct <= 0) return { final: price, hasDiscount: false };
+  const final = price - (price * pct) / 100;
+  return { final: Math.max(0, final), hasDiscount: true };
+}
+
 export const ProductCardD1: React.FC<ProductCardD1Props> = ({ card, className, style }) => {
   const { favorites, toggleFavorite } = useFavorites();
   const productID = card.slug;
   const isFavorite = favorites.includes(productID);
+
+  const { final, hasDiscount } = calcFinalPrice(card.price, card.discount);
 
   return (
     <div
       style={style}
       className={classNames(
         "group flex flex-col h-full bg-black relative border border-white/5 hover:border-white/20 transition-all duration-500 rounded-2xl overflow-hidden shadow-2xl",
-        className,
+        className
       )}
     >
-      {/* Etiqueta superior (placeholder por ahora) */}
+      {/* Etiqueta superior */}
       <div className="absolute top-3 left-3 z-30">
         <span className="bg-white text-black text-[9px] font-black px-3 py-1 rounded-sm uppercase tracking-tighter shadow-[2px_2px_0px_rgba(0,0,0,1)] border border-black">
           Modelo
@@ -46,16 +63,18 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({ card, className, s
 
       {/* Favoritos */}
       <button
+        type="button"
         onClick={(e) => {
           e.preventDefault();
           toggleFavorite(productID);
         }}
         className="absolute top-3 right-3 z-40 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300"
+        aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
       >
         <svg
           className={classNames(
             "w-4 h-4 transition-colors",
-            isFavorite ? "fill-red-500 stroke-red-500" : "fill-none stroke-white hover:stroke-black",
+            isFavorite ? "fill-red-500 stroke-red-500" : "fill-none stroke-white hover:stroke-black"
           )}
           viewBox="0 0 24 24"
           strokeWidth="2.5"
@@ -93,21 +112,27 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({ card, className, s
         <div className="flex flex-col p-4 bg-black border-t border-white/5">
           <div className="flex justify-between items-start gap-2">
             <div className="flex-1">
-              {card.subtitle ? (
-                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[2px] mb-1 italic">
-                  {card.subtitle}
-                </p>
-              ) : (
-                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[2px] mb-1 italic">
-                  Original Series
-                </p>
-              )}
+              <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[2px] mb-1 italic">
+                {card.subtitle || "Original Series"}
+              </p>
               <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">
                 {card.title}
               </h3>
             </div>
+
             <div className="text-right">
-              <p className="text-base font-black text-white italic">${card.price}</p>
+              {hasDiscount ? (
+                <div className="flex flex-col items-end leading-none">
+                  <span className="text-[11px] font-black text-white/50 line-through italic">
+                    {formatMoney(card.price)}
+                  </span>
+                  <span className="text-base font-black text-white italic">
+                    {formatMoney(final)}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-base font-black text-white italic">{formatMoney(card.price)}</p>
+              )}
             </div>
           </div>
         </div>

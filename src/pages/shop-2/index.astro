@@ -1,54 +1,182 @@
 ---
-import type { ProductEntry } from "../../../bcms/types/ts";
-import type { ProductGenderEntryMetaItem } from "../../../bcms/types/ts";
-import type {
-  ProductCategoryEntry,
-  ProductCategoryEntryMetaItem,
-} from "../../../bcms/types/ts";
-import type { ProductBrandEntryMetaItem } from "../../../bcms/types/ts";
-
-import { productToLite } from "../../utils/product";
-
 import Layout from "../../layouts/Layout.astro";
 import ProductsPageWrapper from "../../components/shop-2/products/PageWrapper";
 
-import { getBcmsPrivate } from "../../bcms-private";
-import { getBcmsPublic } from "../../bcms-public";
+// --------------------
+// Tipos D1
+// --------------------
+type ProductoRow = {
+  id_producto: number | string;
+  nombre_producto: string;
+  subtitulo?: string | null;
+  descripcion?: string | null;
+  img_producto?: string | null;
+  unidades?: number | null;
+  precio?: number | null;
+  descuento?: number | null;
+  id_proveedor?: number | null;
+  id_universo?: number | null;
+  id_personaje?: number | null;
+  fecha_creacion?: string | null;
+  fecha_modifica?: string | null;
+};
 
-// ✅ Crear clientes usando runtime env (Cloudflare)
-const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
-const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
-const clientConfig = bcmsPublic.getConfig();
+type PersonajeRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+};
 
-// Obtener productos
-const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
+type UniversoRow = {
+  id_universo: number | string;
+  nombre_universo: string;
+};
 
+type ProveedorRow = {
+  id_proveedor: number | string;
+  nombre_proveedor: string;
+};
+
+// --------------------
+// Helpers
+// --------------------
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
+}
+
+const db = Astro.locals.runtime.env.DB as any;
+
+// Si DB no existe, render vacío sin crashear
+if (!db) {
+  console.warn("[shop-2] DB binding no disponible. Revisa wrangler.toml/bindings.");
+}
+
+// helper para saber si existe una tabla
+async function tableExists(name: string) {
+  if (!db) return false;
+  const row = await db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name = ?`)
+    .bind(name)
+    .first();
+  return !!row?.name;
+}
+
+// --------------------
+// Param opcional: venir filtrado por personaje
+// /shop-2?personajeId=123
+// --------------------
+const personajeId = Astro.url.searchParams.get("personajeId");
+
+// --------------------
+// 1) Productos
+// --------------------
+let productos: ProductoRow[] = [];
+
+if (db) {
+  let sql = `
+    SELECT
+      id_producto, nombre_producto, subtitulo, descripcion, img_producto,
+      unidades, precio, descuento, id_proveedor, id_universo, id_personaje,
+      fecha_creacion, fecha_modifica
+    FROM productos
+  `;
+
+  const params: any[] = [];
+  if (personajeId) {
+    sql += ` WHERE id_personaje = ? `;
+    params.push(personajeId);
+  }
+
+  sql += ` ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC `;
+
+  const res = params.length
+    ? await db.prepare(sql).bind(...params).all()
+    : await db.prepare(sql).all();
+
+  productos = (res?.results || []) as ProductoRow[];
+}
+
+// --------------------
+// 2) Filtros D1
+// genders -> personajes
+// categories -> universos (si existe)
+// brands -> proveedores (si existe)
+// --------------------
+let personajes: PersonajeRow[] = [];
+let universos: UniversoRow[] = [];
+let proveedores: ProveedorRow[] = [];
+
+if (db) {
+  if (await tableExists("personajes")) {
+    const res = await db
+      .prepare(`SELECT id_personaje, nombre_personaje FROM personajes ORDER BY nombre_personaje ASC`)
+      .all();
+    personajes = (res?.results || []) as PersonajeRow[];
+  }
+
+  if (await tableExists("universos")) {
+    const res = await db
+      .prepare(`SELECT id_universo, nombre_universo FROM universos ORDER BY nombre_universo ASC`)
+      .all();
+    universos = (res?.results || []) as UniversoRow[];
+  }
+
+  if (await tableExists("proveedores")) {
+    const res = await db
+      .prepare(`SELECT id_proveedor, nombre_proveedor FROM proveedores ORDER BY nombre_proveedor ASC`)
+      .all();
+    proveedores = (res?.results || []) as ProveedorRow[];
+  }
+}
+
+// --------------------
+// 3) Data para Shop-2 wrapper (D1)
+// OJO: esto debe empatar con tu type ShopPageDataD1
+// --------------------
 const data = {
-  products: products.map((e) => productToLite(e)),
+  products: productos.map((pr) => ({
+    id: pr.id_producto,
+    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
+    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
+    subtitle: pr.subtitulo ?? "",
+    description: pr.descripcion ?? "",
+    price: pr.precio ?? 0,
+    discount: pr.descuento ?? 0,
+    units: pr.unidades ?? null,
+    coverUrl: pr.img_producto ?? "",
+    personajeId: pr.id_personaje ?? null,
+    universoId: pr.id_universo ?? null,
+    proveedorId: pr.id_proveedor ?? null,
+  })),
 
-  genders: products
-    .map((e) => e.meta.en?.gender.meta.en as ProductGenderEntryMetaItem)
-    .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
+  // En tu UI vieja se llaman genders/categories/brands
+  genders: personajes.map((p) => ({
+    title: p.nombre_personaje,
+    slug: String(p.id_personaje),
+  })),
 
-  categories: products
-    .map((e) =>
-      (e.meta.en?.categories as ProductCategoryEntry[]).map(
-        (i) => i.meta.en as ProductCategoryEntryMetaItem
-      )
-    )
-    .flat()
-    .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
+  categories: universos.map((u) => ({
+    title: u.nombre_universo,
+    slug: String(u.id_universo),
+  })),
 
-  brands: products
-    .map((e) => e.meta.en?.brand.meta.en as ProductBrandEntryMetaItem)
-    .filter((e, _, arr) => arr.find((i) => i.slug === e.slug) === e),
+  brands: proveedores.map((p) => ({
+    title: p.nombre_proveedor,
+    slug: String(p.id_proveedor),
+  })),
+
+  // Para auto-activar filtro cuando vienes de /explorar
+  initialPersonajeId: personajeId ? String(personajeId) : null,
 };
 ---
 
-<Layout title="Mis Me Gusta - Moda">
-  <ProductsPageWrapper
-    client:load
-    data={data}
-    bcms={clientConfig}
-  />
+<Layout title="Mis Me Gusta - DCimpress 3D">
+  <ProductsPageWrapper client:load data={data} />
 </Layout>

@@ -1,6 +1,6 @@
 export type D1SelectItem = {
   title: string;
-  slug: string; // en tu caso es ID string (personajeId, universoId, proveedorId)
+  slug: string;
 };
 
 export type ProductLiteD1 = {
@@ -21,8 +21,8 @@ export type ProductLiteD1 = {
 
 export type ShopPageDataD1 = {
   products: ProductLiteD1[];
-  genders: D1SelectItem[];     // personajes
-  categories: D1SelectItem[];  // universos
-  brands: D1SelectItem[];      // proveedores
+  genders: D1SelectItem[];
+  categories: D1SelectItem[];
+  brands: D1SelectItem[];
   initialPersonajeId?: string | null;
 };
