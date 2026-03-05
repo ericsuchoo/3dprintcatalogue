@@ -1,86 +1,77 @@
 ---
-import type {
-  HomeEntry,
-  ProductCategoryEntryMetaItem,
-  ProductEntry,
-} from "../../bcms/types/ts";
-import { productToLite } from "../utils/product";
-
 import Layout from "../layouts/Layout.astro";
 import NewPageWrapper from "../components/home-page/PageWrapperfil";
 
-import { getBcmsPrivate } from "../bcms-private";
-import { getBcmsPublic } from "../bcms-public";
-
-// ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
-const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
-const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
-const clientConfig = bcmsPublic.getConfig();
-
-// 1) Obtenemos la entrada de la Home
-const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-const homeMeta = home.meta.en as any;
-
-// 2) Obtenemos productos
-const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
-const productsLite = products.map((e) => productToLite(e));
-
-// 3) EXTRAER PERSONAJES DESDE LOS PRODUCTOS (nom_personaje_filt)
-const categories = products.reduce((acc, p) => {
-  const pMeta = p.meta.en as any;
-  const personajeEntry = pMeta.nom_personaje_filt; // Entry Pointer
-
-  if (personajeEntry && personajeEntry.meta?.en) {
-    const charMeta = personajeEntry.meta.en;
-
-    if (!acc.find((item) => item.meta.slug === charMeta.slug)) {
-      const productsWithThisChar = products.filter(
-        (prod) =>
-          (prod.meta.en as any).nom_personaje_filt?._id === personajeEntry._id
-      );
-
-      const fallbackImage = pMeta.gallery?.[0];
-
-      acc.push({
-        meta: {
-          ...charMeta,
-          gallery:
-            charMeta.gallery && charMeta.gallery.length > 0
-              ? charMeta.gallery
-              : fallbackImage
-                ? [fallbackImage]
-                : [],
-        },
-        productsCount: productsWithThisChar.length,
-      });
-    }
-  }
-
-  return acc;
-}, [] as any[]);
-
-// 4) Filtros para el Wrapper
-const filters = {
-  categories: products.reduce((acc, e) => {
-    e.meta.en?.categories.forEach((i) => {
-      if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
-        acc.push(i.meta.en);
-      }
-    });
-    return acc;
-  }, [] as ProductCategoryEntryMetaItem[]),
-
-  personajes: categories.map((c) => c.meta),
+// Tipos D1
+type PersonajeRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  img_personaje: string | null;
+  id_universo?: number | null;
+  productsCount?: number;
 };
+
+// Helper para slugs
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
+}
+
+// ✅ D1 binding
+const db = Astro.locals.runtime.env.DB as any;
+
+// categories: resultado final que mandamos al wrapper
+let categories: {
+  meta: { title: string; slug: string; gallery: { url: string }[] };
+  productsCount: number;
+}[] = [];
+
+if (!db) {
+  console.warn("[explorar] DB binding no disponible. Render vacío pero sin crashear.");
+} else {
+  const personajesRes = await db
+    .prepare(`
+      SELECT
+        p.id_personaje,
+        p.nombre_personaje,
+        p.img_personaje,
+        p.id_universo,
+        COUNT(pr.id_producto) AS productsCount
+      FROM personajes p
+      LEFT JOIN productos pr
+        ON pr.id_personaje = p.id_personaje
+      GROUP BY p.id_personaje
+      ORDER BY p.nombre_personaje ASC
+    `)
+    .all();
+
+  const personajes = (personajesRes?.results || []) as PersonajeRow[];
+
+  categories = personajes.map((p) => ({
+    meta: {
+      title: p.nombre_personaje,
+      slug: slugify(p.nombre_personaje),
+      gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
+    },
+    productsCount: Number((p as any).productsCount || 0),
+  }));
+}
+
+// Meta muy simple para el encabezado
+const meta = { title: "Explorar Personajes" };
 ---
 
 <Layout title="Explorar Personajes | 3D Shop">
   <NewPageWrapper
     client:load
-    bcms={clientConfig}
-    meta={homeMeta}
+    meta={meta}
     categories={categories as any}
-    products={productsLite}
-    filters={filters}
   />
 </Layout>
