@@ -1,53 +1,134 @@
 ---
-import type { ProductEntry } from "../../../../bcms/types/ts";
-import { productToLite } from "../../../utils/product";
-
 import Layout from "../../../layouts/Layout.astro";
 import ProductPageWrapper from "../../../components/shop/product/PageWrapper";
 
-import { getBcmsPrivateBuild } from "../../../bcms-private";
-import { getBcmsPublic } from "../../../bcms-public";
+type ProductoRow = {
+  id_producto: number;
+  nombre_producto: string;
+  subtitulo?: string | null;
+  descripcion?: string | null;
+  img_producto?: string | null;
+  unidades?: number | null;
+  precio?: number | null;
+  descuento?: number | null;
+  id_proveedor?: number | null;
+  id_universo?: number | null;
+  id_personaje?: number | null;
+  fecha_creacion?: string | null;
+  fecha_modifica?: string | null;
+};
 
-// ✅ Build-time client (para getStaticPaths y prerender)
-export async function getStaticPaths() {
-  const bcmsPrivate = getBcmsPrivateBuild();
-  const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
+type EdicionJoinRow = {
+  id_edicion_producto: number;
+  id_producto: number;
+  id_edicion: number;
+  nombre_edicion: string;
+  img_edicion_producto: string | null;
+};
 
-  return products.map((e) => ({
-    params: { slug: e.meta.en?.slug || "" },
-  }));
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
 }
 
 const { slug } = Astro.params;
 
-// ✅ Build-time client (esta página es estática por getStaticPaths)
-const bcmsPrivate = getBcmsPrivateBuild();
-const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
-const entry = products.find((e) => e.meta.en?.slug === slug);
+// D1
+const db = Astro.locals.runtime.env.DB as any;
+if (!db) return Astro.redirect("/404");
 
-if (!entry || !entry.meta.en) return Astro.redirect("/404");
+// 1) Resolver slug -> id_producto (modo prueba)
+const listRes = await db.prepare(`SELECT id_producto, nombre_producto FROM productos`).all();
+const list = (listRes?.results || []) as Array<{ id_producto: number; nombre_producto: string }>;
 
-// Procesamos el producto para obtener la galería inyectada
-const productLite = productToLite(entry);
+const found = list.find((p) => slugify(p.nombre_producto) === slug);
+if (!found) return Astro.redirect("/404");
+
+// 2) Producto
+const product = (await db
+  .prepare(`
+    SELECT
+      id_producto, nombre_producto, subtitulo, descripcion, img_producto,
+      unidades, precio, descuento, id_proveedor, id_universo, id_personaje,
+      fecha_creacion, fecha_modifica
+    FROM productos
+    WHERE id_producto = ?
+  `)
+  .bind(found.id_producto)
+  .first()) as ProductoRow | null;
+
+if (!product) return Astro.redirect("/404");
+
+// 3) Ediciones + imágenes
+const edRes = await db
+  .prepare(`
+    SELECT
+      ep.id_edicion_producto,
+      ep.id_producto,
+      e.id_edicion,
+      e.nombre_edicion,
+      ep.img_edicion_producto
+    FROM edicion_producto ep
+    JOIN ediciones e ON e.id_edicion = ep.id_edicion
+    WHERE ep.id_producto = ?
+    ORDER BY e.nombre_edicion ASC, ep.id_edicion_producto ASC
+  `)
+  .bind(product.id_producto)
+  .all();
+
+const ediciones = (edRes?.results || []) as EdicionJoinRow[];
+
+// 4) Variants (ediciones únicas)
+const variants = Array.from(
+  new Map(
+    ediciones.map((r) => [
+      String(r.id_edicion),
+      { slug: String(r.id_edicion), title: r.nombre_edicion },
+    ])
+  ).values()
+);
+
+// 5) Galería por variant
+const galleryByVariant = variants.map((v) => {
+  const imgs = ediciones
+    .filter((r) => String(r.id_edicion) === v.slug)
+    .map((r) => r.img_edicion_producto)
+    .filter((u): u is string => !!u && u.length > 0);
+
+  return {
+    variantSlug: v.slug,
+    images: imgs.map((u) => ({ url: u })),
+  };
+});
 
 const data = {
   meta: {
-    ...entry.meta.en,
-    gallery: productLite.gallery,
-  },
-  otherProducts: products
-    .filter((e) => e.meta.en?.slug !== slug)
-    .map((e) => productToLite(e))
-    .sort((a, b) => b.date - a.date)
-    .slice(0, 4),
-};
+    id_producto: product.id_producto,
+    title: product.nombre_producto,
+    slug: slugify(product.nombre_producto),
+    price: product.precio ?? 0,
+    descuento: product.descuento ?? null,
 
-// ✅ Para pasar config al wrapper sin instanciar cliente en global scope del bundle
-// Como esta página es build-time, podemos usar import.meta.env aquí sin problema:
-const bcmsPublic = getBcmsPublic(import.meta.env);
-const clientConfig = bcmsPublic.getConfig();
+    // 👇 aquí tu Details puede pintar un texto simple (luego lo enriquecemos)
+    descripcion: product.descripcion ?? "",
+
+    variants,
+    galleryByVariant,
+
+    // fallback si no hay ediciones
+    cover: product.img_producto ? { url: product.img_producto } : null,
+  },
+  otherProducts: [],
+};
 ---
 
-<Layout title={`${productLite.title} - Dino Cat 3D`}>
-  <ProductPageWrapper client:load data={data} bcms={clientConfig} />
+<Layout title={`${data.meta.title} - Dino Cat 3D`}>
+ <ProductPageWrapper client:load data={data as any} />
 </Layout>

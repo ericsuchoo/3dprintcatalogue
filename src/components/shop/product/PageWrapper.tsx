@@ -1,34 +1,25 @@
-import React from 'react';
-import ContextWrapper from '../../ContextWrapper';
-import InnerPageWrapper from '../../InnnerPageWrapper';
-import type { ClientConfig } from '@thebcms/client';
-import { Main } from './Main';
-import type { ProductLite } from '../../../utils/product';
+import React from "react";
+import ContextWrapper from "../../ContextWrapper";
+import InnerPageWrapper from "../../InnnerPageWrapper";
+import { Main } from "./Main";
 
 interface Props {
-    data: {
-        meta: any; 
-        otherProducts: ProductLite[];
-    };
-    bcms: ClientConfig;
+  data: {
+    meta: any;
+    otherProducts?: any[];
+  };
 }
 
-const ProductPageWrapper: React.FC<Props> = ({ data, bcms }) => {
-    return (
-        <ContextWrapper>
-            <InnerPageWrapper bcms={bcms}>
-                <div className="container bg-black pb-14 md:pb-20 lg:pb-[136px]">
-                    {data.meta && (
-                        <Main
-                            meta={data.meta}
-                            otherProducts={data.otherProducts}
-                            bcms={bcms}
-                        />
-                    )}
-                </div>
-            </InnerPageWrapper>
-        </ContextWrapper>
-    );
+const ProductPageWrapper: React.FC<Props> = ({ data }) => {
+  return (
+    <ContextWrapper>
+      <InnerPageWrapper>
+        <div className="container bg-black pb-14 md:pb-20 lg:pb-[136px]">
+          {data?.meta ? <Main meta={data.meta} /> : null}
+        </div>
+      </InnerPageWrapper>
+    </ContextWrapper>
+  );
 };
 
 export default ProductPageWrapper;

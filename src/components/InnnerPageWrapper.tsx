@@ -3,7 +3,7 @@ import Header from "./layout/Header";
 import type { ClientConfig } from "@thebcms/client";
 
 interface Props extends PropsWithChildren {
-  bcms?: ClientConfig; // ✅ ahora es opcional
+  bcms?: ClientConfig;
 }
 
 const InnnerPageWrapper: React.FC<Props> = ({ children }) => {

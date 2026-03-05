@@ -49,7 +49,7 @@ const NewPageWrapper: React.FC<Props> = ({ meta, categories }) => {
             </h1>
             <div className="w-20 h-1 bg-red-600 mx-auto mt-4 mb-2" />
             <p className="text-zinc-500 text-xs md:text-sm uppercase tracking-[0.2em] font-bold">
-              Mostrando {categories?.length ?? 0} personajes cargados
+              Mostrando {categories?.length ?? 0} Personajes Disponibles
             </p>
           </div>
 

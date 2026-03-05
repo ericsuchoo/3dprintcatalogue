@@ -41,5 +41,5 @@ const data = {
 ---
 
 <Layout title={`${meta.title} - Moda`}>
-  <ProductPageWrapper client:load data={data} bcms={clientConfig} />
+  <ProductPageWrapper client:load data={data as any} />
 </Layout>

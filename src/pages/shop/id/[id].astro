@@ -1,0 +1,92 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import ProductPageWrapper from "../../../components/shop/product/PageWrapper";
+
+// Tipos D1
+type ProductoRow = {
+  id_producto: number | string;
+  nombre_producto: string;
+  descripcion?: string | null;
+  subtitulo?: string | null;
+  precio?: number | null;
+  descuento?: number | null;
+  img_producto?: string | null;
+  unidades?: number | null;
+};
+
+type EdicionRow = {
+  id_edicion: number | string;
+  nombre_edicion: string;
+  img_edicion_producto: string | null;
+};
+
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
+}
+
+const { id } = Astro.params;
+
+const db = Astro.locals.runtime.env.DB as any;
+if (!db) {
+  return Astro.redirect("/404");
+}
+
+const prodRes = await db
+  .prepare(
+    `SELECT id_producto, nombre_producto, subtitulo, descripcion, precio, descuento, img_producto, unidades
+     FROM productos
+     WHERE id_producto = ?`
+  )
+  .bind(id)
+  .first();
+
+if (!prodRes) return Astro.redirect("/404");
+
+const product = prodRes as ProductoRow;
+
+const edicionesRes = await db
+  .prepare(
+    `SELECT e.id_edicion, e.nombre_edicion, ep.img_edicion_producto
+     FROM edicion_producto ep
+     JOIN ediciones e ON e.id_edicion = ep.id_edicion
+     WHERE ep.id_producto = ?
+     ORDER BY e.nombre_edicion ASC`
+  )
+  .bind(id)
+  .all();
+
+const ediciones = (edicionesRes?.results || []) as EdicionRow[];
+
+// Meta ya normalizada para tu UI
+const data = {
+  meta: {
+    id_producto: product.id_producto,
+    slug: slugify(product.nombre_producto),
+    title: product.nombre_producto,
+    subtitle: product.subtitulo ?? "",
+    description: product.descripcion ?? "",
+    price: product.precio ?? 0,
+    discount: product.descuento ?? 0,
+    units: product.unidades ?? 0,
+    coverUrl: product.img_producto ?? "",
+    editions: ediciones.map((e) => ({
+      id: e.id_edicion,
+      title: e.nombre_edicion,
+      imageUrl: e.img_edicion_producto,
+    })),
+  },
+  otherProducts: [], // lo dejamos vacío por ahora para no romper nada
+};
+---
+
+<Layout title={`${data.meta.title} | 3D Shop`}>
+  <ProductPageWrapper client:load data={data as any} />
+</Layout>
