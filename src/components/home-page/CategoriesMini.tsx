@@ -1,82 +1,49 @@
 import React from "react";
-import { BCMSImage } from "@thebcms/components-react";
-import type { ClientConfig } from "@thebcms/client";
-import { Btn, type BtnTheme } from "../Btn";
+
+type CategoryItem = {
+  meta: {
+    title: string;
+    slug: string;
+    gallery?: { url: string }[];
+  };
+  productsCount: number;
+};
 
 interface Props {
-  data: { meta: any; productsCount: number }[];
-  ctaTheme: BtnTheme;
-  bcms: ClientConfig;
+  data: CategoryItem[];
 }
 
-function getImageSrc(media: any): string | null {
-  if (!media) return null;
-  if (typeof media.url === "string" && media.url.length > 0) return media.url;
-  if (typeof media.src === "string" && media.src.length > 0) return media.src;
-  return null;
-}
-
-function isBcmsMedia(media: any): boolean {
-  // si trae url directo -> no es BCMS media
-  return !!media && !getImageSrc(media);
-}
-
-export const CategoriesMini: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
+export const CategoriesMini: React.FC<Props> = ({ data }) => {
   return (
     <section className="px-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-        {data.map((item, index) => {
-          const media = item.meta?.gallery?.[0];
-          const d1Url = getImageSrc(media);
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {data.map((item, index) => (
+          <div
+            key={index}
+            className="group relative aspect-[4/5] flex items-end p-4 overflow-hidden bg-zinc-900 rounded-xl border border-white/5 hover:border-red-500/60 transition-all duration-500"
+          >
+            {/* Imagen de fondo */}
+            {item.meta.gallery?.[0]?.url && (
+              <img
+                src={item.meta.gallery[0].url}
+                alt={item.meta.title}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80"
+              />
+            )}
 
-          return (
-            <div
-              key={index}
-              className="group relative aspect-[4/5] flex items-end p-4 overflow-hidden bg-zinc-900 rounded-lg"
-            >
-              <div className="relative z-20 transition-all duration-500 group-hover:opacity-0">
-                <h2 className="text-white leading-tight">
-                  <div className="text-[14px] md:text-[16px] font-black uppercase italic tracking-tighter">
-                    {item.meta?.title}
-                  </div>
-                  <div className="text-[10px] uppercase opacity-60 font-bold">
-                    {item.productsCount} Model{item.productsCount !== 1 ? "s" : ""}
-                  </div>
-                </h2>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="text-[13px] md:text-[15px] font-black uppercase italic tracking-tighter text-white">
+                {item.meta.title}
               </div>
-
-              <a
-                href={`/shop${item.productsCount > 0 ? "?personaje=" + item.meta?.slug : ""}`}
-                className="absolute z-30 inset-0 bg-red-600/90 flex flex-col items-center justify-center text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              >
-                <span className="text-white text-[12px] font-black uppercase italic mb-2">
-                  Ver {item.meta?.title}
-                </span>
-                <div className="scale-75">
-                  <Btn theme={ctaTheme} label="Explorar" />
-                </div>
-              </a>
-
-              <div className="absolute top-0 left-0 size-full z-0">
-                {media && isBcmsMedia(media) ? (
-                  <BCMSImage
-                    media={media}
-                    clientConfig={bcms}
-                    className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                ) : d1Url ? (
-                  <img
-                    src={d1Url}
-                    alt={item.meta?.title || "Personaje"}
-                    className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                ) : null}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
+              <div className="text-[10px] uppercase opacity-70 font-bold text-zinc-300">
+                {item.productsCount} Modelo
+                {item.productsCount !== 1 ? "s" : ""}
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </section>
   );

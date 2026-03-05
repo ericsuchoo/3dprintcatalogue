@@ -8,26 +8,10 @@ type PersonajeRow = {
   nombre_personaje: string;
   img_personaje: string | null;
   id_universo?: number | null;
-  productsCount?: number; // viene del query (COUNT)
+  productsCount?: number;
 };
 
-type ProductoRow = {
-  id_producto: number | string;
-  nombre_producto: string;
-  subtitulo?: string | null;
-  descripcion?: string | null;
-  img_producto?: string | null;
-  unidades?: number | null;
-  precio?: number | null;
-  descuento?: number | null;
-  id_proveedor?: number | null;
-  id_universo?: number | null;
-  id_personaje?: number | null;
-  fecha_creacion?: string | null;
-  fecha_modifica?: string | null;
-};
-
-// Helper slug
+// Helper para slugs
 function slugify(s: string) {
   return s
     .toString()
@@ -40,16 +24,18 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
-// D1 binding
+// ✅ D1 binding
 const db = Astro.locals.runtime.env.DB as any;
 
-let personajes: PersonajeRow[] = [];
-let productos: ProductoRow[] = [];
+// categories: resultado final que mandamos al wrapper
+let categories: {
+  meta: { title: string; slug: string; gallery: { url: string }[] };
+  productsCount: number;
+}[] = [];
 
 if (!db) {
   console.warn("[explorar] DB binding no disponible. Render vacío pero sin crashear.");
 } else {
-  // Personajes + conteo de productos
   const personajesRes = await db
     .prepare(`
       SELECT
@@ -66,86 +52,19 @@ if (!db) {
     `)
     .all();
 
-  personajes = (personajesRes?.results || []) as PersonajeRow[];
+  const personajes = (personajesRes?.results || []) as PersonajeRow[];
 
-  // Productos
-  const productosRes = await db
-    .prepare(`
-      SELECT
-        id_producto,
-        nombre_producto,
-        subtitulo,
-        descripcion,
-        img_producto,
-        unidades,
-        precio,
-        descuento,
-        id_proveedor,
-        id_universo,
-        id_personaje,
-        fecha_creacion,
-        fecha_modifica
-      FROM productos
-    `)
-    .all();
-
-  productos = (productosRes?.results || []) as ProductoRow[];
+  categories = personajes.map((p) => ({
+    meta: {
+      title: p.nombre_personaje,
+      slug: slugify(p.nombre_personaje),
+      gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
+    },
+    productsCount: Number((p as any).productsCount || 0),
+  }));
 }
 
-// categories: 1 card por personaje (formato compatible con tu UI)
-const categories = personajes.map((p) => ({
-  meta: {
-    title: p.nombre_personaje,
-    slug: slugify(p.nombre_personaje),
-    // D1 -> { url }
-    gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
-  },
-  productsCount: Number((p as any).productsCount || 0),
-}));
-
-// mapa id_personaje -> slug (para filtrar productos por personaje)
-const personajeSlugMap = new Map<string, string>();
-personajes.forEach((p) => {
-  personajeSlugMap.set(String(p.id_personaje), slugify(p.nombre_personaje));
-});
-
-// productsLite: forma “BCMS-like” mínima para tu ProductCard/HomeProducts
-const productsLite = productos.map((pr) => {
-  const personajeSlug = personajeSlugMap.get(String(pr.id_personaje)) || "";
-
-  return {
-    _id: String(pr.id_producto),
-    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
-    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
-
-    // Precio
-    price: pr.precio ?? 0,
-
-    // Para el filtro (D1)
-    personajeSlug,
-
-    // Estas props las usa tu ProductCard aunque sean “fake”
-    gender: { title: "Personaje", slug: personajeSlug },
-    categories: [],
-    brand: { title: "Dino Cat 3D", slug: "dino-cat" },
-    sizes: [],
-
-    // Imagen (D1)
-    cover: pr.img_producto ? ({ url: pr.img_producto } as any) : null,
-    gallery: pr.img_producto ? [{ url: pr.img_producto }] : [],
-
-    // extras
-    date: Date.now(),
-  };
-});
-
-// filtros
-const filters = {
-  categories: [],
-  personajes: categories.map((c) => c.meta), // [{title,slug,...}]
-};
-
-// meta simple (sin BCMS)
+// Meta muy simple para el encabezado
 const meta = { title: "Explorar Personajes" };
 ---
 
@@ -154,8 +73,5 @@ const meta = { title: "Explorar Personajes" };
     client:load
     meta={meta}
     categories={categories as any}
-    products={productsLite as any}
-    filters={filters}
-    bcms={{} as any}
   />
 </Layout>
