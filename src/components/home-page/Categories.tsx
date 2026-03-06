@@ -64,7 +64,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
           return (
             <div
               key={index}
-              className="group relative aspect-square flex items-end p-4 overflow-hidden bg-black"
+              className="group relative aspect-square flex items-end p-12 overflow-hidden bg-black"
             >
               {/* Título y contador (Estado inicial) cards de universos  conteo de personajes no productos */}
               <div className="relative z-20 transition-all duration-500 ease-out group-hover:translate-y-4 group-hover:opacity-0">
@@ -72,7 +72,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                   <span className="text-[32px] md:text-[40px] font-bold uppercase italic tracking-tighter">
                     {title}
                   </span>
-                  <span className="text-[18px] md:text-[24px] font-light opacity-80">
+                  <span className="text-[18px] md:text-[40px] font-light opacity-80">
                     ({card.productsCount} Personaje{card.productsCount !== 1 ? "s" : ""})
                   </span>
                 </h2>
