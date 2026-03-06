@@ -22,7 +22,7 @@ export const CategoriesMini: React.FC<Props> = ({ data }) => {
             key={index}
             className="group relative aspect-[4/5] flex items-end p-4 overflow-hidden bg-zinc-900 rounded-xl border border-white/5 hover:border-red-500/60 transition-all duration-500"
           >
-            {/* Imagen de fondo */}
+            {/* Imagen de fondo este contador es de la pagina de  personajes */}
             {item.meta.gallery?.[0]?.url && (
               <img
                 src={item.meta.gallery[0].url}
@@ -38,7 +38,7 @@ export const CategoriesMini: React.FC<Props> = ({ data }) => {
                 {item.meta.title}
               </div>
               <div className="text-[10px] uppercase opacity-70 font-bold text-zinc-300">
-                {item.productsCount} Personaje
+                {item.productsCount} Variante
                 {item.productsCount !== 1 ? "s" : ""}
               </div>
             </div>

@@ -107,8 +107,10 @@ const toSlug = (s: string) =>
     .replace(/-+/g, "-");
 
 // ✅ Esto ahora alimenta tus cards
+// 👇 CAMBIO: agregamos id_universo en meta para poder linkear a /explorar?universoId=#
 const categories = universosAgg.map((u) => ({
   meta: {
+    id_universo: u.id_universo, // ✅ NUEVO
     title: u.nombre_universo,
     slug: toSlug(u.nombre_universo),
     gallery: u.img_universo ? [{ url: u.img_universo }] : [],
@@ -125,6 +127,6 @@ const categories = universosAgg.map((u) => ({
     categories={categories}
     products={productsLite}
     filters={filters}
-     origins={origins}
+    origins={origins}
   />
 </Layout>

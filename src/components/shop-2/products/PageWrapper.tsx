@@ -1,41 +1,23 @@
-import React from 'react';
-import ContextWrapper from '../../ContextWrapper';
-import InnerPageWrapper from '../../InnnerPageWrapper';
-import type { ClientConfig } from '@thebcms/client';
-import { Main } from './Main'; // Se mantiene igual si Main.tsx está en la misma carpeta
-import type { ProductLite } from '../../../utils/product';
-import type {
-    ProductBrandEntryMetaItem,
-    ProductCategoryEntryMetaItem,
-    ProductGenderEntryMetaItem,
-} from '../../../../bcms/types/ts';
+import React from "react";
+import ContextWrapper from "../../ContextWrapper";
+import InnerPageWrapper from "../../InnnerPageWrapper";
+import { Main } from "./Main";
+import type { ShopPageDataD1 } from "../../../types/shop-d1";
 
 interface Props {
-    data: {
-        products: ProductLite[];
-        genders: ProductGenderEntryMetaItem[];
-        categories: ProductCategoryEntryMetaItem[];
-        brands: ProductBrandEntryMetaItem[];
-    };
-    bcms: ClientConfig;
+  data: ShopPageDataD1;
 }
 
-const ProductsPageWrapper: React.FC<Props> = ({ data, bcms }) => {
-    return (
-        <ContextWrapper>
-            <InnerPageWrapper bcms={bcms}>
-                <div className="container pb-14 md:pb-20 lg:pb-[136px]">
-                    <Main
-                        products={data.products}
-                        genders={data.genders}
-                        categories={data.categories}
-                        brands={data.brands}
-                        bcms={bcms}
-                    />
-                </div>
-            </InnerPageWrapper>
-        </ContextWrapper>
-    );
+const ProductsPageWrapper: React.FC<Props> = ({ data }) => {
+  return (
+    <ContextWrapper>
+      <InnerPageWrapper>
+        <div className="container pb-14 md:pb-20 lg:pb-[136px]">
+          <Main data={data} />
+        </div>
+      </InnerPageWrapper>
+    </ContextWrapper>
+  );
 };
 
 export default ProductsPageWrapper;
