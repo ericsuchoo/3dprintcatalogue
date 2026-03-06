@@ -61,17 +61,17 @@ const HomePageWrapper: React.FC<Props> = ({
           logo_dc3={(meta as any).logo_dc3}
           bcms={bcms}
         />
+        //*conteo de  universos cards <HomeCategories data={categories.slice(9, 12)} ctaTheme="orange" bcms={bcms} />
 
         <OriginsBar items={origins} />
 
-        <HomeCategories data={categories.slice(0, 3)} ctaTheme="dark-green" bcms={bcms} />
+        <HomeCategories data={categories.slice(0, 4)} ctaTheme="dark-green" bcms={bcms} />
 
-        <HomeCategories data={categories.slice(3, 6)} ctaTheme="orange" bcms={bcms} />
+        <HomeCategories data={categories.slice(4, 8)} ctaTheme="orange" bcms={bcms} />
 
-        <HomeCategories data={categories.slice(6, 9)} ctaTheme="dark-green" bcms={bcms} />
+        <HomeCategories data={categories.slice(8, 12)} ctaTheme="dark-green" bcms={bcms} />
 
-        <HomeCategories data={categories.slice(9, 12)} ctaTheme="orange" bcms={bcms} />
-
+        
         <HomeCta
           title={meta.cta_title}
           description={meta.cta_description}

@@ -162,71 +162,14 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const loadMore = () => setLoadedProducts((prev) => prev + 12);
 
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start lg:grid-cols-[198px,1fr] lg:grid-rows-[auto,1fr]">
+    <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start lg:grid-cols-[198px,1fr] lg:grid-rows-[auto,1fr] ">
       {/* SIDEBAR */}
       <div className="lg:row-span-2 sticky top-0">
         <div className="grid grid-cols-1 gap-8 border border-appGray-300 p-8 bg-white/95">
           <div className="text-2xl leading-none font-bold tracking-[-2%] italic text-red-500">
             {favoritesOnly ? "Mis Me gusta" : "Filtros"}
           </div>
-
-          {/* PERSONAJES */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Personajes</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "personaje")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-          {/* PRICE */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Price</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "price")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-          {/* POPULARITY */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Popularity</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "popularity")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
+          
           {/* UNIVERSOS (si hay) */}
           {filters.some((f) => f.type === "universo") && (
             <div>
@@ -248,10 +191,49 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
           )}
 
+          {/* POPULARITY */}
+          <div>
+            <div className="text-2xl leading-none tracking-[-2%] mb-5">Popularidad</div>
+            <div className="grid grid-cols-1 gap-4">
+              {filters
+                .filter((e) => e.type === "popularity")
+                .map((filter, index) => (
+                  <FormCheck
+                    key={index}
+                    value={filter.label}
+                    label={filter.label}
+                    onCheck={(value) => setProductFilter(String(value))}
+                    checked={!filter.active}
+                    size="sm"
+                  />
+                ))}
+            </div>
+          </div>
+          
+          {/* PERSONAJES */}
+          <div>
+            <div className="text-2xl leading-none tracking-[-2%] mb-5">Personajes</div>
+            <div className="grid grid-cols-1 gap-4">
+              {filters
+                .filter((e) => e.type === "personaje")
+                .map((filter, index) => (
+                  <FormCheck
+                    key={index}
+                    value={filter.label}
+                    label={filter.label}
+                    onCheck={(value) => setProductFilter(String(value))}
+                    checked={!filter.active}
+                    size="sm"
+                  />
+                ))}
+            </div>
+          </div>
+
+
           {/* PROVEEDORES (si hay) */}
           {filters.some((f) => f.type === "proveedor") && (
             <div>
-              <div className="text-2xl leading-none tracking-[-2%] mb-5">Creadores</div>
+              <div className="text-2xl leading-none tracking-[-2%] mb-5">Creadores 3D</div>
               <div className="grid grid-cols-1 gap-4">
                 {filters
                   .filter((e) => e.type === "proveedor")
@@ -271,6 +253,24 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </div>
       </div>
 
+          {/* PRICE */}
+          <div>
+            <div className="text-2xl leading-none tracking-[-2%] mb-5">Precio</div>
+            <div className="grid grid-cols-1 gap-4">
+              {filters
+                .filter((e) => e.type === "price")
+                .map((filter, index) => (
+                  <FormCheck
+                    key={index}
+                    value={filter.label}
+                    label={filter.label}
+                    onCheck={(value) => setProductFilter(String(value))}
+                    checked={!filter.active}
+                    size="sm"
+                  />
+                ))}
+            </div>
+          </div>
       {/* CONTENT */}
       <div className="lg:col-start-2">
         <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
@@ -290,12 +290,12 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             onClick={clearFilters}
           >
             <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[18px] h-[18px]" />
-            <span className="text-lg leading-none tracking-[-2%] mb-1">Clear filters</span>
+            <span className="text-lg leading-none tracking-[-2%] mb-1">Limpiar Filtros</span>
           </button>
         </div>
 
         <div className="text-2xl leading-none tracking-[-2%] my-6 text-white">
-          {filteredProducts.length} Model{filteredProducts.length === 1 ? "" : "s"}
+          {filteredProducts.length} Variantes{filteredProducts.length === 1 ? "" : "s"}
         </div>
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -313,7 +313,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             className="flex max-w-max text-2xl leading-none tracking-[-0.5px] px-14 pt-3.5 pb-[18px] bg-white border border-appGray-400 mx-auto mt-12 transition-colors duration-300 hover:bg-appText hover:text-white"
             onClick={loadMore}
           >
-            Load more
+            Cargar mas
           </button>
         )}
       </div>

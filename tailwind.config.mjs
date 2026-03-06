@@ -4,7 +4,7 @@ export default {
     theme: {
         extend: {
             colors: {
-                appBody: '#ffffff',
+                appBody: '#000000',
                 appText: '#121212',
                 appGray: {
                     100: '#F5F5F5', 200: '#EDEDED', 300: '#DEDEDE',
@@ -12,11 +12,11 @@ export default {
                     700: '#5E5E5E', 800: '#4A4A4A', 900: '#33322E',
                 },
                 appAccent: {
-                    darkGreen: '#1A5E41',
-                    lightGreen: '#BBEA01',
-                    orange: '#EAA401',
+                    darkGreen: '#1a325e',
+                    lightGreen: '#01a0ea',
+                    orange: '#ea1001',
                 },
-                appError: '#CE3434',
+                appError: '#cebf34',
             },
             container: {
                 center: true,
