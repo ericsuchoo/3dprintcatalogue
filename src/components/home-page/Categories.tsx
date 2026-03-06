@@ -6,8 +6,8 @@ import { Btn, type BtnTheme } from "../Btn";
 interface Props {
   data: {
     meta: any;
-    productsCount: number; 
-      // realemente  cuenta productsCount = personajes" }
+    productsCount: number;
+    // realmente cuenta productsCount = personajes
   }[];
   ctaTheme: BtnTheme;
   bcms: ClientConfig;
@@ -15,23 +15,14 @@ interface Props {
 
 function getImageSrc(media: any): string | null {
   if (!media) return null;
-
-  // ✅ D1 format: { url: "https://..." }
   if (typeof media.url === "string" && media.url.length > 0) return media.url;
-
-  // Optional variants if you ever store other keys
   if (typeof media.src === "string" && media.src.length > 0) return media.src;
-
   return null;
 }
 
 function isBcmsMedia(media: any): boolean {
   if (!media) return false;
-
-  // If it has a direct URL, treat it as non-BCMS (D1)
   if (getImageSrc(media)) return false;
-
-  // Heuristic for BCMS media objects
   return (
     typeof media === "object" &&
     (typeof media._id === "string" ||
@@ -40,7 +31,6 @@ function isBcmsMedia(media: any): boolean {
   );
 }
 
-// Optional fallback (remove if you don't want placeholder)
 const FALLBACK_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800'%3E%3Crect width='100%25' height='100%25' fill='black'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='28' font-family='Arial'%3ESin imagen%3C/text%3E%3C/svg%3E";
 
@@ -55,18 +45,21 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
           const media = card.meta?.gallery?.[0];
           const d1Url = getImageSrc(media);
 
-          const href = `/shop${
-            card.productsCount > 0 && card.meta?.slug
-              ? `?universo=${card.meta.slug}`
-              : ""
-          }`;
+          // ✅ NUEVO: mandar a /explorar con universoId
+          const universoId = card.meta?.id_universo;
+
+          // si no hay universoId o no hay personajes, puedes decidir si navega o no
+          const href =
+            card.productsCount > 0 && universoId != null
+              ? `/explorar?universoId=${encodeURIComponent(String(universoId))}`
+              : "/explorar";
 
           return (
             <div
               key={index}
               className="group relative aspect-square flex items-end p-9 overflow-hidden bg-black"
             >
-              {/* Título y contador (Estado inicial) cards de universos  conteo de personajes no productos */}
+              {/* Título y contador */}
               <div className="relative z-20 transition-all duration-500 ease-out group-hover:translate-y-4 group-hover:opacity-0">
                 <h2 className="flex items-end flex-wrap gap-4 text-white leading-none drop-shadow-lg">
                   <span className="text-[32px] md:text-[40px] font-bold uppercase italic tracking-tighter">
@@ -78,7 +71,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                 </h2>
               </div>
 
-              {/* Overlay de acción (Estado Hover) */}
+              {/* Overlay hover */}
               <a
                 href={href}
                 className="absolute z-30 inset-0 bg-black/60 flex flex-col items-center justify-center text-center transition-all duration-500 ease-in-out opacity-0 group-hover:opacity-100 backdrop-blur-[3px]"
@@ -91,7 +84,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                 </div>
               </a>
 
-              {/* Imagen con efecto de Zoom */}
+              {/* Imagen */}
               <div className="absolute top-0 left-0 size-full z-0">
                 {media && isBcmsMedia(media) ? (
                   <BCMSImage
@@ -108,7 +101,6 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
                   />
                 )}
 
-                {/* Overlay oscuro sutil constante */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/40 transition-colors duration-500" />
               </div>
             </div>

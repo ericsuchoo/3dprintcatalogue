@@ -15,27 +15,25 @@ type CategoryCard = {
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
+  clearFilterHref?: string | null; // ✅ NUEVO
 }
 
 const ITEMS_PER_PAGE = 24;
 
-const NewPageWrapper: React.FC<Props> = ({ meta, categories }) => {
+const NewPageWrapper: React.FC<Props> = ({ meta, categories, clearFilterHref }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil((categories?.length || 0) / ITEMS_PER_PAGE),
-  );
+  const totalPages = Math.max(1, Math.ceil((categories?.length || 0) / ITEMS_PER_PAGE));
 
   const pageCategories = useMemo(() => {
-    if (!categories) return [];
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return categories.slice(start, start + ITEMS_PER_PAGE);
+    return (categories || []).slice(start, start + ITEMS_PER_PAGE);
   }, [categories, currentPage]);
 
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);
     setCurrentPage(safe);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -48,12 +46,25 @@ const NewPageWrapper: React.FC<Props> = ({ meta, categories }) => {
               Todos los <span className="text-red-600">Personajes</span>
             </h1>
             <div className="w-20 h-1 bg-red-600 mx-auto mt-4 mb-2" />
+
             <p className="text-zinc-500 text-xs md:text-sm uppercase tracking-[0.2em] font-bold">
               Mostrando {categories?.length ?? 0} Personajes Disponibles
             </p>
+
+            {/* ✅ BOTÓN "QUITAR FILTRO" (solo si viene prop) */}
+            {clearFilterHref && (
+              <div className="mt-5 flex justify-center">
+                <a
+                  href={clearFilterHref}
+                  className="px-5 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-white/5 hover:bg-white/10"
+                >
+                  Quitar filtro
+                </a>
+              </div>
+            )}
           </div>
 
-          {/* GRID DE PERSONAJES (SOLO LA PÁGINA ACTUAL) */}
+          {/* GRID */}
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
@@ -99,9 +110,7 @@ const NewPageWrapper: React.FC<Props> = ({ meta, categories }) => {
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className={`px-3 py-1 text-xs md:text-sm rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
-                  currentPage === totalPages
-                    ? "opacity-40 cursor-not-allowed"
-                    : ""
+                  currentPage === totalPages ? "opacity-40 cursor-not-allowed" : ""
                 }`}
               >
                 Siguiente

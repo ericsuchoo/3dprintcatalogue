@@ -2,7 +2,6 @@
 import Layout from "../layouts/Layout.astro";
 import NewPageWrapper from "../components/home-page/PageWrapperfil";
 
-// Tipos D1
 type PersonajeRow = {
   id_personaje: number | string;
   nombre_personaje: string;
@@ -11,7 +10,11 @@ type PersonajeRow = {
   productsCount?: number;
 };
 
-// Helper para slugs
+type CategoryCard = {
+  meta: { title: string; slug: string; gallery: { url: string }[] };
+  productsCount: number;
+};
+
 function slugify(s: string) {
   return s
     .toString()
@@ -24,33 +27,38 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
-// ✅ D1 binding
 const db = Astro.locals.runtime.env.DB as any;
 
-// categories: resultado final que mandamos al wrapper
-let categories: {
-  meta: { title: string; slug: string; gallery: { url: string }[] };
-  productsCount: number;
-}[] = [];
+// ✅ lee filtro del universo (si viene)
+const universoId = Astro.url.searchParams.get("universoId");
+
+// ✅ botón para limpiar filtro
+const clearFilterHref = universoId ? "/explorar" : null;
+
+// ✅ categories tipado desde el inicio (sin any)
+let categories: CategoryCard[] = [];
 
 if (!db) {
-  console.warn("[explorar] DB binding no disponible. Render vacío pero sin crashear.");
+  console.warn("[explorar] DB binding no disponible.");
 } else {
-  const personajesRes = await db
-    .prepare(`
-      SELECT
-        p.id_personaje,
-        p.nombre_personaje,
-        p.img_personaje,
-        p.id_universo,
-        COUNT(pr.id_producto) AS productsCount
-      FROM personajes p
-      LEFT JOIN productos pr
-        ON pr.id_personaje = p.id_personaje
-      GROUP BY p.id_personaje
-      ORDER BY p.nombre_personaje ASC
-    `)
-    .all();
+  // OJO: si filtras por universoId:
+  const sql = `
+    SELECT
+      p.id_personaje,
+      p.nombre_personaje,
+      p.img_personaje,
+      p.id_universo,
+      COUNT(pr.id_producto) AS productsCount
+    FROM personajes p
+    LEFT JOIN productos pr ON pr.id_personaje = p.id_personaje
+    ${universoId ? "WHERE p.id_universo = ?" : ""}
+    GROUP BY p.id_personaje
+    ORDER BY p.nombre_personaje ASC
+  `;
+
+  const personajesRes = universoId
+    ? await db.prepare(sql).bind(universoId).all()
+    : await db.prepare(sql).all();
 
   const personajes = (personajesRes?.results || []) as PersonajeRow[];
 
@@ -64,7 +72,6 @@ if (!db) {
   }));
 }
 
-// Meta muy simple para el encabezado
 const meta = { title: "Explorar Personajes" };
 ---
 
@@ -72,6 +79,7 @@ const meta = { title: "Explorar Personajes" };
   <NewPageWrapper
     client:load
     meta={meta}
-    categories={categories as any}
+    categories={categories}
+    clearFilterHref={clearFilterHref}
   />
 </Layout>
