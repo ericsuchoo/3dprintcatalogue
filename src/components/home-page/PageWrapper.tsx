@@ -63,15 +63,12 @@ const HomePageWrapper: React.FC<Props> = ({
         />
         <OriginsBar items={origins} />
 
-        <HomeCategories data={categories.slice(0, 2)} ctaTheme="dark-green" bcms={bcms} />
+        <HomeCategories data={categories.slice(0, 4)} ctaTheme="dark-green" bcms={bcms} />
 
-        <HomeCategories data={categories.slice(2, 4)} ctaTheme="orange" bcms={bcms} />
-
-        <HomeCategories data={categories.slice(4, 6)} ctaTheme="dark-green" bcms={bcms} />
-
-        <HomeCategories data={categories.slice(6, 8)} ctaTheme="orange" bcms={bcms} />
+        <HomeCategories data={categories.slice(4, 8)} ctaTheme="orange" bcms={bcms} />
 
         <HomeCategories data={categories.slice(8, 12)} ctaTheme="dark-green" bcms={bcms} />
+
         <HomeCta
           title={meta.cta_title}
           description={meta.cta_description}

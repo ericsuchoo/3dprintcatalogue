@@ -47,7 +47,7 @@ const FALLBACK_IMG =
 export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
   return (
     <section>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 bg-black">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 bg-black">
         {data.map((item, index) => {
           const card = item;
           const title = card.meta?.title || "Universo";
