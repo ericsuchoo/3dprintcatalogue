@@ -38,7 +38,7 @@ export const CategoriesMini: React.FC<Props> = ({ data }) => {
                 {item.meta.title}
               </div>
               <div className="text-[10px] uppercase opacity-70 font-bold text-zinc-300">
-                {item.productsCount} Personaje
+                {item.productsCount} Variante
                 {item.productsCount !== 1 ? "s" : ""}
               </div>
             </div>

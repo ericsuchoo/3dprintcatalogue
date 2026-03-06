@@ -14,16 +14,16 @@ const Header: React.FC = () => {
                 <nav className="flex gap-6 md:gap-8 items-center">
                     {/* NUEVO ENLACE A LA PESTAÑA DE EXPLORAR GÉNEROS */}
                     <a href="/explorar" className="text-[14px] md:text-[16px] text-white uppercase font-bold tracking-widest hover:text-red-500 transition-colors">
-                        Explorar
+                        Ver + Personajes 
                     </a>
 
                     <a href="/shop" className="text-[14px] md:text-[16px] text-white uppercase font-bold tracking-widest hover:text-red-500 transition-colors">
-                        Tienda
+                        Catalogo Completo
                     </a>
                     
                     {/* Contenedor relativo para posicionar el badge */}
                     <a href="/shop-2" className="relative text-[14px] md:text-[16px] text-white uppercase font-bold tracking-widest hover:text-red-500 transition-colors">
-                        Favoritos
+                        MIS Favoritos
                         {favCount > 0 && (
                             <span className="absolute -top-2 -right-5 bg-red-600 text-white px-1.5 py-0.5 rounded-full text-[9px] font-black animate-pulse leading-none flex items-center justify-center min-w-[18px] h-[18px] border border-black">
                                 {favCount}

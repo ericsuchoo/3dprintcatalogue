@@ -47,7 +47,7 @@ const FALLBACK_IMG =
 export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
   return (
     <section>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 bg-black">
         {data.map((item, index) => {
           const card = item;
           const title = card.meta?.title || "Universo";
@@ -64,7 +64,7 @@ export const HomeCategories: React.FC<Props> = ({ data, ctaTheme, bcms }) => {
           return (
             <div
               key={index}
-              className="group relative aspect-square flex items-end p-8 overflow-hidden bg-black"
+              className="group relative aspect-square flex items-end p-4 overflow-hidden bg-black"
             >
               {/* Título y contador (Estado inicial) cards de universos  conteo de personajes no productos */}
               <div className="relative z-20 transition-all duration-500 ease-out group-hover:translate-y-4 group-hover:opacity-0">
