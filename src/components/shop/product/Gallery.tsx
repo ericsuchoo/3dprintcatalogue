@@ -59,7 +59,7 @@ export const Gallery: React.FC<Props> = ({
   }, [currentEdition?.id_edicion, mainSwiper]);
 
   return (
-    <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-16 lg:mt-24 px-0 bg-black">
+    <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-0 px-0 bg-black">
       {slides.length > 1 && (
         <div className="order-2 lg:order-1 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 h-auto lg:max-h-[840px] pb-4 lg:pb-0 px-4 lg:px-0 custom-scrollbar flex-shrink-0 bg-black">
           {slides.map((item, index) => {
@@ -92,7 +92,7 @@ export const Gallery: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-3xl overflow-hidden shadow-sm">
+      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
         <style
           dangerouslySetInnerHTML={{
             __html: `
