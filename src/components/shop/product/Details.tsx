@@ -64,7 +64,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
             background: "rgb(255, 255, 255)",
           }}
         >
-          <span className="inline-block px-3 py-1 border border-red-200 shadow-[inset_0_-2px_0_rgba(239,68,68,0.3)]">
+          <span
+            className="inline-block px-4 py-1.5 border-2 border-red-500 bg-white text-black
+            shadow-[0_0_8px_rgba(239,68,68,0.35)]
+            hover:shadow-[0_0_14px_rgba(239,68,68,0.55)]
+            transition-all duration-300"
+          >
             {meta?.title || meta?.nombre_producto || "Producto"}
           </span>
         </h1>
@@ -77,7 +82,6 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       </div>
 
-      {/* EDICIONES */}
       <div className="mb-6">
         <p className="text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">
           Versión del modelo
@@ -95,14 +99,21 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold",
+                    "relative flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold",
                     isActive
-                      ? "bg-white text-black border-black shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)]"
+                      ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "border-black bg-black text-white hover:bg-zinc-900"
                   )}
                 >
+                  {isActive && (
+                    <div className="absolute left-0 top-0 h-full w-[3px] bg-red-500" />
+                  )}
+
                   <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
-                  {isActive && <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />}
+
+                  {isActive && (
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                  )}
                 </button>
               );
             })
@@ -112,7 +123,6 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       </div>
 
-      {/* ESCALAS */}
       {scales.length > 0 && (
         <div className="mb-8">
           <p className="text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">
@@ -139,7 +149,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                     !scale?.disponible
                       ? "opacity-25 cursor-not-allowed border-zinc-300 bg-white text-zinc-400"
                       : isActive
-                      ? "bg-white text-black border-black shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"
+                      ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "bg-black text-white border-black hover:bg-zinc-900"
                   )}
                   disabled={!scale?.disponible}
@@ -152,7 +162,6 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       )}
 
-      {/* FAVORITOS */}
       <div className="flex flex-col gap-2 mb-8">
         <button
           onClick={() => toggleFavorite(favoriteId)}
@@ -167,7 +176,6 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </button>
       </div>
 
-      {/* TEXTO */}
       <div className="border-t border-zinc-200 pt-5">
         {meta?.aspectos_variables ? (
           <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-4 py-3 shadow-sm">
