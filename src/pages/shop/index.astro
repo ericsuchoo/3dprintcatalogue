@@ -53,6 +53,9 @@ const db = Astro.locals.runtime.env.DB as any;
 // Query param para filtrar desde Explorar
 const personajeId = Astro.url.searchParams.get("personajeId");
 
+// ✅ NUEVO: nombre del personaje filtrado
+let personajeNombre: string | null = null;
+
 // Si DB no existe, renderizamos vacío sin crashear
 if (!db) {
   console.warn("[shop] DB binding no disponible. Revisa wrangler.toml/bindings.");
@@ -66,6 +69,23 @@ async function tableExists(name: string) {
     .bind(name)
     .first();
   return !!row?.name;
+}
+
+// --------------------
+// 0) Si viene personajeId, buscamos su nombre
+// --------------------
+if (db && personajeId) {
+  const personajeRow = await db
+    .prepare(`
+      SELECT id_personaje, nombre_personaje
+      FROM personajes
+      WHERE id_personaje = ?
+      LIMIT 1
+    `)
+    .bind(personajeId)
+    .first();
+
+  personajeNombre = (personajeRow as PersonajeRow | null)?.nombre_personaje ?? null;
 }
 
 // --------------------
@@ -99,15 +119,14 @@ if (db) {
 // --------------------
 // 2) Filtros D1
 // genders -> personajes
-// categories -> universos (si existe)
-// brands -> proveedores (si existe)
+// categories -> universos
+// brands -> proveedores
 // --------------------
 let personajes: PersonajeRow[] = [];
 let universos: UniversoRow[] = [];
 let proveedores: ProveedorRow[] = [];
 
 if (db) {
-  // personajes
   if (await tableExists("personajes")) {
     const res = await db
       .prepare(`SELECT id_personaje, nombre_personaje FROM personajes ORDER BY nombre_personaje ASC`)
@@ -115,7 +134,6 @@ if (db) {
     personajes = (res?.results || []) as PersonajeRow[];
   }
 
-  // universos (opcional)
   if (await tableExists("universos")) {
     const res = await db
       .prepare(`SELECT id_universo, nombre_universo FROM universos ORDER BY nombre_universo ASC`)
@@ -123,7 +141,6 @@ if (db) {
     universos = (res?.results || []) as UniversoRow[];
   }
 
-  // proveedores (opcional)
   if (await tableExists("proveedores")) {
     const res = await db
       .prepare(`SELECT id_proveedor, nombre_proveedor FROM proveedores ORDER BY nombre_proveedor ASC`)
@@ -134,33 +151,24 @@ if (db) {
 
 // --------------------
 // 3) Data para ProductsPageWrapper
-// Mantengo las keys que tu wrapper ya espera.
 // --------------------
 const data = {
   products: productos.map((pr) => ({
-    // campos base
     id: pr.id_producto,
     slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
     title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
-
-    // precios
     price: pr.precio ?? 0,
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
-
-    // 👇 IMPORTANTE: en D1 usamos URL directa
     coverUrl: pr.img_producto ?? "",
-
-    // para filtros / relaciones (si tu wrapper los usa)
     personajeId: pr.id_personaje ?? null,
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
   })),
 
   genders: personajes.map((p) => ({
-    // 👇 slug = id (para que filtrar sea exacto)
     title: p.nombre_personaje,
     slug: String(p.id_personaje),
   })),
@@ -175,11 +183,17 @@ const data = {
     slug: String(pr.id_proveedor),
   })),
 
-  // extra opcional: para que el wrapper sepa qué filtro aplicar por URL
+  // ✅ para prefiltro desde explorar
   initialPersonajeId: personajeId ? String(personajeId) : null,
+
+  // ✅ NUEVO: nombre del personaje filtrado
+  personajeNombre,
+
+  // ✅ NUEVO: para botón "Quitar filtro"
+  clearFilterHref: personajeId ? "/shop" : null,
 };
 ---
 
-<Layout title="Tienda | DCimpress 3D">
+<Layout title={personajeNombre ? `Shop: ${personajeNombre} | DCimpress 3D` : "Tienda | DCimpress 3D"}>
   <ProductsPageWrapper client:load data={data} />
 </Layout>
