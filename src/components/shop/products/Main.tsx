@@ -162,10 +162,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             {/* UNIVERSOS */}
             {filters.some((f) => f.type === "universo") && (
               <div>
-                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold ">
                   Universos
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4 text-[#a200ff]">
                   {filters
                     .filter((e) => e.type === "universo")
                     .map((filter, index) => (
@@ -187,7 +187,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Precio
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 text-[#ff0000]">
                 {filters
                   .filter((e) => e.type === "price")
                   .map((filter, index) => (
@@ -208,7 +208,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Popularidad
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 text-[#ffd900]">
                 {filters
                   .filter((e) => e.type === "popularity")
                   .map((filter, index) => (
@@ -229,7 +229,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Personajes
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4  text-[#66ff00]">
                 {filters
                   .filter((e) => e.type === "personaje")
                   .map((filter, index) => (
@@ -251,7 +251,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                 <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                   Creadores 3D
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4 text-[#00ffea]">
                   {filters
                     .filter((e) => e.type === "proveedor")
                     .map((filter, index) => (
