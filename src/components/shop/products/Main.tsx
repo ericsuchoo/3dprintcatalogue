@@ -150,7 +150,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const loadMore = () => setLoadedProducts((prev) => prev + 12);
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 py-8">
+    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 py-8 text-[#28d4ff]" >
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
         {/* SIDEBAR */}
         <div className="lg:row-span-2 sticky top-24">
