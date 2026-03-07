@@ -19,14 +19,21 @@ interface Props {
   data: ShopPageDataD1 & {
     personajeNombre?: string | null;
     clearFilterHref?: string | null;
+    pagination?: {
+      currentPage: number;
+      totalPages: number;
+      totalProducts: number;
+      itemsPerPage: number;
+      pageCount?: number;
+      basePath: string;
+      personajeId?: string | null;
+    };
   };
   favoritesOnly?: boolean;
 }
 
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
-
-  const [loadedProducts, setLoadedProducts] = useState(12);
   const [searchVal, setSearchVal] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
@@ -79,16 +86,12 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const activeFilters = useMemo(() => filters.filter((f) => f.active), [filters]);
 
   const clearFilters = () => {
-    setFilters((prev) =>
-      prev.map((f) => ({
-        ...f,
-        active: false,
-      }))
-    );
-    setSearchVal("");
-    setLoadedProducts(12);
+    window.location.href = data.clearFilterHref || "/shop";
   };
 
+  // La paginación real ya viene del servidor (D1).
+  // Aquí solo aplicamos búsqueda local, favoritos y orden visual
+  // sobre los productos que ya llegaron en esta página.
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
 
@@ -98,44 +101,35 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       if (searchVal) {
         const haystack =
           `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
-        if (!haystack.includes(searchVal.toLowerCase())) return false;
-      }
 
-      for (const f of activeFilters) {
-        if (f.type === "personaje") {
-          if (String(p.personajeId ?? "") !== String(f.value)) return false;
-        }
-        if (f.type === "universo") {
-          if (String(p.universoId ?? "") !== String(f.value)) return false;
-        }
-        if (f.type === "proveedor") {
-          if (String(p.proveedorId ?? "") !== String(f.value)) return false;
-        }
+        if (!haystack.includes(searchVal.toLowerCase())) return false;
       }
 
       return true;
     });
 
-    out = out.sort((a, b) => {
-      const priceFilter = activeFilters.find((x) => x.type === "price");
-      if (!priceFilter) return 0;
-      const ap = Number(a.price ?? 0);
-      const bp = Number(b.price ?? 0);
-      return priceFilter.value === "0" ? ap - bp : bp - ap;
-    });
+    const priceFilter = activeFilters.find((x) => x.type === "price");
+    if (priceFilter) {
+      out = [...out].sort((a, b) => {
+        const ap = Number(a.price ?? 0);
+        const bp = Number(b.price ?? 0);
+        return priceFilter.value === "0" ? ap - bp : bp - ap;
+      });
+    }
 
-    out = out.sort((a: any, b: any) => {
-      const popFilter = activeFilters.find((x) => x.type === "popularity");
-      if (!popFilter) return 0;
+    const popFilter = activeFilters.find((x) => x.type === "popularity");
+    if (popFilter) {
+      out = [...out].sort((a: any, b: any) => {
+        const aUnits = Number(a.units_sold ?? a.units ?? 0);
+        const bUnits = Number(b.units_sold ?? b.units ?? 0);
 
-      const aUnits = Number(a.units_sold ?? 0);
-      const bUnits = Number(b.units_sold ?? 0);
-      const aDate = Number(a.date ?? 0);
-      const bDate = Number(b.date ?? 0);
+        const aDate = new Date(a.date ?? 0).getTime();
+        const bDate = new Date(b.date ?? 0).getTime();
 
-      if (popFilter.value === "0") return bUnits - aUnits;
-      return bDate - aDate;
-    });
+        if (popFilter.value === "0") return bUnits - aUnits;
+        return bDate - aDate;
+      });
+    }
 
     return out;
   }, [data.products, activeFilters, searchVal, favorites, favoritesOnly]);
@@ -144,10 +138,47 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     setFilters((prev) =>
       prev.map((p) => (p.label === value ? { ...p, active: !p.active } : p))
     );
-    setLoadedProducts(12);
   };
 
-  const loadMore = () => setLoadedProducts((prev) => prev + 12);
+  const currentPage = data.pagination?.currentPage || 1;
+  const totalPages = data.pagination?.totalPages || 1;
+  const totalProducts = data.pagination?.totalProducts ?? filteredProducts.length;
+  const itemsPerPage = data.pagination?.itemsPerPage || filteredProducts.length;
+  const pageCount = data.pagination?.pageCount ?? (data.products?.length || 0);
+
+  const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd =
+    totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
+
+  const buildPageHref = (page: number) => {
+    const params = new URLSearchParams();
+
+    if (data.pagination?.personajeId) {
+      params.set("personajeId", data.pagination.personajeId);
+    }
+
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+
+    const query = params.toString();
+    return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
+  };
+
+  const getVisiblePages = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  };
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
@@ -159,10 +190,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               {favoritesOnly ? "Mis Me gusta" : "Filtros"}
             </div>
 
-            {/* UNIVERSOS */}
             {filters.some((f) => f.type === "universo") && (
               <div>
-                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold ">
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                   Universos
                 </div>
                 <div className="grid grid-cols-1 gap-4 text-[#a200ff]">
@@ -174,7 +204,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         value={filter.label}
                         label={filter.label}
                         onCheck={(value) => setProductFilter(String(value))}
-                        checked={!filter.active}
+                        checked={filter.active}
                         size="sm"
                       />
                     ))}
@@ -182,7 +212,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               </div>
             )}
 
-            {/* PRECIO */}
             <div>
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Precio
@@ -196,14 +225,13 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       value={filter.label}
                       label={filter.label}
                       onCheck={(value) => setProductFilter(String(value))}
-                      checked={!filter.active}
+                      checked={filter.active}
                       size="sm"
                     />
                   ))}
               </div>
             </div>
 
-            {/* POPULARIDAD */}
             <div>
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Popularidad
@@ -217,19 +245,18 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       value={filter.label}
                       label={filter.label}
                       onCheck={(value) => setProductFilter(String(value))}
-                      checked={!filter.active}
+                      checked={filter.active}
                       size="sm"
                     />
                   ))}
               </div>
             </div>
 
-            {/* PERSONAJES */}
             <div>
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Personajes
               </div>
-              <div className="grid grid-cols-1 gap-4  text-[#66ff00]">
+              <div className="grid grid-cols-1 gap-4 text-[#66ff00]">
                 {filters
                   .filter((e) => e.type === "personaje")
                   .map((filter, index) => (
@@ -238,14 +265,13 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       value={filter.label}
                       label={filter.label}
                       onCheck={(value) => setProductFilter(String(value))}
-                      checked={!filter.active}
+                      checked={filter.active}
                       size="sm"
                     />
                   ))}
               </div>
             </div>
 
-            {/* PROVEEDORES */}
             {filters.some((f) => f.type === "proveedor") && (
               <div>
                 <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
@@ -260,7 +286,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         value={filter.label}
                         label={filter.label}
                         onCheck={(value) => setProductFilter(String(value))}
-                        checked={!filter.active}
+                        checked={filter.active}
                         size="sm"
                       />
                     ))}
@@ -296,7 +322,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
           )}
 
-          {/* Search + clear */}
           <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
             <label className="flex items-center px-5 flex-1 border border-white/10 bg-[#0f0f0f] rounded-lg">
               <div
@@ -323,27 +348,75 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </button>
           </div>
 
-          <div className="text-sm uppercase tracking-[0.18em] my-6 text-zinc-400 font-bold">
-            {filteredProducts.length} Variante{filteredProducts.length === 1 ? "" : "s"}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
+            <div className="text-sm uppercase tracking-[0.18em] text-zinc-400 font-bold">
+              {totalProducts} Variante{totalProducts === 1 ? "" : "s"}
+            </div>
+
+            <div className="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">
+              Mostrando {pageStart}-{pageEnd} de {totalProducts}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-            {filteredProducts.map((product, index) => (
-              <ProductCard
-                key={product.slug ?? index}
-                card={product}
-                style={{ display: index < loadedProducts ? "" : "none" }}
-              />
-            ))}
-          </div>
+          {filteredProducts.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-12 text-center">
+              <div className="text-xl md:text-2xl font-black uppercase italic text-white">
+                No hay resultados en esta página
+              </div>
+              <p className="text-zinc-400 mt-3 max-w-2xl mx-auto">
+                Prueba a limpiar la búsqueda local o cambiar de página.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              {filteredProducts.map((product, index) => (
+                <ProductCard key={product.slug ?? index} card={product} />
+              ))}
+            </div>
+          )}
 
-          {loadedProducts < filteredProducts.length && (
-            <button
-              className="flex max-w-max text-sm uppercase tracking-[0.25em] px-10 py-4 bg-red-500/10 border border-red-500/40 text-red-400 mx-auto mt-12 transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]"
-              onClick={loadMore}
-            >
-              Cargar más
-            </button>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-12 flex-wrap">
+              <a
+                href={currentPage > 1 ? buildPageHref(currentPage - 1) : "#"}
+                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                  currentPage === 1
+                    ? "pointer-events-none border-white/10 text-white/30"
+                    : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
+                }`}
+              >
+                Anterior
+              </a>
+
+              {getVisiblePages().map((page) => {
+                const isActive = page === currentPage;
+                return (
+                  <a
+                    key={page}
+                    href={buildPageHref(page)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`w-10 h-10 rounded-full border text-sm font-black transition flex items-center justify-center ${
+                      isActive
+                        ? "bg-red-500 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+                        : "border-white/10 text-white/70 hover:text-white hover:border-red-500/50 hover:bg-red-500/10"
+                    }`}
+                  >
+                    {page}
+                  </a>
+                );
+              })}
+
+              <a
+                href={currentPage < totalPages ? buildPageHref(currentPage + 1) : "#"}
+                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                  currentPage === totalPages
+                    ? "pointer-events-none border-white/10 text-white/30"
+                    : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
+                }`}
+              >
+                Siguiente
+              </a>
+            </div>
           )}
         </div>
       </div>

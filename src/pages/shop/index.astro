@@ -48,12 +48,27 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
+function parsePositiveInt(value: string | null) {
+  if (!value) return null;
+  const num = Number(value);
+  if (!Number.isInteger(num) || num <= 0) return null;
+  return num;
+}
+
 const db = Astro.locals.runtime.env.DB as any;
 
-// Query param para filtrar desde Explorar
-const personajeId = Astro.url.searchParams.get("personajeId");
+// --------------------
+// Query params
+// --------------------
+const personajeIdParam = Astro.url.searchParams.get("personajeId");
+const pageParam = Astro.url.searchParams.get("page");
 
-// ✅ NUEVO: nombre del personaje filtrado
+const personajeId = parsePositiveInt(personajeIdParam);
+const requestedPage = parsePositiveInt(pageParam) ?? 1;
+
+const ITEMS_PER_PAGE = 30;
+
+// ✅ nombre del personaje filtrado
 let personajeNombre: string | null = null;
 
 // Si DB no existe, renderizamos vacío sin crashear
@@ -89,15 +104,54 @@ if (db && personajeId) {
 }
 
 // --------------------
-// 1) Productos
+// 1) Conteo total de productos filtrados
+// --------------------
+let totalProducts = 0;
+
+if (db) {
+  let countSql = `
+    SELECT COUNT(*) as total
+    FROM productos
+  `;
+  const countParams: any[] = [];
+
+  if (personajeId) {
+    countSql += ` WHERE id_personaje = ? `;
+    countParams.push(personajeId);
+  }
+
+  const countRes = countParams.length
+    ? await db.prepare(countSql).bind(...countParams).first()
+    : await db.prepare(countSql).first();
+
+  totalProducts = Number((countRes as any)?.total || 0);
+}
+
+const totalPages = Math.max(1, Math.ceil(totalProducts / ITEMS_PER_PAGE));
+const currentPage = Math.min(requestedPage, totalPages);
+const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+// --------------------
+// 2) Productos paginados
 // --------------------
 let productos: ProductoRow[] = [];
+
 if (db) {
   let sql = `
     SELECT
-      id_producto, nombre_producto, subtitulo, descripcion, img_producto,
-      unidades, precio, descuento, id_proveedor, id_universo, id_personaje,
-      fecha_creacion, fecha_modifica
+      id_producto,
+      nombre_producto,
+      subtitulo,
+      descripcion,
+      img_producto,
+      unidades,
+      precio,
+      descuento,
+      id_proveedor,
+      id_universo,
+      id_personaje,
+      fecha_creacion,
+      fecha_modifica
     FROM productos
   `;
   const params: any[] = [];
@@ -107,20 +161,19 @@ if (db) {
     params.push(personajeId);
   }
 
-  sql += ` ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC `;
+  sql += `
+    ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
+    LIMIT ? OFFSET ?
+  `;
 
-  const res = params.length
-    ? await db.prepare(sql).bind(...params).all()
-    : await db.prepare(sql).all();
+  params.push(ITEMS_PER_PAGE, offset);
 
+  const res = await db.prepare(sql).bind(...params).all();
   productos = (res?.results || []) as ProductoRow[];
 }
 
 // --------------------
-// 2) Filtros D1
-// genders -> personajes
-// categories -> universos
-// brands -> proveedores
+// 3) Filtros D1
 // --------------------
 let personajes: PersonajeRow[] = [];
 let universos: UniversoRow[] = [];
@@ -129,28 +182,43 @@ let proveedores: ProveedorRow[] = [];
 if (db) {
   if (await tableExists("personajes")) {
     const res = await db
-      .prepare(`SELECT id_personaje, nombre_personaje FROM personajes ORDER BY nombre_personaje ASC`)
+      .prepare(`
+        SELECT id_personaje, nombre_personaje
+        FROM personajes
+        ORDER BY nombre_personaje ASC
+      `)
       .all();
+
     personajes = (res?.results || []) as PersonajeRow[];
   }
 
   if (await tableExists("universos")) {
     const res = await db
-      .prepare(`SELECT id_universo, nombre_universo FROM universos ORDER BY nombre_universo ASC`)
+      .prepare(`
+        SELECT id_universo, nombre_universo
+        FROM universos
+        ORDER BY nombre_universo ASC
+      `)
       .all();
+
     universos = (res?.results || []) as UniversoRow[];
   }
 
   if (await tableExists("proveedores")) {
     const res = await db
-      .prepare(`SELECT id_proveedor, nombre_proveedor FROM proveedores ORDER BY nombre_proveedor ASC`)
+      .prepare(`
+        SELECT id_proveedor, nombre_proveedor
+        FROM proveedores
+        ORDER BY nombre_proveedor ASC
+      `)
       .all();
+
     proveedores = (res?.results || []) as ProveedorRow[];
   }
 }
 
 // --------------------
-// 3) Data para ProductsPageWrapper
+// 4) Data para ProductsPageWrapper
 // --------------------
 const data = {
   products: productos.map((pr) => ({
@@ -166,6 +234,7 @@ const data = {
     personajeId: pr.id_personaje ?? null,
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
+    date: pr.fecha_modifica ?? pr.fecha_creacion ?? null,
   })),
 
   genders: personajes.map((p) => ({
@@ -183,14 +252,19 @@ const data = {
     slug: String(pr.id_proveedor),
   })),
 
-  // ✅ para prefiltro desde explorar
   initialPersonajeId: personajeId ? String(personajeId) : null,
-
-  // ✅ NUEVO: nombre del personaje filtrado
   personajeNombre,
-
-  // ✅ NUEVO: para botón "Quitar filtro"
   clearFilterHref: personajeId ? "/shop" : null,
+
+  pagination: {
+    currentPage,
+    totalPages,
+    totalProducts,
+    itemsPerPage: ITEMS_PER_PAGE,
+    pageCount: productos.length,
+    basePath: "/shop",
+    personajeId: personajeId ? String(personajeId) : null,
+  },
 };
 ---
 
