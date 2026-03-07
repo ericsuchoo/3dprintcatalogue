@@ -5,7 +5,10 @@ import { Main } from "./Main";
 import type { ShopPageDataD1 } from "../../../types/shop-d1";
 
 interface Props {
-  data: ShopPageDataD1;
+  data: ShopPageDataD1 & {
+    personajeNombre?: string | null;
+    clearFilterHref?: string | null;
+  };
 }
 
 const ProductsPageWrapper: React.FC<Props> = ({ data }) => {
