@@ -18,7 +18,13 @@ export interface ProductFilterD1 {
 interface Props {
   data: ShopPageDataD1 & {
     personajeNombre?: string | null;
+    universoNombre?: string | null;
+    proveedorNombre?: string | null;
+    activeFilterLabels?: string[];
     clearFilterHref?: string | null;
+    initialUniversoId?: string | null;
+    initialProveedorId?: string | null;
+    initialSort?: "newest" | "price_asc" | "price_desc";
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -27,6 +33,9 @@ interface Props {
       pageCount?: number;
       basePath: string;
       personajeId?: string | null;
+      universoId?: string | null;
+      proveedorId?: string | null;
+      sort?: "newest" | "price_asc" | "price_desc";
     };
   };
   favoritesOnly?: boolean;
@@ -37,10 +46,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const [searchVal, setSearchVal] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
-    { active: false, type: "price", label: "Lowest", value: "0" },
-    { active: false, type: "price", label: "Most expensive", value: "1" },
-    { active: false, type: "popularity", label: "Best selling", value: "0" },
-    { active: false, type: "popularity", label: "New comer", value: "1" },
+    { active: false, type: "price", label: "Lowest", value: "price_asc" },
+    { active: false, type: "price", label: "Most expensive", value: "price_desc" },
+    { active: false, type: "popularity", label: "New comer", value: "newest" },
   ]);
 
   useEffect(() => {
@@ -67,77 +75,123 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
     setFilters((prev) => {
       const base = prev.filter((f) => f.type === "price" || f.type === "popularity");
-      return [...base, ...proveedoresFilters, ...universosFilters, ...personajesFilters];
+
+      return base.map((f) => {
+        if (f.type === "price" && data.initialSort && f.value === data.initialSort) {
+          return { ...f, active: true };
+        }
+        if (f.type === "popularity" && data.initialSort === "newest" && f.value === "newest") {
+          return { ...f, active: true };
+        }
+        return { ...f, active: false };
+      }).concat([...proveedoresFilters, ...universosFilters, ...personajesFilters]);
     });
-  }, [data.genders, data.categories, data.brands]);
+  }, [data.genders, data.categories, data.brands, data.initialSort]);
 
   useEffect(() => {
-    if (!data?.initialPersonajeId) return;
-
     setFilters((prev) =>
-      prev.map((f) =>
-        f.type === "personaje" && f.value === String(data.initialPersonajeId)
-          ? { ...f, active: true }
-          : f
-      )
+      prev.map((f) => {
+        if (f.type === "personaje") {
+          return { ...f, active: f.value === String(data.initialPersonajeId ?? "") };
+        }
+        if (f.type === "universo") {
+          return { ...f, active: f.value === String(data.initialUniversoId ?? "") };
+        }
+        if (f.type === "proveedor") {
+          return { ...f, active: f.value === String(data.initialProveedorId ?? "") };
+        }
+        return f;
+      })
     );
-  }, [data?.initialPersonajeId]);
+  }, [data.initialPersonajeId, data.initialUniversoId, data.initialProveedorId]);
 
   const activeFilters = useMemo(() => filters.filter((f) => f.active), [filters]);
+
+  const buildUrl = (next: {
+    personajeId?: string | null;
+    universoId?: string | null;
+    proveedorId?: string | null;
+    sort?: string | null;
+    page?: number | null;
+  }) => {
+    const params = new URLSearchParams();
+
+    const personajeId = next.personajeId ?? data.pagination?.personajeId ?? null;
+    const universoId = next.universoId ?? data.pagination?.universoId ?? null;
+    const proveedorId = next.proveedorId ?? data.pagination?.proveedorId ?? null;
+    const sort = next.sort ?? data.pagination?.sort ?? "newest";
+    const page = next.page ?? null;
+
+    if (personajeId) params.set("personajeId", personajeId);
+    if (universoId) params.set("universoId", universoId);
+    if (proveedorId) params.set("proveedorId", proveedorId);
+    if (sort && sort !== "newest") params.set("sort", sort);
+    if (page && page > 1) params.set("page", String(page));
+
+    const query = params.toString();
+    return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
+  };
 
   const clearFilters = () => {
     window.location.href = data.clearFilterHref || "/shop";
   };
 
-  // La paginación real ya viene del servidor (D1).
-  // Aquí solo aplicamos búsqueda local, favoritos y orden visual
-  // sobre los productos que ya llegaron en esta página.
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
 
-    let out = products.filter((p) => {
+    return products.filter((p) => {
       if (favoritesOnly && !favorites.includes(String(p.slug))) return false;
 
       if (searchVal) {
         const haystack =
           `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
-
         if (!haystack.includes(searchVal.toLowerCase())) return false;
       }
 
       return true;
     });
+  }, [data.products, searchVal, favorites, favoritesOnly]);
 
-    const priceFilter = activeFilters.find((x) => x.type === "price");
-    if (priceFilter) {
-      out = [...out].sort((a, b) => {
-        const ap = Number(a.price ?? 0);
-        const bp = Number(b.price ?? 0);
-        return priceFilter.value === "0" ? ap - bp : bp - ap;
+  const setProductFilter = (filter: ProductFilterD1) => {
+    const currentPersonajeId = data.pagination?.personajeId ?? null;
+    const currentUniversoId = data.pagination?.universoId ?? null;
+    const currentProveedorId = data.pagination?.proveedorId ?? null;
+    const currentSort = data.pagination?.sort ?? "newest";
+
+    if (filter.type === "personaje") {
+      const nextValue = currentPersonajeId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        personajeId: nextValue,
+        page: 1,
       });
+      return;
     }
 
-    const popFilter = activeFilters.find((x) => x.type === "popularity");
-    if (popFilter) {
-      out = [...out].sort((a: any, b: any) => {
-        const aUnits = Number(a.units_sold ?? a.units ?? 0);
-        const bUnits = Number(b.units_sold ?? b.units ?? 0);
-
-        const aDate = new Date(a.date ?? 0).getTime();
-        const bDate = new Date(b.date ?? 0).getTime();
-
-        if (popFilter.value === "0") return bUnits - aUnits;
-        return bDate - aDate;
+    if (filter.type === "universo") {
+      const nextValue = currentUniversoId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        universoId: nextValue,
+        page: 1,
       });
+      return;
     }
 
-    return out;
-  }, [data.products, activeFilters, searchVal, favorites, favoritesOnly]);
+    if (filter.type === "proveedor") {
+      const nextValue = currentProveedorId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        proveedorId: nextValue,
+        page: 1,
+      });
+      return;
+    }
 
-  const setProductFilter = (value: string) => {
-    setFilters((prev) =>
-      prev.map((p) => (p.label === value ? { ...p, active: !p.active } : p))
-    );
+    if (filter.type === "price" || filter.type === "popularity") {
+      const nextSort = currentSort === filter.value ? "newest" : filter.value;
+      window.location.href = buildUrl({
+        sort: nextSort,
+        page: 1,
+      });
+    }
   };
 
   const currentPage = data.pagination?.currentPage || 1;
@@ -150,20 +204,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const pageEnd =
     totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
 
-  const buildPageHref = (page: number) => {
-    const params = new URLSearchParams();
-
-    if (data.pagination?.personajeId) {
-      params.set("personajeId", data.pagination.personajeId);
-    }
-
-    if (page > 1) {
-      params.set("page", String(page));
-    }
-
-    const query = params.toString();
-    return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
-  };
+  const buildPageHref = (page: number) => buildUrl({ page });
 
   const getVisiblePages = () => {
     const pages: number[] = [];
@@ -183,7 +224,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
-        {/* SIDEBAR */}
         <div className="lg:row-span-2 sticky top-28">
           <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
             <div className="text-2xl leading-none font-bold italic text-red-500">
@@ -203,7 +243,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         key={index}
                         value={filter.label}
                         label={filter.label}
-                        onCheck={(value) => setProductFilter(String(value))}
+                        onCheck={() => setProductFilter(filter)}
                         checked={filter.active}
                         size="sm"
                       />
@@ -214,7 +254,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
             <div>
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                Precio
+                Precio / orden
               </div>
               <div className="grid grid-cols-1 gap-4 text-[#ff0000]">
                 {filters
@@ -224,7 +264,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       key={index}
                       value={filter.label}
                       label={filter.label}
-                      onCheck={(value) => setProductFilter(String(value))}
+                      onCheck={() => setProductFilter(filter)}
                       checked={filter.active}
                       size="sm"
                     />
@@ -234,7 +274,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
             <div>
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                Popularidad
+                Novedad
               </div>
               <div className="grid grid-cols-1 gap-4 text-[#ffd900]">
                 {filters
@@ -244,7 +284,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       key={index}
                       value={filter.label}
                       label={filter.label}
-                      onCheck={(value) => setProductFilter(String(value))}
+                      onCheck={() => setProductFilter(filter)}
                       checked={filter.active}
                       size="sm"
                     />
@@ -264,7 +304,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                       key={index}
                       value={filter.label}
                       label={filter.label}
-                      onCheck={(value) => setProductFilter(String(value))}
+                      onCheck={() => setProductFilter(filter)}
                       checked={filter.active}
                       size="sm"
                     />
@@ -285,7 +325,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         key={index}
                         value={filter.label}
                         label={filter.label}
-                        onCheck={(value) => setProductFilter(String(value))}
+                        onCheck={() => setProductFilter(filter)}
                         checked={filter.active}
                         size="sm"
                       />
@@ -296,19 +336,18 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           </div>
         </div>
 
-        {/* CONTENT */}
         <div className="lg:col-start-2">
-          {(data.personajeNombre || data.clearFilterHref) && (
+          {(data.activeFilterLabels?.length || data.clearFilterHref) && (
             <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                {data.personajeNombre && (
+                {data.activeFilterLabels?.length ? (
                   <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
                     Shop:{" "}
                     <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
-                      {data.personajeNombre}
+                      {data.activeFilterLabels.join(" / ")}
                     </span>
                   </h2>
-                )}
+                ) : null}
               </div>
 
               {data.clearFilterHref && (
@@ -316,7 +355,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                   href={data.clearFilterHref}
                   className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
                 >
-                  Quitar filtro
+                  Quitar filtros
                 </a>
               )}
             </div>
@@ -361,10 +400,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           {filteredProducts.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-12 text-center">
               <div className="text-xl md:text-2xl font-black uppercase italic text-white">
-                No hay resultados en esta página
+                No hay resultados
               </div>
               <p className="text-zinc-400 mt-3 max-w-2xl mx-auto">
-                Prueba a limpiar la búsqueda local o cambiar de página.
+                Ajusta los filtros o limpia la búsqueda local.
               </p>
             </div>
           ) : (

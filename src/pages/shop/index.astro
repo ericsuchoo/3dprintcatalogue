@@ -55,28 +55,33 @@ function parsePositiveInt(value: string | null) {
   return num;
 }
 
+function normalizeSort(value: string | null) {
+  const allowed = ["newest", "price_asc", "price_desc"] as const;
+  if (value && allowed.includes(value as any)) return value as (typeof allowed)[number];
+  return "newest";
+}
+
 const db = Astro.locals.runtime.env.DB as any;
 
 // --------------------
 // Query params
 // --------------------
-const personajeIdParam = Astro.url.searchParams.get("personajeId");
-const pageParam = Astro.url.searchParams.get("page");
-
-const personajeId = parsePositiveInt(personajeIdParam);
-const requestedPage = parsePositiveInt(pageParam) ?? 1;
+const personajeId = parsePositiveInt(Astro.url.searchParams.get("personajeId"));
+const universoId = parsePositiveInt(Astro.url.searchParams.get("universoId"));
+const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
+const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
+const sort = normalizeSort(Astro.url.searchParams.get("sort"));
 
 const ITEMS_PER_PAGE = 30;
 
-// ✅ nombre del personaje filtrado
 let personajeNombre: string | null = null;
+let universoNombre: string | null = null;
+let proveedorNombre: string | null = null;
 
-// Si DB no existe, renderizamos vacío sin crashear
 if (!db) {
   console.warn("[shop] DB binding no disponible. Revisa wrangler.toml/bindings.");
 }
 
-// helper para saber si existe una tabla
 async function tableExists(name: string) {
   if (!db) return false;
   const row = await db
@@ -87,10 +92,10 @@ async function tableExists(name: string) {
 }
 
 // --------------------
-// 0) Si viene personajeId, buscamos su nombre
+// 0) Resolver nombres activos
 // --------------------
 if (db && personajeId) {
-  const personajeRow = await db
+  const row = await db
     .prepare(`
       SELECT id_personaje, nombre_personaje
       FROM personajes
@@ -100,28 +105,85 @@ if (db && personajeId) {
     .bind(personajeId)
     .first();
 
-  personajeNombre = (personajeRow as PersonajeRow | null)?.nombre_personaje ?? null;
+  personajeNombre = (row as PersonajeRow | null)?.nombre_personaje ?? null;
+}
+
+if (db && universoId) {
+  const row = await db
+    .prepare(`
+      SELECT id_universo, nombre_universo
+      FROM universos
+      WHERE id_universo = ?
+      LIMIT 1
+    `)
+    .bind(universoId)
+    .first();
+
+  universoNombre = (row as UniversoRow | null)?.nombre_universo ?? null;
+}
+
+if (db && proveedorId && (await tableExists("proveedores"))) {
+  const row = await db
+    .prepare(`
+      SELECT id_proveedor, nombre_proveedor
+      FROM proveedores
+      WHERE id_proveedor = ?
+      LIMIT 1
+    `)
+    .bind(proveedorId)
+    .first();
+
+  proveedorNombre = (row as ProveedorRow | null)?.nombre_proveedor ?? null;
 }
 
 // --------------------
-// 1) Conteo total de productos filtrados
+// 1) WHERE dinámico
+// --------------------
+const whereClauses: string[] = [];
+const whereParams: any[] = [];
+
+if (personajeId) {
+  whereClauses.push(`id_personaje = ?`);
+  whereParams.push(personajeId);
+}
+
+if (universoId) {
+  whereClauses.push(`id_universo = ?`);
+  whereParams.push(universoId);
+}
+
+if (proveedorId) {
+  whereClauses.push(`id_proveedor = ?`);
+  whereParams.push(proveedorId);
+}
+
+const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+// --------------------
+// 2) ORDER dinámico
+// --------------------
+let orderSql = `ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC`;
+
+if (sort === "price_asc") {
+  orderSql = `ORDER BY COALESCE(precio, 0) ASC, id_producto DESC`;
+} else if (sort === "price_desc") {
+  orderSql = `ORDER BY COALESCE(precio, 0) DESC, id_producto DESC`;
+}
+
+// --------------------
+// 3) Conteo real
 // --------------------
 let totalProducts = 0;
 
 if (db) {
-  let countSql = `
+  const countSql = `
     SELECT COUNT(*) as total
     FROM productos
+    ${whereSql}
   `;
-  const countParams: any[] = [];
 
-  if (personajeId) {
-    countSql += ` WHERE id_personaje = ? `;
-    countParams.push(personajeId);
-  }
-
-  const countRes = countParams.length
-    ? await db.prepare(countSql).bind(...countParams).first()
+  const countRes = whereParams.length
+    ? await db.prepare(countSql).bind(...whereParams).first()
     : await db.prepare(countSql).first();
 
   totalProducts = Number((countRes as any)?.total || 0);
@@ -132,12 +194,12 @@ const currentPage = Math.min(requestedPage, totalPages);
 const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
 // --------------------
-// 2) Productos paginados
+// 4) Productos paginados
 // --------------------
 let productos: ProductoRow[] = [];
 
 if (db) {
-  let sql = `
+  const sql = `
     SELECT
       id_producto,
       nombre_producto,
@@ -153,27 +215,18 @@ if (db) {
       fecha_creacion,
       fecha_modifica
     FROM productos
-  `;
-  const params: any[] = [];
-
-  if (personajeId) {
-    sql += ` WHERE id_personaje = ? `;
-    params.push(personajeId);
-  }
-
-  sql += `
-    ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
+    ${whereSql}
+    ${orderSql}
     LIMIT ? OFFSET ?
   `;
 
-  params.push(ITEMS_PER_PAGE, offset);
-
+  const params = [...whereParams, ITEMS_PER_PAGE, offset];
   const res = await db.prepare(sql).bind(...params).all();
   productos = (res?.results || []) as ProductoRow[];
 }
 
 // --------------------
-// 3) Filtros D1
+// 5) Filtros D1
 // --------------------
 let personajes: PersonajeRow[] = [];
 let universos: UniversoRow[] = [];
@@ -188,7 +241,6 @@ if (db) {
         ORDER BY nombre_personaje ASC
       `)
       .all();
-
     personajes = (res?.results || []) as PersonajeRow[];
   }
 
@@ -200,7 +252,6 @@ if (db) {
         ORDER BY nombre_universo ASC
       `)
       .all();
-
     universos = (res?.results || []) as UniversoRow[];
   }
 
@@ -212,13 +263,14 @@ if (db) {
         ORDER BY nombre_proveedor ASC
       `)
       .all();
-
     proveedores = (res?.results || []) as ProveedorRow[];
   }
 }
 
+const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(Boolean);
+
 // --------------------
-// 4) Data para ProductsPageWrapper
+// 6) Data para React
 // --------------------
 const data = {
   products: productos.map((pr) => ({
@@ -253,8 +305,17 @@ const data = {
   })),
 
   initialPersonajeId: personajeId ? String(personajeId) : null,
+  initialUniversoId: universoId ? String(universoId) : null,
+  initialProveedorId: proveedorId ? String(proveedorId) : null,
+  initialSort: sort,
+
   personajeNombre,
-  clearFilterHref: personajeId ? "/shop" : null,
+  universoNombre,
+  proveedorNombre,
+  activeFilterLabels,
+
+  clearFilterHref:
+    personajeId || universoId || proveedorId || sort !== "newest" ? "/shop" : null,
 
   pagination: {
     currentPage,
@@ -264,10 +325,19 @@ const data = {
     pageCount: productos.length,
     basePath: "/shop",
     personajeId: personajeId ? String(personajeId) : null,
+    universoId: universoId ? String(universoId) : null,
+    proveedorId: proveedorId ? String(proveedorId) : null,
+    sort,
   },
 };
 ---
 
-<Layout title={personajeNombre ? `Shop: ${personajeNombre} | DCimpress 3D` : "Tienda | DCimpress 3D"}>
+<Layout
+  title={
+    activeFilterLabels.length
+      ? `Shop: ${activeFilterLabels.join(" / ")} | DCimpress 3D`
+      : "Tienda | DCimpress 3D"
+  }
+>
   <ProductsPageWrapper client:load data={data} />
 </Layout>
