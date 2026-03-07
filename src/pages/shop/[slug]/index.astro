@@ -16,14 +16,35 @@ type ProductoRow = {
   id_personaje?: number | null;
   fecha_creacion?: string | null;
   fecha_modifica?: string | null;
+  disclaimer?: string | null;
+  aspectos_variables?: string | null;
+  tipo_cosplay?: string | null;
 };
 
-type EdicionJoinRow = {
+type EdicionRow = {
   id_edicion_producto: number;
   id_producto: number;
   id_edicion: number;
   nombre_edicion: string;
-  img_edicion_producto: string | null;
+  img_edicion_producto?: string | null;
+  img_edicion_pr1?: string | null;
+  img_edicion_pr2?: string | null;
+  img_edicion_pr3?: string | null;
+  img_edicion_pr4?: string | null;
+  img_edicion_pr5?: string | null;
+  img_edicion_pr6?: string | null;
+  img_edicion_pr7?: string | null;
+  img_edicion_pr8?: string | null;
+  img_edicion_pr9?: string | null;
+  img_edicion_pr10?: string | null;
+};
+
+type EscalaRow = {
+  id_producto: number;
+  disponible: number | null;
+  id_escala: number;
+  nombre_escala: string;
+  descripcion?: string | null;
 };
 
 function slugify(s: string) {
@@ -40,95 +61,236 @@ function slugify(s: string) {
 
 const { slug } = Astro.params;
 
-// D1
 const db = Astro.locals.runtime.env.DB as any;
 if (!db) return Astro.redirect("/404");
 
-// 1) Resolver slug -> id_producto (modo prueba)
-const listRes = await db.prepare(`SELECT id_producto, nombre_producto FROM productos`).all();
-const list = (listRes?.results || []) as Array<{ id_producto: number; nombre_producto: string }>;
+// 1) Resolver slug -> producto
+const listRes = await db
+  .prepare(`SELECT id_producto, nombre_producto FROM productos`)
+  .all();
+
+const list = (listRes?.results || []) as Array<{
+  id_producto: number;
+  nombre_producto: string;
+}>;
 
 const found = list.find((p) => slugify(p.nombre_producto) === slug);
 if (!found) return Astro.redirect("/404");
 
-// 2) Producto
+// 2) Producto base
 const product = (await db
   .prepare(`
     SELECT
-      id_producto, nombre_producto, subtitulo, descripcion, img_producto,
-      unidades, precio, descuento, id_proveedor, id_universo, id_personaje,
-      fecha_creacion, fecha_modifica
+      id_producto,
+      nombre_producto,
+      subtitulo,
+      descripcion,
+      img_producto,
+      unidades,
+      precio,
+      descuento,
+      id_proveedor,
+      id_universo,
+      id_personaje,
+      fecha_creacion,
+      fecha_modifica,
+      disclaimer,
+      aspectos_variables,
+      tipo_cosplay
     FROM productos
     WHERE id_producto = ?
+    LIMIT 1
   `)
   .bind(found.id_producto)
   .first()) as ProductoRow | null;
 
 if (!product) return Astro.redirect("/404");
 
-// 3) Ediciones + imágenes
+// 3) Ediciones + todas las imágenes
 const edRes = await db
   .prepare(`
     SELECT
       ep.id_edicion_producto,
       ep.id_producto,
-      e.id_edicion,
+      ep.id_edicion,
       e.nombre_edicion,
-      ep.img_edicion_producto
+      ep.img_edicion_producto,
+      ep.img_edicion_pr1,
+      ep.img_edicion_pr2,
+      ep.img_edicion_pr3,
+      ep.img_edicion_pr4,
+      ep.img_edicion_pr5,
+      ep.img_edicion_pr6,
+      ep.img_edicion_pr7,
+      ep.img_edicion_pr8,
+      ep.img_edicion_pr9,
+      ep.img_edicion_pr10
     FROM edicion_producto ep
-    JOIN ediciones e ON e.id_edicion = ep.id_edicion
+    INNER JOIN ediciones e ON e.id_edicion = ep.id_edicion
     WHERE ep.id_producto = ?
-    ORDER BY e.nombre_edicion ASC, ep.id_edicion_producto ASC
+    ORDER BY ep.id_edicion_producto ASC
   `)
   .bind(product.id_producto)
   .all();
 
-const ediciones = (edRes?.results || []) as EdicionJoinRow[];
+const edicionesRows = (edRes?.results || []) as EdicionRow[];
 
-// 4) Variants (ediciones únicas)
-const variants = Array.from(
-  new Map(
-    ediciones.map((r) => [
-      String(r.id_edicion),
-      { slug: String(r.id_edicion), title: r.nombre_edicion },
-    ])
-  ).values()
-);
+const editions = edicionesRows.map((row) => {
+  const rawImages = [
+    row.img_edicion_producto,
+    row.img_edicion_pr1,
+    row.img_edicion_pr2,
+    row.img_edicion_pr3,
+    row.img_edicion_pr4,
+    row.img_edicion_pr5,
+    row.img_edicion_pr6,
+    row.img_edicion_pr7,
+    row.img_edicion_pr8,
+    row.img_edicion_pr9,
+    row.img_edicion_pr10,
+  ];
 
-// 5) Galería por variant
-const galleryByVariant = variants.map((v) => {
-  const imgs = ediciones
-    .filter((r) => String(r.id_edicion) === v.slug)
-    .map((r) => r.img_edicion_producto)
-    .filter((u): u is string => !!u && u.length > 0);
+  const uniqueImages = Array.from(
+    new Set(rawImages.filter((img): img is string => !!img && img.trim().length > 0))
+  );
 
   return {
-    variantSlug: v.slug,
-    images: imgs.map((u) => ({ url: u })),
+    id_edicion: row.id_edicion,
+    nombre_edicion: row.nombre_edicion,
+    img: row.img_edicion_producto || uniqueImages[0] || product.img_producto || null,
+    images: uniqueImages.map((url) => ({ url })),
   };
 });
+
+// 4) Escalas
+const scalesRes = await db
+  .prepare(`
+    SELECT
+      ep.id_producto,
+      ep.disponible,
+      es.id_escala,
+      es.nombre_escala,
+      es.descripcion
+    FROM escala_producto ep
+    INNER JOIN escalas es ON es.id_escala = ep.id_escala
+    WHERE ep.id_producto = ?
+    ORDER BY es.id_escala ASC
+  `)
+  .bind(product.id_producto)
+  .all();
+
+const scalesRows = (scalesRes?.results || []) as EscalaRow[];
+
+const scales = scalesRows.map((row) => ({
+  id_escala: row.id_escala,
+  nombre_escala: row.nombre_escala,
+  descripcion: row.descripcion ?? "",
+  disponible: Number(row.disponible || 0) === 1,
+}));
+
+// 5) Relacionados
+let relatedRows: ProductoRow[] = [];
+
+if (product.id_personaje) {
+  const relByCharacter = await db
+    .prepare(`
+      SELECT
+        id_producto,
+        nombre_producto,
+        subtitulo,
+        descripcion,
+        img_producto,
+        unidades,
+        precio,
+        descuento,
+        id_proveedor,
+        id_universo,
+        id_personaje,
+        fecha_creacion,
+        fecha_modifica
+      FROM productos
+      WHERE id_producto != ?
+        AND id_personaje = ?
+      ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
+      LIMIT 8
+    `)
+    .bind(product.id_producto, product.id_personaje)
+    .all();
+
+  relatedRows = (relByCharacter?.results || []) as ProductoRow[];
+}
+
+if (relatedRows.length < 8 && product.id_universo) {
+  const excludeIds = [product.id_producto, ...relatedRows.map((r) => r.id_producto)];
+  const placeholders = excludeIds.map(() => "?").join(",");
+
+  const relByUniverse = await db
+    .prepare(`
+      SELECT
+        id_producto,
+        nombre_producto,
+        subtitulo,
+        descripcion,
+        img_producto,
+        unidades,
+        precio,
+        descuento,
+        id_proveedor,
+        id_universo,
+        id_personaje,
+        fecha_creacion,
+        fecha_modifica
+      FROM productos
+      WHERE id_universo = ?
+        AND id_producto NOT IN (${placeholders})
+      ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
+      LIMIT ?
+    `)
+    .bind(product.id_universo, ...excludeIds, 8 - relatedRows.length)
+    .all();
+
+  relatedRows = [...relatedRows, ...((relByUniverse?.results || []) as ProductoRow[])];
+}
 
 const data = {
   meta: {
     id_producto: product.id_producto,
     title: product.nombre_producto,
     slug: slugify(product.nombre_producto),
+    model_id: slugify(product.nombre_producto).toUpperCase(),
+    subtitle: product.subtitulo ?? "",
     price: product.precio ?? 0,
     descuento: product.descuento ?? null,
-
-    // 👇 aquí tu Details puede pintar un texto simple (luego lo enriquecemos)
     descripcion: product.descripcion ?? "",
-
-    variants,
-    galleryByVariant,
-
-    // fallback si no hay ediciones
+    description: product.descripcion ?? "",
+    disclaimer: product.disclaimer ?? "",
+    aspectos_variables: product.aspectos_variables ?? "",
+    tipo_cosplay: product.tipo_cosplay ?? "",
+    personajeId: product.id_personaje ?? null,
+    universoId: product.id_universo ?? null,
+    proveedorId: product.id_proveedor ?? null,
     cover: product.img_producto ? { url: product.img_producto } : null,
+    editions,
+    scales,
   },
-  otherProducts: [],
+
+  otherProducts: relatedRows.map((pr) => ({
+    id: pr.id_producto,
+    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
+    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
+    subtitle: pr.subtitulo ?? "",
+    description: pr.descripcion ?? "",
+    price: pr.precio ?? 0,
+    discount: pr.descuento ?? 0,
+    units: pr.unidades ?? null,
+    coverUrl: pr.img_producto ?? "",
+    personajeId: pr.id_personaje ?? null,
+    universoId: pr.id_universo ?? null,
+    proveedorId: pr.id_proveedor ?? null,
+  })),
 };
 ---
 
-<Layout title={`${data.meta.title} - Dino Cat 3D`}>
- <ProductPageWrapper client:load data={data as any} />
+<Layout title={`${data.meta.title} | DCimpress 3D`}>
+  <ProductPageWrapper client:load data={data as any} />
 </Layout>

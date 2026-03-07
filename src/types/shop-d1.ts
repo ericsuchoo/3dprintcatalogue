@@ -26,3 +26,46 @@ export type ShopPageDataD1 = {
   brands: D1SelectItem[];
   initialPersonajeId?: string | null;
 };
+export type ProductEditionImageD1 = {
+  url: string;
+};
+
+export type ProductEditionD1 = {
+  id_edicion: string | number;
+  nombre_edicion: string;
+  img: string | null;
+  images: ProductEditionImageD1[];
+};
+
+export type ProductScaleD1 = {
+  id_escala: string | number;
+  nombre_escala: string;
+  descripcion: string;
+  disponible: boolean;
+};
+
+export type ProductDetailMetaD1 = {
+  id_producto: string | number;
+  title: string;
+  slug: string;
+  model_id: string;
+  subtitle?: string;
+  price: number;
+  descuento?: number | null;
+  descripcion?: string;
+  description?: string;
+  disclaimer?: string;
+  aspectos_variables?: string;
+  tipo_cosplay?: string;
+  personajeId?: string | number | null;
+  universoId?: string | number | null;
+  proveedorId?: string | number | null;
+  cover?: { url: string } | null;
+  editions: ProductEditionD1[];
+  scales: ProductScaleD1[];
+};
+
+export type ProductDetailPageDataD1 = {
+  meta: ProductDetailMetaD1;
+  otherProducts: ProductLiteD1[];
+};

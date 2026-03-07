@@ -1,30 +1,60 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Gallery } from "./Gallery";
 import { Details } from "./Details";
+import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
 
 interface Props {
-  meta: any;
+  data: any;
 }
 
-export const Main: React.FC<Props> = ({ meta }) => {
-  const [activeEdition, setActiveEdition] = useState<any>(() => {
-    return meta?.editions?.[0] || null;
-  });
+export const Main: React.FC<Props> = ({ data }) => {
+  const meta = data?.meta || {};
+
+  const editions = useMemo(() => {
+    return Array.isArray(meta?.editions) ? meta.editions : [];
+  }, [meta]);
+
+  const [activeEdition, setActiveEdition] = useState<any>(editions[0] || null);
+
+  useEffect(() => {
+    setActiveEdition(editions[0] || null);
+  }, [editions]);
+
+  const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-    <div>
-      <div className="bg-black grid grid-cols-1 gap-8 mb-14 lg:grid-cols-2">
+    <div className="bg-black min-h-screen px-4 md:px-6 pt-20 md:pt-24 pb-10">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-10 items-start">
         <Gallery
-          gallery={meta?.editions || []}
+          gallery={editions}
           activeEdition={activeEdition}
           onEditionChange={setActiveEdition}
+          fallbackImage={meta?.cover?.url || null}
         />
+
         <Details
           meta={meta}
           activeEdition={activeEdition}
-          editionChange={(e: any) => setActiveEdition(e)}
+          editionChange={setActiveEdition}
         />
       </div>
+
+      {otherProducts.length > 0 && (
+        <div className="mt-16">
+          <div className="bg-red-500 text-white font-black italic text-xl px-4 py-2 uppercase tracking-tight">
+            Otras opciones gloriosas
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mt-6">
+            {otherProducts.map((product: any, index: number) => (
+              <ProductCard
+                key={product.slug ?? index}
+                card={product}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

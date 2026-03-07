@@ -85,7 +85,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
         </svg>
       </button>
 
-      <a href={`/shop/${card.id}`} className="flex flex-col h-full relative">
+      <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative">
         <div className="aspect-[3/4] overflow-hidden bg-[#111] relative">
           {card.coverUrl ? (
             <img
