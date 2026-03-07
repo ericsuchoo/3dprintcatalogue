@@ -51,12 +51,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
   return (
     <div
-      className="flex flex-col relative p-6 lg:p-8 lg:pt-[5%] mt-10 lg:mt-24 lg:max-w-md mx-auto lg:ml-auto lg:mr-20"
-      style={{ background: "rgba(255, 255, 255, 0.93)" }}
+      className="flex flex-col relative p-6 lg:p-7 mt-0 lg:mt-0 max-w-[460px] w-full mx-auto xl:ml-auto xl:mr-0 border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+      style={{ background: "rgba(255, 255, 255, 0.96)" }}
     >
-      <div className="flex flex-col mb-2">
+      <div className="flex flex-col mb-3">
         <h1
-          className="text-2xl md:text-3xl font-bold tracking-tighter leading-tight text-black mb-1
+          className="text-2xl md:text-3xl font-bold tracking-tighter leading-tight text-black mb-2 uppercase
           [text-shadow:_-2px_-2px_0_#fff,_2px_-2px_0_#fff,_-2px_2px_0_#fff]"
           style={{
             textAlign: "center",
@@ -64,14 +64,16 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
             background: "rgb(255, 255, 255)",
           }}
         >
-          {meta?.title || meta?.nombre_producto || "Producto"}
+          <span className="inline-block px-3 py-1 border border-red-200 shadow-[inset_0_-2px_0_rgba(239,68,68,0.3)]">
+            {meta?.title || meta?.nombre_producto || "Producto"}
+          </span>
         </h1>
 
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
           <span className="text-[10px] font-medium text-black uppercase tracking-widest">
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
-          <span className="text-xl font-light text-black">{priceLabel ?? ""}</span>
+          <span className="text-[20px] font-light text-black">{priceLabel ?? ""}</span>
         </div>
       </div>
 
@@ -93,16 +95,14 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300",
+                    "flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold",
                     isActive
-                      ? "bg-white text-black border-black"
-                      : "border-zinc-200 bg-black text-white hover:border-zinc-400"
+                      ? "bg-white text-black border-black shadow-[inset_0_0_0_1px_rgba(0,0,0,0.15)]"
+                      : "border-black bg-black text-white hover:bg-zinc-900"
                   )}
                 >
-                  <span className="font-bold uppercase tracking-tight">
-                    {e?.nombre_edicion || `Edición ${i + 1}`}
-                  </span>
-                  {isActive && <div className="w-1 h-1 bg-black rounded-full animate-pulse" />}
+                  <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
+                  {isActive && <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />}
                 </button>
               );
             })
@@ -135,12 +135,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${scale?.id_escala ?? scale?.nombre_escala ?? index}-${index}`}
                   onClick={() => setActiveScale(scale)}
                   className={classNames(
-                    "min-w-[42px] px-3 py-3 border text-[11px] font-bold uppercase leading-none transition-all duration-300",
+                    "min-w-[46px] px-3 py-3 border text-[11px] font-bold uppercase leading-none transition-all duration-300",
                     !scale?.disponible
-                      ? "opacity-30 cursor-not-allowed border-zinc-300 text-zinc-400"
+                      ? "opacity-25 cursor-not-allowed border-zinc-300 bg-white text-zinc-400"
                       : isActive
-                      ? "bg-black text-white border-black"
-                      : "bg-white text-black border-black hover:bg-black hover:text-white"
+                      ? "bg-white text-black border-black shadow-[inset_0_0_0_1px_rgba(0,0,0,0.12)]"
+                      : "bg-black text-white border-black hover:bg-zinc-900"
                   )}
                   disabled={!scale?.disponible}
                 >
@@ -153,7 +153,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
       )}
 
       {/* FAVORITOS */}
-      <div className="flex flex-col gap-2 mb-8" style={{ background: "rgba(255, 255, 255, 0.92)" }}>
+      <div className="flex flex-col gap-2 mb-8">
         <button
           onClick={() => toggleFavorite(favoriteId)}
           className={classNames(
@@ -168,10 +168,15 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
       </div>
 
       {/* TEXTO */}
-      <div className="border-t border-zinc-100 pt-4">
+      <div className="border-t border-zinc-200 pt-5">
         {meta?.aspectos_variables ? (
-          <div className="text-black font-sans italic text-[13px] leading-snug tracking-tight whitespace-pre-line mb-4">
-            <span className="font-bold">Piezas alternas:</span> {meta.aspectos_variables}
+          <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-4 py-3 shadow-sm">
+            <div className="text-[15px] md:text-[16px] italic leading-snug tracking-tight text-black">
+              <span className="font-extrabold uppercase text-red-600 tracking-[0.04em]">
+                Piezas alternas:
+              </span>{" "}
+              <span className="font-semibold">{meta.aspectos_variables}</span>
+            </div>
           </div>
         ) : null}
 
