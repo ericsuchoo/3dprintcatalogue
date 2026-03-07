@@ -150,10 +150,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const loadMore = () => setLoadedProducts((prev) => prev + 12);
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 py-8 text-[#28d4ff]" >
+    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
         {/* SIDEBAR */}
-        <div className="lg:row-span-2 sticky top-24">
+        <div className="lg:row-span-2 sticky top-28">
           <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
             <div className="text-2xl leading-none font-bold italic text-red-500">
               {favoritesOnly ? "Mis Me gusta" : "Filtros"}
@@ -273,7 +273,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         {/* CONTENT */}
         <div className="lg:col-start-2">
           {(data.personajeNombre || data.clearFilterHref) && (
-            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 {data.personajeNombre && (
                   <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
