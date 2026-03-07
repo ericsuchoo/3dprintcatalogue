@@ -28,7 +28,6 @@ function formatMoney(n: number) {
   return `$${Number(n).toFixed(0)}`;
 }
 
-// Asume descuento como porcentaje
 function calcFinalPrice(price: number, discount?: number) {
   if (!discount) return { final: price, hasDiscount: false };
   const pct = Number(discount);
@@ -56,14 +55,12 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
         className
       )}
     >
-      {/* Badge superior */}
       <div className="absolute top-3 left-3 z-30">
         <span className="bg-white text-black text-[9px] font-black px-3 py-1 rounded-sm uppercase tracking-tighter shadow-[2px_2px_0px_rgba(0,0,0,1)] border border-black">
           {card.subtitle || "Figura 3D"}
         </span>
       </div>
 
-      {/* Favoritos */}
       <button
         type="button"
         onClick={(e) => {
@@ -71,7 +68,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
           e.stopPropagation();
           toggleFavorite(productID);
         }}
-        className="absolute top-3 right-3 z-40 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300"
+        className="absolute top-3 right-3 z-40 p-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300"
         aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
       >
         <svg
@@ -88,15 +85,13 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
         </svg>
       </button>
 
-      {/* Link */}
       <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative">
-        {/* Imagen */}
         <div className="aspect-[3/4] overflow-hidden bg-[#111] relative">
           {card.coverUrl ? (
             <img
               src={card.coverUrl}
               alt={card.title}
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-50"
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-60"
               loading="lazy"
             />
           ) : (
@@ -105,18 +100,15 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
             </div>
           )}
 
-          {/* Overlay base */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500" />
 
-          {/* Overlay hover */}
           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 bg-black/25 backdrop-blur-[2px]">
-            <div className="bg-lime-400 text-black font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_20px_rgba(163,230,53,0.25)] border border-lime-300 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-              Ver Detalles
+            <div className="bg-red-500 text-white font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_20px_rgba(239,68,68,0.35)] border border-red-400 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+              Ver detalles
             </div>
           </div>
         </div>
 
-        {/* Info */}
         <div className="flex flex-col p-4 bg-black border-t border-white/5">
           <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">

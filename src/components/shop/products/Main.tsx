@@ -64,7 +64,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     });
   }, [data.genders, data.categories, data.brands]);
 
-  // ✅ si viene personajeId por URL, activarlo de inicio
   useEffect(() => {
     if (!data?.initialPersonajeId) return;
 
@@ -81,11 +80,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
   const clearFilters = () => {
     setFilters((prev) =>
-      prev.map((f) =>
-        f.type === "price" || f.type === "popularity" || f.type === "personaje" || f.type === "universo" || f.type === "proveedor"
-          ? { ...f, active: false }
-          : f
-      )
+      prev.map((f) => ({
+        ...f,
+        active: false,
+      }))
     );
     setSearchVal("");
     setLoadedProducts(12);
@@ -152,21 +150,46 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const loadMore = () => setLoadedProducts((prev) => prev + 12);
 
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
-      {/* SIDEBAR */}
-      <div className="lg:row-span-2 sticky top-0">
-        <div className="grid grid-cols-1 gap-8 border border-appGray-300 p-8 bg-white/95">
-          <div className="text-2xl leading-none font-bold tracking-[-2%] italic text-red-500">
-            {favoritesOnly ? "Mis Me gusta" : "Filtros"}
-          </div>
+    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 py-8">
+      <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
+        {/* SIDEBAR */}
+        <div className="lg:row-span-2 sticky top-24">
+          <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
+            <div className="text-2xl leading-none font-bold italic text-red-500">
+              {favoritesOnly ? "Mis Me gusta" : "Filtros"}
+            </div>
 
-          {/* UNIVERSOS */}
-          {filters.some((f) => f.type === "universo") && (
+            {/* UNIVERSOS */}
+            {filters.some((f) => f.type === "universo") && (
+              <div>
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                  Universos
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {filters
+                    .filter((e) => e.type === "universo")
+                    .map((filter, index) => (
+                      <FormCheck
+                        key={index}
+                        value={filter.label}
+                        label={filter.label}
+                        onCheck={(value) => setProductFilter(String(value))}
+                        checked={!filter.active}
+                        size="sm"
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* PRECIO */}
             <div>
-              <div className="text-2xl leading-none tracking-[-2%] mb-5">Universos</div>
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Precio
+              </div>
               <div className="grid grid-cols-1 gap-4">
                 {filters
-                  .filter((e) => e.type === "universo")
+                  .filter((e) => e.type === "price")
                   .map((filter, index) => (
                     <FormCheck
                       key={index}
@@ -179,72 +202,15 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                   ))}
               </div>
             </div>
-          )}
 
-          {/* PRECIO */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Precio</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "price")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-          {/* POPULARIDAD */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Popularidad</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "popularity")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-          {/* PERSONAJES */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Personajes</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "personaje")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-          {/* PROVEEDORES */}
-          {filters.some((f) => f.type === "proveedor") && (
+            {/* POPULARIDAD */}
             <div>
-              <div className="text-2xl leading-none tracking-[-2%] mb-5">Creadores 3D</div>
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Popularidad
+              </div>
               <div className="grid grid-cols-1 gap-4">
                 {filters
-                  .filter((e) => e.type === "proveedor")
+                  .filter((e) => e.type === "popularity")
                   .map((filter, index) => (
                     <FormCheck
                       key={index}
@@ -257,78 +223,129 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                   ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* CONTENT */}
-      <div className="lg:col-start-2">
-        {/* ✅ HEADER DE FILTRO POR PERSONAJE */}
-        {(data.personajeNombre || data.clearFilterHref) && (
-          <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* PERSONAJES */}
             <div>
-              {data.personajeNombre && (
-                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tighter">
-                  Shop: <span className="text-red-500">{data.personajeNombre}</span>
-                </h2>
-              )}
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Personajes
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {filters
+                  .filter((e) => e.type === "personaje")
+                  .map((filter, index) => (
+                    <FormCheck
+                      key={index}
+                      value={filter.label}
+                      label={filter.label}
+                      onCheck={(value) => setProductFilter(String(value))}
+                      checked={!filter.active}
+                      size="sm"
+                    />
+                  ))}
+              </div>
             </div>
 
-            {data.clearFilterHref && (
-              <a
-                href={data.clearFilterHref}
-                className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-white/5 hover:bg-white/10"
-              >
-                Quitar filtro
-              </a>
+            {/* PROVEEDORES */}
+            {filters.some((f) => f.type === "proveedor") && (
+              <div>
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                  Creadores 3D
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {filters
+                    .filter((e) => e.type === "proveedor")
+                    .map((filter, index) => (
+                      <FormCheck
+                        key={index}
+                        value={filter.label}
+                        label={filter.label}
+                        onCheck={(value) => setProductFilter(String(value))}
+                        checked={!filter.active}
+                        size="sm"
+                      />
+                    ))}
+                </div>
+              </div>
             )}
           </div>
-        )}
-
-        {/* Search + clear */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
-          <label className="flex items-center px-5 flex-1 border border-appGray-300 bg-white/95">
-            <div dangerouslySetInnerHTML={{ __html: SearchIcon }} className="w-[18px] h-[18px]" />
-            <input
-              type="search"
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              placeholder={favoritesOnly ? "Buscar en mis favoritos..." : "Buscar figuras..."}
-              className="bg-transparent px-1.5 py-[15px] w-full text-lg leading-none tracking-[-2%] placeholder:text-appText focus:outline-none"
-            />
-          </label>
-
-          <button
-            className="flex items-center gap-1.5 p-[15px] transition-colors duration-300 text-appError bg-appError/10 hover:bg-appError/20"
-            onClick={clearFilters}
-          >
-            <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[18px] h-[18px]" />
-            <span className="text-lg leading-none tracking-[-2%] mb-1">Limpiar Filtros</span>
-          </button>
         </div>
 
-        <div className="text-2xl leading-none tracking-[-2%] my-6 text-white">
-          {filteredProducts.length} Variante{filteredProducts.length === 1 ? "" : "s"}
-        </div>
+        {/* CONTENT */}
+        <div className="lg:col-start-2">
+          {(data.personajeNombre || data.clearFilterHref) && (
+            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                {data.personajeNombre && (
+                  <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                    Shop:{" "}
+                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
+                      {data.personajeNombre}
+                    </span>
+                  </h2>
+                )}
+              </div>
 
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredProducts.map((product, index) => (
-            <ProductCard
-              key={product.slug ?? index}
-              card={product}
-              style={{ display: index < loadedProducts ? "" : "none" }}
-            />
-          ))}
-        </div>
+              {data.clearFilterHref && (
+                <a
+                  href={data.clearFilterHref}
+                  className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
+                >
+                  Quitar filtro
+                </a>
+              )}
+            </div>
+          )}
 
-        {loadedProducts < filteredProducts.length && (
-          <button
-            className="flex max-w-max text-2xl leading-none tracking-[-0.5px] px-14 pt-3.5 pb-[18px] bg-white border border-appGray-400 mx-auto mt-12 transition-colors duration-300 hover:bg-appText hover:text-white"
-            onClick={loadMore}
-          >
-            Cargar más
-          </button>
-        )}
+          {/* Search + clear */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+            <label className="flex items-center px-5 flex-1 border border-white/10 bg-[#0f0f0f] rounded-lg">
+              <div
+                dangerouslySetInnerHTML={{ __html: SearchIcon }}
+                className="w-[18px] h-[18px] text-zinc-500"
+              />
+              <input
+                type="search"
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                placeholder={favoritesOnly ? "Buscar en mis favoritos..." : "Buscar figuras..."}
+                className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+              />
+            </label>
+
+            <button
+              className="flex items-center justify-center gap-2 px-5 py-4 rounded-lg transition-colors duration-300 text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-white"
+              onClick={clearFilters}
+            >
+              <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[16px] h-[16px]" />
+              <span className="text-sm uppercase tracking-[0.18em] font-bold">
+                Limpiar filtros
+              </span>
+            </button>
+          </div>
+
+          <div className="text-sm uppercase tracking-[0.18em] my-6 text-zinc-400 font-bold">
+            {filteredProducts.length} Variante{filteredProducts.length === 1 ? "" : "s"}
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product.slug ?? index}
+                card={product}
+                style={{ display: index < loadedProducts ? "" : "none" }}
+              />
+            ))}
+          </div>
+
+          {loadedProducts < filteredProducts.length && (
+            <button
+              className="flex max-w-max text-sm uppercase tracking-[0.25em] px-10 py-4 bg-red-500/10 border border-red-500/40 text-red-400 mx-auto mt-12 transition-all duration-300 hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(239,68,68,0.5)]"
+              onClick={loadMore}
+            >
+              Cargar más
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ interface Props extends PropsWithChildren {
 
 const InnnerPageWrapper: React.FC<Props> = ({ children }) => {
   return (
-    <div className="relative">
+    <div className="relative bg-black">
       <Header />
       <main>{children}</main>
     </div>
