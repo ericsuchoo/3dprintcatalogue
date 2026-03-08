@@ -51,6 +51,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     { active: false, type: "popularity", label: "New comer", value: "newest" },
   ]);
 
+  const filterTitleClass =
+    "inline-block pb-2 border-b-2 border-[#00eeff] text-sm uppercase tracking-[0.18em] text-zinc-200 font-black shadow-[0_8px_18px_rgba(0,238,255,0.16)]";
+
   useEffect(() => {
     const personajesFilters: ProductFilterD1[] = (data.genders || []).map((p) => ({
       active: false,
@@ -76,15 +79,17 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     setFilters((prev) => {
       const base = prev.filter((f) => f.type === "price" || f.type === "popularity");
 
-      return base.map((f) => {
-        if (f.type === "price" && data.initialSort && f.value === data.initialSort) {
-          return { ...f, active: true };
-        }
-        if (f.type === "popularity" && data.initialSort === "newest" && f.value === "newest") {
-          return { ...f, active: true };
-        }
-        return { ...f, active: false };
-      }).concat([...proveedoresFilters, ...universosFilters, ...personajesFilters]);
+      return base
+        .map((f) => {
+          if (f.type === "price" && data.initialSort && f.value === data.initialSort) {
+            return { ...f, active: true };
+          }
+          if (f.type === "popularity" && data.initialSort === "newest" && f.value === "newest") {
+            return { ...f, active: true };
+          }
+          return { ...f, active: false };
+        })
+        .concat([...proveedoresFilters, ...universosFilters, ...personajesFilters]);
     });
   }, [data.genders, data.categories, data.brands, data.initialSort]);
 
@@ -225,17 +230,15 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
         <div className="lg:row-span-2 sticky top-28">
-          <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
+          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
             <div className="text-2xl leading-none font-bold italic text-red-500">
               {favoritesOnly ? "Mis Me gusta" : "Filtros"}
             </div>
 
             {filters.some((f) => f.type === "universo") && (
               <div>
-                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                  Universos
-                </div>
-                <div className="grid grid-cols-1 gap-4 text-[#a200ff]">
+                <div className={filterTitleClass}>Universos</div>
+                <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
                   {filters
                     .filter((e) => e.type === "universo")
                     .map((filter, index) => (
@@ -253,10 +256,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             )}
 
             <div>
-              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                Precio / orden
-              </div>
-              <div className="grid grid-cols-1 gap-4 text-[#ff0000]">
+              <div className={filterTitleClass}>Precio / orden</div>
+              <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "price")
                   .map((filter, index) => (
@@ -273,10 +274,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
 
             <div>
-              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                Novedad
-              </div>
-              <div className="grid grid-cols-1 gap-4 text-[#ffd900]">
+              <div className={filterTitleClass}>Novedad</div>
+              <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "popularity")
                   .map((filter, index) => (
@@ -293,10 +292,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
 
             <div>
-              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                Personajes
-              </div>
-              <div className="grid grid-cols-1 gap-4 text-[#66ff00]">
+              <div className={filterTitleClass}>Personajes</div>
+              <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "personaje")
                   .map((filter, index) => (
@@ -314,10 +311,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
             {filters.some((f) => f.type === "proveedor") && (
               <div>
-                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
-                  Creadores 3D
-                </div>
-                <div className="grid grid-cols-1 gap-4 text-[#00ffea]">
+                <div className={filterTitleClass}>Creadores 3D</div>
+                <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
                   {filters
                     .filter((e) => e.type === "proveedor")
                     .map((filter, index) => (
@@ -407,7 +402,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.slug ?? index} card={product} />
               ))}
