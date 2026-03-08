@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 type UniverseCard = {
   id: string;
@@ -15,6 +15,26 @@ export const UniverseRail: React.FC<Props> = ({
   items,
   activeUniversoId = null,
 }) => {
+  const railRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
   if (!items?.length) return null;
 
   const buildHref = (universoId: string) => {
@@ -52,7 +72,10 @@ export const UniverseRail: React.FC<Props> = ({
           </p>
         </div>
 
-        <div className="flex gap-5 overflow-x-auto pb-1 snap-x snap-mandatory no-scrollbar">
+        <div
+          ref={railRef}
+          className="flex gap-5 overflow-x-auto overflow-y-hidden pb-1 snap-x snap-mandatory no-scrollbar scroll-smooth"
+        >
           {items.map((item) => {
             const isActive = String(activeUniversoId ?? "") === String(item.id);
 
