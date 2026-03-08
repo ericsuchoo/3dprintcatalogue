@@ -31,7 +31,6 @@ interface Props {
 const ITEMS_PER_PAGE = 24;
 
 const NewPageWrapper: React.FC<Props> = ({
-  meta,
   categories,
   universes = [],
   activeUniversoId = null,
@@ -52,37 +51,12 @@ const NewPageWrapper: React.FC<Props> = ({
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const dynamicTitle = activeUniversoId
-    ? meta.title?.replace("Explorar: ", "") || "Universo"
-    : "Todos los personajes";
-
-  const dynamicSubtitle = activeUniversoId
-    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
-    : `Mostrando ${categories?.length ?? 0} personajes disponibles`;
-
   return (
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
           <div className="container pb-5">
-            <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-                  activeUniversoId ? (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#ff0000] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        {dynamicTitle}
-                      </span>
-                    </>
-                  ) 
-                </h1>
-
-                <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-                  {dynamicSubtitle}
-                </p>
-              </div>
-
+            <div className="flex justify-end mb-4">
               {clearFilterHref && (
                 <a
                   href={clearFilterHref}
