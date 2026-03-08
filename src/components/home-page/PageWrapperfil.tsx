@@ -56,15 +56,9 @@ const NewPageWrapper: React.FC<Props> = ({
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-5">
-            <UniverseRail
-              items={universes}
-              activeUniversoId={activeUniversoId}
-            />
-          </div>
-
+          
           <div className="container pb-8 text-center -mt-1">
-            <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tighter">
+            <h1 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tighter">
               {activeUniversoId ? (
                 <>
                   Personajes de{" "}
@@ -96,6 +90,13 @@ const NewPageWrapper: React.FC<Props> = ({
               </div>
             )}
           </div>
+          <div className="container pb-5">
+            <UniverseRail
+              items={universes}
+              activeUniversoId={activeUniversoId}
+            />
+          </div>
+
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
