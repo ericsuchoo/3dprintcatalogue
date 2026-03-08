@@ -402,7 +402,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.slug ?? index} card={product} />
               ))}
