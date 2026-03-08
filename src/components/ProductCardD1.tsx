@@ -16,6 +16,8 @@ export interface ProductLiteD1 {
   personajeId?: string | number | null;
   universoId?: string | number | null;
   proveedorId?: string | number | null;
+
+  tagLabel?: string | null;
 }
 
 export interface ProductCardD1Props {
@@ -30,10 +32,16 @@ function formatMoney(n: number) {
 
 function calcFinalPrice(price: number, discount?: number) {
   if (!discount) return { final: price, hasDiscount: false };
+
   const pct = Number(discount);
   if (!Number.isFinite(pct) || pct <= 0) return { final: price, hasDiscount: false };
+
   const final = price - (price * pct) / 100;
-  return { final: Math.max(0, final), hasDiscount: true };
+
+  return {
+    final: Math.max(0, final),
+    hasDiscount: true,
+  };
 }
 
 export const ProductCardD1: React.FC<ProductCardD1Props> = ({
@@ -42,6 +50,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
   style,
 }) => {
   const { favorites, toggleFavorite } = useFavorites();
+
   const productID = card.slug;
   const isFavorite = favorites.includes(productID);
 
@@ -55,12 +64,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
         className
       )}
     >
-      <div className="absolute top-3 left-3 z-30">
-        <span className="bg-white text-black text-[9px] font-black px-3 py-1 rounded-sm uppercase tracking-tighter shadow-[2px_2px_0px_rgba(0,0,0,1)] border border-black">
-          {card.subtitle || "Figura 3D"}
-        </span>
-      </div>
-
+      {/* FAVORITE BUTTON */}
       <button
         type="button"
         onClick={(e) => {
@@ -87,6 +91,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
 
       <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative">
         <div className="aspect-[3/4] overflow-hidden bg-[#111] relative">
+          {/* IMAGE */}
           {card.coverUrl ? (
             <img
               src={card.coverUrl}
@@ -100,8 +105,17 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
             </div>
           )}
 
+          {/* TAG LABEL */}
+          <div className="absolute bottom-3 left-3 z-20 pointer-events-none">
+            <span className="bg-black/70 backdrop-blur-sm text-white text-[9px] font-black px-3 py-1.5 uppercase tracking-[0.18em] rounded-md border border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.25)]">
+              {card.tagLabel || "FIGURA 3D"}
+            </span>
+          </div>
+
+          {/* GRADIENT */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500" />
 
+          {/* HOVER CTA */}
           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 bg-black/25 backdrop-blur-[2px]">
             <div className="bg-red-500 text-white font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_20px_rgba(239,68,68,0.35)] border border-red-400 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
               Ver detalles
@@ -109,6 +123,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
           </div>
         </div>
 
+        {/* CARD FOOTER */}
         <div className="flex flex-col p-4 bg-black border-t border-white/5">
           <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">
@@ -127,6 +142,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
                   <span className="text-[11px] font-black text-white/50 line-through italic mb-1">
                     {formatMoney(card.price)}
                   </span>
+
                   <span className="text-base font-black text-white italic">
                     {formatMoney(final)}
                   </span>

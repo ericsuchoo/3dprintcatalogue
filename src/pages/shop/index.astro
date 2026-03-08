@@ -19,6 +19,7 @@ type ProductoRow = {
   id_personaje?: number | null;
   fecha_creacion?: string | null;
   fecha_modifica?: string | null;
+  nombre_etiqueta?: string | null;
 };
 
 type PersonajeRow = {
@@ -143,17 +144,17 @@ const whereClauses: string[] = [];
 const whereParams: any[] = [];
 
 if (personajeId) {
-  whereClauses.push(`id_personaje = ?`);
+  whereClauses.push(`p.id_personaje = ?`);
   whereParams.push(personajeId);
 }
 
 if (universoId) {
-  whereClauses.push(`id_universo = ?`);
+  whereClauses.push(`p.id_universo = ?`);
   whereParams.push(universoId);
 }
 
 if (proveedorId) {
-  whereClauses.push(`id_proveedor = ?`);
+  whereClauses.push(`p.id_proveedor = ?`);
   whereParams.push(proveedorId);
 }
 
@@ -162,12 +163,12 @@ const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "
 // --------------------
 // 2) ORDER dinámico
 // --------------------
-let orderSql = `ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC`;
+let orderSql = `ORDER BY COALESCE(p.fecha_modifica, p.fecha_creacion) DESC, p.id_producto DESC`;
 
 if (sort === "price_asc") {
-  orderSql = `ORDER BY COALESCE(precio, 0) ASC, id_producto DESC`;
+  orderSql = `ORDER BY COALESCE(p.precio, 0) ASC, p.id_producto DESC`;
 } else if (sort === "price_desc") {
-  orderSql = `ORDER BY COALESCE(precio, 0) DESC, id_producto DESC`;
+  orderSql = `ORDER BY COALESCE(p.precio, 0) DESC, p.id_producto DESC`;
 }
 
 // --------------------
@@ -178,7 +179,7 @@ let totalProducts = 0;
 if (db) {
   const countSql = `
     SELECT COUNT(*) as total
-    FROM productos
+    FROM productos p
     ${whereSql}
   `;
 
@@ -201,20 +202,30 @@ let productos: ProductoRow[] = [];
 if (db) {
   const sql = `
     SELECT
-      id_producto,
-      nombre_producto,
-      subtitulo,
-      descripcion,
-      img_producto,
-      unidades,
-      precio,
-      descuento,
-      id_proveedor,
-      id_universo,
-      id_personaje,
-      fecha_creacion,
-      fecha_modifica
-    FROM productos
+      p.id_producto,
+      p.nombre_producto,
+      p.subtitulo,
+      p.descripcion,
+      p.img_producto,
+      p.unidades,
+      p.precio,
+      p.descuento,
+      p.id_proveedor,
+      p.id_universo,
+      p.id_personaje,
+      p.fecha_creacion,
+      p.fecha_modifica,
+      (
+        SELECT e.nombre_etiqueta
+        FROM productos_etiquetas pe
+        INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+        WHERE pe.id_producto = p.id_producto
+        ORDER BY
+          CAST(COALESCE(pe.prioridad, e.prioridad, '9999') AS INTEGER) ASC,
+          e.nombre_etiqueta ASC
+        LIMIT 1
+      ) as nombre_etiqueta
+    FROM productos p
     ${whereSql}
     ${orderSql}
     LIMIT ? OFFSET ?
@@ -287,6 +298,7 @@ const data = {
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
     date: pr.fecha_modifica ?? pr.fecha_creacion ?? null,
+    tagLabel: pr.nombre_etiqueta ?? "FIGURA 3D",
   })),
 
   genders: personajes.map((p) => ({
