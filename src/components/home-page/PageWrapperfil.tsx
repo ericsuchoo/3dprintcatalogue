@@ -68,21 +68,14 @@ const NewPageWrapper: React.FC<Props> = ({
             <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-                  {activeUniversoId ? (
+                  activeUniversoId ? (
                     <>
                       Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      <span className="text-[#ff0000] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
                         {dynamicTitle}
                       </span>
                     </>
-                  ) : (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        personajes
-                      </span>
-                    </>
-                  )}
+                  ) 
                 </h1>
 
                 <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
