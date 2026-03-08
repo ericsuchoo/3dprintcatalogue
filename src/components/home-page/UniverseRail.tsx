@@ -16,8 +16,8 @@ export const UniverseRail: React.FC<Props> = ({
   activeUniversoId = null,
 }) => {
   const railRef = useRef<HTMLDivElement | null>(null);
-  const autoScrollRef = useRef<number | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const intervalRef = useRef<number | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
 
   const loopItems = useMemo(() => {
     if (!items?.length) return [];
@@ -34,33 +34,48 @@ export const UniverseRail: React.FC<Props> = ({
     const el = railRef.current;
     if (!el || !items?.length) return;
 
-    let destroyed = false;
+    const onWheel = (e: WheelEvent) => {
+      const isScrollable = el.scrollWidth > el.clientWidth;
+      if (!isScrollable) return;
 
-    const step = () => {
-      if (destroyed || !el) return;
-
-      if (!isPaused) {
-        const halfWidth = el.scrollWidth / 2;
-
-        el.scrollLeft += 0.35;
-
-        if (el.scrollLeft >= halfWidth) {
-          el.scrollLeft -= halfWidth;
-        }
-      }
-
-      autoScrollRef.current = window.requestAnimationFrame(step);
+      e.preventDefault();
+      el.scrollLeft += e.deltaY + e.deltaX;
     };
 
-    autoScrollRef.current = window.requestAnimationFrame(step);
+    el.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
-      destroyed = true;
-      if (autoScrollRef.current) {
-        window.cancelAnimationFrame(autoScrollRef.current);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [items]);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || !items?.length) return;
+
+    const startAutoScroll = () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+
+      intervalRef.current = window.setInterval(() => {
+        if (!el || isInteracting) return;
+
+        const halfWidth = el.scrollWidth / 2;
+        el.scrollLeft += 1;
+
+        if (el.scrollLeft >= halfWidth) {
+          el.scrollLeft = el.scrollLeft - halfWidth;
+        }
+      }, 18);
+    };
+
+    startAutoScroll();
+
+    return () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
       }
     };
-  }, [isPaused, items]);
+  }, [items, isInteracting]);
 
   if (!items?.length) return null;
 
@@ -110,10 +125,11 @@ export const UniverseRail: React.FC<Props> = ({
       <section>
         <div
           ref={railRef}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onPointerDown={() => setIsPaused(true)}
-          onPointerUp={() => setIsPaused(false)}
+          onMouseDown={() => setIsInteracting(true)}
+          onMouseUp={() => setIsInteracting(false)}
+          onMouseLeave={() => setIsInteracting(false)}
+          onTouchStart={() => setIsInteracting(true)}
+          onTouchEnd={() => setIsInteracting(false)}
           className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar"
         >
           <div className="flex gap-5 min-w-max pr-2">
