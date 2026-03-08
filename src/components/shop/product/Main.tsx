@@ -23,8 +23,8 @@ export const Main: React.FC<Props> = ({ data }) => {
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-    <div className="bg-black min-h-screen px-4 md:px-6 pt-20 md:pt-24 pb-10">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-8 xl:gap-10 items-start xl:items-start">
+    <div className="bg-black min-h-screen px-4 md:px-6 pt-8 md:pt-10 lg:pt-12 pb-10">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-8 xl:gap-10 items-start">
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
@@ -32,11 +32,13 @@ export const Main: React.FC<Props> = ({ data }) => {
           fallbackImage={meta?.cover?.url || null}
         />
 
-        <Details
-          meta={meta}
-          activeEdition={activeEdition}
-          editionChange={setActiveEdition}
-        />
+        <div className="xl:sticky xl:top-24 self-start">
+          <Details
+            meta={meta}
+            activeEdition={activeEdition}
+            editionChange={setActiveEdition}
+          />
+        </div>
       </div>
 
       {otherProducts.length > 0 && (
