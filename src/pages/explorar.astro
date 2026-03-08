@@ -56,7 +56,6 @@ let universoNombre: string | null = null;
 if (!db) {
   console.warn("[explorar] DB binding no disponible.");
 } else {
-  // universos para el rail
   const universosRes = await db
     .prepare(`
       SELECT
@@ -76,7 +75,6 @@ if (!db) {
     imageUrl: u.img_universo ?? null,
   }));
 
-  // nombre del universo activo
   if (universoId) {
     const universoRes = await db
       .prepare(`
@@ -92,7 +90,6 @@ if (!db) {
     universoNombre = universo?.nombre_universo ?? null;
   }
 
-  // personajes filtrados
   const sql = `
     SELECT
       p.id_personaje,

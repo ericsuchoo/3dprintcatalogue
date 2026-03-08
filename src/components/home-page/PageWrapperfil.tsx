@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 import { CategoriesMini } from "./CategoriesMini";
-import { UniverseRail } from "././UniverseRail";
+import { UniverseRail } from "./UniverseRail";
 
 type CategoryCard = {
   meta: {
@@ -56,16 +56,21 @@ const NewPageWrapper: React.FC<Props> = ({
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-10">
+          <div className="container pb-5">
             <UniverseRail
               items={universes}
               activeUniversoId={activeUniversoId}
             />
-                 <div className="container pb-12 text-center">
-            <h1 className="text-4xl md:text-5xl font-black uppercase italic text-white tracking-tighter">
+          </div>
+
+          <div className="container pb-8 text-center -mt-1">
+            <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tighter">
               {activeUniversoId ? (
                 <>
-                  Personajes de <span className="text-red-600">{meta.title?.replace("Explorar: ", "")}</span>
+                  Personajes de{" "}
+                  <span className="text-red-600">
+                    {meta.title?.replace("Explorar: ", "")}
+                  </span>
                 </>
               ) : (
                 <>
@@ -74,26 +79,23 @@ const NewPageWrapper: React.FC<Props> = ({
               )}
             </h1>
 
-            <div className="w-20 h-1 bg-red-600 mx-auto mt-4 mb-2" />
+            <div className="w-14 h-[3px] bg-red-600 mx-auto mt-3 mb-2" />
 
-            <p className="text-zinc-500 text-xs md:text-sm uppercase tracking-[0.2em] font-bold">
+            <p className="text-zinc-500 text-[11px] md:text-xs uppercase tracking-[0.2em] font-bold">
               Mostrando {categories?.length ?? 0} personajes disponibles
             </p>
 
             {clearFilterHref && (
-              <div className="mt-5 flex justify-center">
+              <div className="mt-4 flex justify-center">
                 <a
                   href={clearFilterHref}
-                  className="px-5 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-white/5 hover:bg-white/10"
+                  className="px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
                 >
                   Quitar filtro
                 </a>
               </div>
             )}
           </div>
-          </div>
-
-     
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
