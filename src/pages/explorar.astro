@@ -13,6 +13,7 @@ type PersonajeRow = {
 type UniversoRow = {
   id_universo: number | string;
   nombre_universo: string;
+  img_universo?: string | null;
 };
 
 type CategoryCard = {
@@ -23,6 +24,12 @@ type CategoryCard = {
     gallery: { url: string }[];
   };
   productsCount: number;
+};
+
+type UniverseCard = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
 };
 
 function slugify(s: string) {
@@ -39,26 +46,39 @@ function slugify(s: string) {
 
 const db = Astro.locals.runtime.env.DB as any;
 
-// ✅ lee filtro del universo
 const universoId = Astro.url.searchParams.get("universoId");
-
-// ✅ botón para limpiar filtro
 const clearFilterHref = universoId ? "/explorar" : null;
 
-// ✅ categories tipado desde el inicio
 let categories: CategoryCard[] = [];
-
-// ✅ nombre del universo para header
+let universos: UniverseCard[] = [];
 let universoNombre: string | null = null;
 
 if (!db) {
   console.warn("[explorar] DB binding no disponible.");
 } else {
-  // ✅ si viene universoId, buscamos el nombre del universo
+  const universosRes = await db
+    .prepare(`
+      SELECT
+        id_universo,
+        nombre_universo,
+        img_universo
+      FROM universos
+      ORDER BY nombre_universo ASC
+    `)
+    .all();
+
+  const universosRows = (universosRes?.results || []) as UniversoRow[];
+
+  universos = universosRows.map((u) => ({
+    id: String(u.id_universo),
+    title: u.nombre_universo,
+    imageUrl: u.img_universo ?? null,
+  }));
+
   if (universoId) {
     const universoRes = await db
       .prepare(`
-        SELECT id_universo, nombre_universo
+        SELECT id_universo, nombre_universo, img_universo
         FROM universos
         WHERE id_universo = ?
         LIMIT 1
@@ -99,9 +119,8 @@ if (!db) {
     },
     productsCount: Number((p as any).productsCount || 0),
   }));
-} // ✅ AQUÍ CIERRA EL else
+}
 
-// ✅ título dinámico
 const meta = {
   title: universoNombre ? `Explorar: ${universoNombre}` : "Explorar Personajes",
 };
@@ -112,6 +131,8 @@ const meta = {
     client:load
     meta={meta}
     categories={categories}
+    universes={universos}
+    activeUniversoId={universoId}
     clearFilterHref={clearFilterHref}
   />
 </Layout>

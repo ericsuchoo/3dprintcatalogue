@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 import { CategoriesMini } from "./CategoriesMini";
+import { UniverseRail } from "./UniverseRail";
 
 type CategoryCard = {
   meta: {
@@ -13,15 +14,29 @@ type CategoryCard = {
   productsCount: number;
 };
 
+type UniverseCard = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+};
+
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
-  clearFilterHref?: string | null; // ✅ NUEVO
+  universes?: UniverseCard[];
+  activeUniversoId?: string | null;
+  clearFilterHref?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
 
-const NewPageWrapper: React.FC<Props> = ({ meta, categories, clearFilterHref }) => {
+const NewPageWrapper: React.FC<Props> = ({
+  meta,
+  categories,
+  universes = [],
+  activeUniversoId = null,
+  clearFilterHref,
+}) => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil((categories?.length || 0) / ITEMS_PER_PAGE));
@@ -41,31 +56,50 @@ const NewPageWrapper: React.FC<Props> = ({ meta, categories, clearFilterHref }) 
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
-          {/* HEADER */}
-          <div className="container pb-12 text-center">
-            <h1 className="text-4xl md:text-5xl font-black uppercase italic text-white tracking-tighter">
-              Todos los <span className="text-red-600">Personajes</span>
-            </h1>
-            <div className="w-20 h-1 bg-red-600 mx-auto mt-4 mb-2" />
+          <div className="container pb-5">
+            <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                  {activeUniversoId ? (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        {meta.title?.replace("Explorar: ", "")}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Explora por{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        universos
+                      </span>
+                    </>
+                  )}
+                </h1>
 
-            <p className="text-zinc-500 text-xs md:text-sm uppercase tracking-[0.2em] font-bold">
-              Mostrando {categories?.length ?? 0} Personajes Disponibles
-            </p>
+                <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
+                  {activeUniversoId
+                    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                    : "Desliza y filtra personajes por universo"}
+                </p>
+              </div>
 
-            {/* ✅ BOTÓN "QUITAR FILTRO" (solo si viene prop) */}
-            {clearFilterHref && (
-              <div className="mt-5 flex justify-center">
+              {clearFilterHref && (
                 <a
                   href={clearFilterHref}
-                  className="px-5 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-white/5 hover:bg-white/10"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
                 >
                   Quitar filtro
                 </a>
-              </div>
-            )}
+              )}
+            </div>
+
+            <UniverseRail
+              items={universes}
+              activeUniversoId={activeUniversoId}
+            />
           </div>
 
-          {/* GRID */}
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
@@ -76,7 +110,6 @@ const NewPageWrapper: React.FC<Props> = ({ meta, categories, clearFilterHref }) 
             )}
           </div>
 
-          {/* PAGINACIÓN */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-10 pb-10">
               <button
