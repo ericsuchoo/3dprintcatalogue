@@ -52,51 +52,59 @@ const NewPageWrapper: React.FC<Props> = ({
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const dynamicTitle = activeUniversoId
+    ? meta.title?.replace("Explorar: ", "") || "Universo"
+    : "Todos los personajes";
+
+  const dynamicSubtitle = activeUniversoId
+    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+    : `Mostrando ${categories?.length ?? 0} personajes disponibles`;
+
   return (
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
-          
-          <div className="container pb-8 text-center -mt-1">
-            <h1 className="text-3xl md:text-3xl font-black uppercase italic text-white tracking-tighter">
-              {activeUniversoId ? (
-                <>
-                  Personajes de{" "}
-                  <span className="text-red-600">
-                    {meta.title?.replace("Explorar: ", "")}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Todos los <span className="text-red-600">Personajes</span>
-                </>
-              )}
-            </h1>
+          <div className="container pb-5">
+            <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
+                  {activeUniversoId ? (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        {dynamicTitle}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        personajes
+                      </span>
+                    </>
+                  )}
+                </h1>
 
-            <div className="w-14 h-[3px] bg-red-600 mx-auto mt-3 mb-2" />
+                <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
+                  {dynamicSubtitle}
+                </p>
+              </div>
 
-            <p className="text-zinc-500 text-[11px] md:text-xs uppercase tracking-[0.2em] font-bold">
-              Mostrando {categories?.length ?? 0} personajes disponibles
-            </p>
-
-            {clearFilterHref && (
-              <div className="mt-4 flex justify-center">
+              {clearFilterHref && (
                 <a
                   href={clearFilterHref}
-                  className="px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
                 >
                   Quitar filtro
                 </a>
-              </div>
-            )}
-          </div>
-          <div className="container pb-5">
+              )}
+            </div>
+
             <UniverseRail
               items={universes}
               activeUniversoId={activeUniversoId}
             />
           </div>
-
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (

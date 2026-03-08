@@ -24,9 +24,20 @@ export const UniverseRail: React.FC<Props> = ({
     const onWheel = (e: WheelEvent) => {
       if (!el) return;
 
+      const isScrollable = el.scrollWidth > el.clientWidth;
+      if (!isScrollable) return;
+
+      const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+
+      if (horizontalIntent) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaX;
+        return;
+      }
+
       if (Math.abs(e.deltaY) > 0) {
         e.preventDefault();
-        el.scrollLeft += e.deltaY;
+        el.scrollLeft += e.deltaY * 1.15;
       }
     };
 
