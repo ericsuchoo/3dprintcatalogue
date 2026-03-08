@@ -61,9 +61,7 @@ const NewPageWrapper: React.FC<Props> = ({
               items={universes}
               activeUniversoId={activeUniversoId}
             />
-          </div>
-
-          <div className="container pb-12 text-center">
+                 <div className="container pb-12 text-center">
             <h1 className="text-4xl md:text-5xl font-black uppercase italic text-white tracking-tighter">
               {activeUniversoId ? (
                 <>
@@ -93,6 +91,9 @@ const NewPageWrapper: React.FC<Props> = ({
               </div>
             )}
           </div>
+          </div>
+
+     
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
