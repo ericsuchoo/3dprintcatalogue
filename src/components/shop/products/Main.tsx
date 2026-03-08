@@ -3,319 +3,461 @@ import SearchIcon from "../../../assets/icons/search.svg?raw";
 import TrashIcon from "../../../assets/icons/trash.svg?raw";
 
 import { FormCheck } from "../../form/Check";
-import { ProductCard } from "../../ProductCard";
+import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
 
-// ✅ D1 types
 import type { ShopPageDataD1, ProductLiteD1 } from "../../../types/shop-d1";
-
-// ✅ favoritos (tu proyecto ya lo tiene en src/context/FavoritesContext.tsx)
 import { useFavorites } from "../../../context/FavoritesContext";
 
 export interface ProductFilterD1 {
   type: "personaje" | "universo" | "proveedor" | "price" | "popularity";
   label: string;
-  value: string; // guardamos todo como string (ids)
+  value: string;
   active: boolean;
 }
 
 interface Props {
-  data: ShopPageDataD1;
-  // si quieres que esta página sea "Mis favoritos", deja true.
-  // si es tienda normal, pon false.
+  data: ShopPageDataD1 & {
+    personajeNombre?: string | null;
+    universoNombre?: string | null;
+    proveedorNombre?: string | null;
+    activeFilterLabels?: string[];
+    clearFilterHref?: string | null;
+    initialUniversoId?: string | null;
+    initialProveedorId?: string | null;
+    initialSort?: "newest" | "price_asc" | "price_desc";
+    pagination?: {
+      currentPage: number;
+      totalPages: number;
+      totalProducts: number;
+      itemsPerPage: number;
+      pageCount?: number;
+      basePath: string;
+      personajeId?: string | null;
+      universoId?: string | null;
+      proveedorId?: string | null;
+      sort?: "newest" | "price_asc" | "price_desc";
+    };
+  };
   favoritesOnly?: boolean;
 }
 
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
-
-  const [loadedProducts, setLoadedProducts] = useState(12);
   const [searchVal, setSearchVal] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
-    { active: false, type: "price", label: "Lowest", value: "0" },
-    { active: false, type: "price", label: "Most expensive", value: "1" },
-    { active: false, type: "popularity", label: "Best selling", value: "0" },
-    { active: false, type: "popularity", label: "New comer", value: "1" },
+    { active: false, type: "price", label: "Lowest", value: "price_asc" },
+    { active: false, type: "price", label: "Most expensive", value: "price_desc" },
+    { active: false, type: "popularity", label: "New comer", value: "newest" },
   ]);
 
-  // ✅ si viene personajeId por URL, lo activamos de inicio
-  useEffect(() => {
-    if (!data?.initialPersonajeId) return;
-    setFilters((prev) => {
-      const exists = prev.some(
-        (f) => f.type === "personaje" && f.value === String(data.initialPersonajeId),
-      );
-      if (exists) {
-        return prev.map((f) =>
-          f.type === "personaje" && f.value === String(data.initialPersonajeId)
-            ? { ...f, active: true }
-            : f,
-        );
-      }
-      return prev;
-    });
-  }, [data?.initialPersonajeId]);
-
-  // ✅ generar filtros D1 (personajes -> "gender", universos -> "categories", proveedores -> "brands")
   useEffect(() => {
     const personajesFilters: ProductFilterD1[] = (data.genders || []).map((p) => ({
       active: false,
       label: p.title,
-      value: String(p.slug), // en tu data.genders.slug = id_personaje
+      value: String(p.slug),
       type: "personaje",
     }));
 
     const universosFilters: ProductFilterD1[] = (data.categories || []).map((u) => ({
       active: false,
       label: u.title,
-      value: String(u.slug), // id_universo
+      value: String(u.slug),
       type: "universo",
     }));
 
     const proveedoresFilters: ProductFilterD1[] = (data.brands || []).map((b) => ({
       active: false,
       label: b.title,
-      value: String(b.slug), // id_proveedor
+      value: String(b.slug),
       type: "proveedor",
     }));
 
-    setFilters((prev) => [
-      ...prev,
-      ...proveedoresFilters,
-      ...universosFilters,
-      ...personajesFilters,
-    ]);
+    setFilters((prev) => {
+      const base = prev.filter((f) => f.type === "price" || f.type === "popularity");
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      return base.map((f) => {
+        if (f.type === "price" && data.initialSort && f.value === data.initialSort) {
+          return { ...f, active: true };
+        }
+        if (f.type === "popularity" && data.initialSort === "newest" && f.value === "newest") {
+          return { ...f, active: true };
+        }
+        return { ...f, active: false };
+      }).concat([...proveedoresFilters, ...universosFilters, ...personajesFilters]);
+    });
+  }, [data.genders, data.categories, data.brands, data.initialSort]);
+
+  useEffect(() => {
+    setFilters((prev) =>
+      prev.map((f) => {
+        if (f.type === "personaje") {
+          return { ...f, active: f.value === String(data.initialPersonajeId ?? "") };
+        }
+        if (f.type === "universo") {
+          return { ...f, active: f.value === String(data.initialUniversoId ?? "") };
+        }
+        if (f.type === "proveedor") {
+          return { ...f, active: f.value === String(data.initialProveedorId ?? "") };
+        }
+        return f;
+      })
+    );
+  }, [data.initialPersonajeId, data.initialUniversoId, data.initialProveedorId]);
 
   const activeFilters = useMemo(() => filters.filter((f) => f.active), [filters]);
 
+  const buildUrl = (next: {
+    personajeId?: string | null;
+    universoId?: string | null;
+    proveedorId?: string | null;
+    sort?: string | null;
+    page?: number | null;
+  }) => {
+    const params = new URLSearchParams();
+
+    const personajeId = next.personajeId ?? data.pagination?.personajeId ?? null;
+    const universoId = next.universoId ?? data.pagination?.universoId ?? null;
+    const proveedorId = next.proveedorId ?? data.pagination?.proveedorId ?? null;
+    const sort = next.sort ?? data.pagination?.sort ?? "newest";
+    const page = next.page ?? null;
+
+    if (personajeId) params.set("personajeId", personajeId);
+    if (universoId) params.set("universoId", universoId);
+    if (proveedorId) params.set("proveedorId", proveedorId);
+    if (sort && sort !== "newest") params.set("sort", sort);
+    if (page && page > 1) params.set("page", String(page));
+
+    const query = params.toString();
+    return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
+  };
+
   const clearFilters = () => {
-    setFilters((prev) => prev.map((f) => ({ ...f, active: false })));
-    setSearchVal("");
-    setLoadedProducts(12);
+    window.location.href = data.clearFilterHref || "/shop";
   };
 
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
 
-    let out = products.filter((p) => {
-      // ✅ favoritos only (si lo activas)
+    return products.filter((p) => {
       if (favoritesOnly && !favorites.includes(String(p.slug))) return false;
 
-      // ✅ search
       if (searchVal) {
-        const haystack = `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
+        const haystack =
+          `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
         if (!haystack.includes(searchVal.toLowerCase())) return false;
-      }
-
-      // ✅ filtros por ids (match con cualquiera activo)
-      for (const f of activeFilters) {
-        if (f.type === "personaje") {
-          if (String(p.personajeId ?? "") !== String(f.value)) return false;
-        }
-        if (f.type === "universo") {
-          if (String(p.universoId ?? "") !== String(f.value)) return false;
-        }
-        if (f.type === "proveedor") {
-          if (String(p.proveedorId ?? "") !== String(f.value)) return false;
-        }
       }
 
       return true;
     });
+  }, [data.products, searchVal, favorites, favoritesOnly]);
 
-    // ✅ sorts (si tienes units_sold/date en D1 todavía no; lo dejo defensivo)
-    out = out.sort((a, b) => {
-      const priceFilter = activeFilters.find((x) => x.type === "price");
-      if (!priceFilter) return 0;
-      const ap = Number(a.price ?? 0);
-      const bp = Number(b.price ?? 0);
-      return priceFilter.value === "0" ? ap - bp : bp - ap;
-    });
+  const setProductFilter = (filter: ProductFilterD1) => {
+    const currentPersonajeId = data.pagination?.personajeId ?? null;
+    const currentUniversoId = data.pagination?.universoId ?? null;
+    const currentProveedorId = data.pagination?.proveedorId ?? null;
+    const currentSort = data.pagination?.sort ?? "newest";
 
-    out = out.sort((a: any, b: any) => {
-      const popFilter = activeFilters.find((x) => x.type === "popularity");
-      if (!popFilter) return 0;
+    if (filter.type === "personaje") {
+      const nextValue = currentPersonajeId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        personajeId: nextValue,
+        page: 1,
+      });
+      return;
+    }
 
-      // si no existen, no rompe
-      const aUnits = Number(a.units_sold ?? 0);
-      const bUnits = Number(b.units_sold ?? 0);
-      const aDate = Number(a.date ?? 0);
-      const bDate = Number(b.date ?? 0);
+    if (filter.type === "universo") {
+      const nextValue = currentUniversoId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        universoId: nextValue,
+        page: 1,
+      });
+      return;
+    }
 
-      if (popFilter.value === "0") return bUnits - aUnits;
-      return bDate - aDate;
-    });
+    if (filter.type === "proveedor") {
+      const nextValue = currentProveedorId === filter.value ? null : filter.value;
+      window.location.href = buildUrl({
+        proveedorId: nextValue,
+        page: 1,
+      });
+      return;
+    }
 
-    return out;
-  }, [data.products, activeFilters, searchVal, favorites, favoritesOnly]);
-
-  const setProductFilter = (value: string) => {
-    setFilters((prev) =>
-      prev.map((p) => (p.label === value ? { ...p, active: !p.active } : p)),
-    );
-    setLoadedProducts(12);
+    if (filter.type === "price" || filter.type === "popularity") {
+      const nextSort = currentSort === filter.value ? "newest" : filter.value;
+      window.location.href = buildUrl({
+        sort: nextSort,
+        page: 1,
+      });
+    }
   };
 
-  const loadMore = () => setLoadedProducts((prev) => prev + 12);
+  const currentPage = data.pagination?.currentPage || 1;
+  const totalPages = data.pagination?.totalPages || 1;
+  const totalProducts = data.pagination?.totalProducts ?? filteredProducts.length;
+  const itemsPerPage = data.pagination?.itemsPerPage || filteredProducts.length;
+  const pageCount = data.pagination?.pageCount ?? (data.products?.length || 0);
+
+  const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd =
+    totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
+
+  const buildPageHref = (page: number) => buildUrl({ page });
+
+  const getVisiblePages = () => {
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  };
 
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start lg:grid-cols-[198px,1fr] lg:grid-rows-[auto,1fr] ">
-      {/* SIDEBAR */}
-      <div className="lg:row-span-2 sticky top-0">
-        <div className="grid grid-cols-1 gap-8 border border-appGray-300 p-8 bg-white/95">
-          <div className="text-2xl leading-none font-bold tracking-[-2%] italic text-red-500">
-            {favoritesOnly ? "Mis Me gusta" : "Filtros"}
-          </div>
-          
-          {/* UNIVERSOS (si hay) */}
-          {filters.some((f) => f.type === "universo") && (
+    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
+      <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
+        <div className="lg:row-span-2 sticky top-28">
+          <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
+            <div className="text-2xl leading-none font-bold italic text-red-500">
+              {favoritesOnly ? "Mis Me gusta" : "Filtros"}
+            </div>
+
+            {filters.some((f) => f.type === "universo") && (
+              <div>
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                  Universos
+                </div>
+                <div className="grid grid-cols-1 gap-4 text-[#a200ff]">
+                  {filters
+                    .filter((e) => e.type === "universo")
+                    .map((filter, index) => (
+                      <FormCheck
+                        key={index}
+                        value={filter.label}
+                        label={filter.label}
+                        onCheck={() => setProductFilter(filter)}
+                        checked={filter.active}
+                        size="sm"
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+
             <div>
-              <div className="text-2xl leading-none tracking-[-2%] mb-5">Universos</div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Precio / orden
+              </div>
+              <div className="grid grid-cols-1 gap-4 text-[#ff0000]">
                 {filters
-                  .filter((e) => e.type === "universo")
+                  .filter((e) => e.type === "price")
                   .map((filter, index) => (
                     <FormCheck
                       key={index}
                       value={filter.label}
                       label={filter.label}
-                      onCheck={(value) => setProductFilter(String(value))}
-                      checked={!filter.active}
+                      onCheck={() => setProductFilter(filter)}
+                      checked={filter.active}
                       size="sm"
                     />
                   ))}
               </div>
             </div>
-          )}
 
-          {/* POPULARITY */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Popularidad</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "popularity")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-          
-          {/* PERSONAJES */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Personajes</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "personaje")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
-            </div>
-          </div>
-
-
-          {/* PROVEEDORES (si hay) */}
-          {filters.some((f) => f.type === "proveedor") && (
             <div>
-              <div className="text-2xl leading-none tracking-[-2%] mb-5">Creadores 3D</div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Novedad
+              </div>
+              <div className="grid grid-cols-1 gap-4 text-[#ffd900]">
                 {filters
-                  .filter((e) => e.type === "proveedor")
+                  .filter((e) => e.type === "popularity")
                   .map((filter, index) => (
                     <FormCheck
                       key={index}
                       value={filter.label}
                       label={filter.label}
-                      onCheck={(value) => setProductFilter(String(value))}
-                      checked={!filter.active}
+                      onCheck={() => setProductFilter(filter)}
+                      checked={filter.active}
                       size="sm"
                     />
                   ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-          {/* PRICE */}
-          <div>
-            <div className="text-2xl leading-none tracking-[-2%] mb-5">Precio</div>
-            <div className="grid grid-cols-1 gap-4">
-              {filters
-                .filter((e) => e.type === "price")
-                .map((filter, index) => (
-                  <FormCheck
-                    key={index}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={(value) => setProductFilter(String(value))}
-                    checked={!filter.active}
-                    size="sm"
-                  />
-                ))}
+            <div>
+              <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                Personajes
+              </div>
+              <div className="grid grid-cols-1 gap-4 text-[#66ff00]">
+                {filters
+                  .filter((e) => e.type === "personaje")
+                  .map((filter, index) => (
+                    <FormCheck
+                      key={index}
+                      value={filter.label}
+                      label={filter.label}
+                      onCheck={() => setProductFilter(filter)}
+                      checked={filter.active}
+                      size="sm"
+                    />
+                  ))}
+              </div>
+            </div>
+
+            {filters.some((f) => f.type === "proveedor") && (
+              <div>
+                <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
+                  Creadores 3D
+                </div>
+                <div className="grid grid-cols-1 gap-4 text-[#00ffea]">
+                  {filters
+                    .filter((e) => e.type === "proveedor")
+                    .map((filter, index) => (
+                      <FormCheck
+                        key={index}
+                        value={filter.label}
+                        label={filter.label}
+                        onCheck={() => setProductFilter(filter)}
+                        checked={filter.active}
+                        size="sm"
+                      />
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-start-2">
+          {(data.activeFilterLabels?.length || data.clearFilterHref) && (
+            <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                {data.activeFilterLabels?.length ? (
+                  <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                    Shop:{" "}
+                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
+                      {data.activeFilterLabels.join(" / ")}
+                    </span>
+                  </h2>
+                ) : null}
+              </div>
+
+              {data.clearFilterHref && (
+                <a
+                  href={data.clearFilterHref}
+                  className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
+                >
+                  Quitar filtros
+                </a>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+            <label className="flex items-center px-5 flex-1 border border-white/10 bg-[#0f0f0f] rounded-lg">
+              <div
+                dangerouslySetInnerHTML={{ __html: SearchIcon }}
+                className="w-[18px] h-[18px] text-zinc-500"
+              />
+              <input
+                type="search"
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                placeholder={favoritesOnly ? "Buscar en mis favoritos..." : "Buscar figuras..."}
+                className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+              />
+            </label>
+
+            <button
+              className="flex items-center justify-center gap-2 px-5 py-4 rounded-lg transition-colors duration-300 text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-white"
+              onClick={clearFilters}
+            >
+              <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[16px] h-[16px]" />
+              <span className="text-sm uppercase tracking-[0.18em] font-bold">
+                Limpiar filtros
+              </span>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
+            <div className="text-sm uppercase tracking-[0.18em] text-zinc-400 font-bold">
+              {totalProducts} Variante{totalProducts === 1 ? "" : "s"}
+            </div>
+
+            <div className="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">
+              Mostrando {pageStart}-{pageEnd} de {totalProducts}
             </div>
           </div>
-      {/* CONTENT */}
-      <div className="lg:col-start-2">
-        <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
-          <label className="flex items-center px-5 flex-1 border border-appGray-300 bg-white/95">
-            <div dangerouslySetInnerHTML={{ __html: SearchIcon }} className="w-[18px] h-[18px]" />
-            <input
-              type="search"
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              placeholder={favoritesOnly ? "Buscar en mis favoritos..." : "Buscar figuras..."}
-              className="bg-transparent px-1.5 py-[15px] w-full text-lg leading-none tracking-[-2%] placeholder:text-appText focus:outline-none"
-            />
-          </label>
 
-          <button
-            className="flex items-center gap-1.5 p-[15px] transition-colors duration-300 text-appError bg-appError/10 hover:bg-appError/20"
-            onClick={clearFilters}
-          >
-            <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[18px] h-[18px]" />
-            <span className="text-lg leading-none tracking-[-2%] mb-1">Limpiar Filtros</span>
-          </button>
+          {filteredProducts.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-12 text-center">
+              <div className="text-xl md:text-2xl font-black uppercase italic text-white">
+                No hay resultados
+              </div>
+              <p className="text-zinc-400 mt-3 max-w-2xl mx-auto">
+                Ajusta los filtros o limpia la búsqueda local.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              {filteredProducts.map((product, index) => (
+                <ProductCard key={product.slug ?? index} card={product} />
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-12 flex-wrap">
+              <a
+                href={currentPage > 1 ? buildPageHref(currentPage - 1) : "#"}
+                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                  currentPage === 1
+                    ? "pointer-events-none border-white/10 text-white/30"
+                    : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
+                }`}
+              >
+                Anterior
+              </a>
+
+              {getVisiblePages().map((page) => {
+                const isActive = page === currentPage;
+                return (
+                  <a
+                    key={page}
+                    href={buildPageHref(page)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`w-10 h-10 rounded-full border text-sm font-black transition flex items-center justify-center ${
+                      isActive
+                        ? "bg-red-500 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+                        : "border-white/10 text-white/70 hover:text-white hover:border-red-500/50 hover:bg-red-500/10"
+                    }`}
+                  >
+                    {page}
+                  </a>
+                );
+              })}
+
+              <a
+                href={currentPage < totalPages ? buildPageHref(currentPage + 1) : "#"}
+                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                  currentPage === totalPages
+                    ? "pointer-events-none border-white/10 text-white/30"
+                    : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
+                }`}
+              >
+                Siguiente
+              </a>
+            </div>
+          )}
         </div>
-
-        <div className="text-2xl leading-none tracking-[-2%] my-6 text-white">
-          {filteredProducts.length} Variantes{filteredProducts.length === 1 ? "" : "s"}
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredProducts.map((product: any, index) => (
-            <ProductCard
-              key={product.slug ?? index}
-              card={product}
-              style={{ display: index < loadedProducts ? "" : "none" }}
-            />
-          ))}
-        </div>
-
-        {loadedProducts < filteredProducts.length && (
-          <button
-            className="flex max-w-max text-2xl leading-none tracking-[-0.5px] px-14 pt-3.5 pb-[18px] bg-white border border-appGray-400 mx-auto mt-12 transition-colors duration-300 hover:bg-appText hover:text-white"
-            onClick={loadMore}
-          >
-            Cargar mas
-          </button>
-        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperClass } from "swiper";
@@ -8,83 +8,91 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
+type EditionImage = {
+  url: string;
+};
+
 type EditionItem = {
   id_edicion?: number | string;
   nombre_edicion?: string;
   img?: string | null;
+  images?: EditionImage[];
 };
 
 interface Props {
-  gallery: EditionItem[]; // meta.editions
+  gallery: EditionItem[];
   activeEdition: EditionItem | null;
   onEditionChange: (e: EditionItem) => void;
+  fallbackImage?: string | null;
 }
 
-export const Gallery: React.FC<Props> = ({ gallery, activeEdition, onEditionChange }) => {
+export const Gallery: React.FC<Props> = ({
+  gallery,
+  activeEdition,
+  onEditionChange,
+  fallbackImage,
+}) => {
   const [mainSwiper, setMainSwiper] = useState<SwiperClass | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // solo ediciones que tengan imagen
-  const slides = useMemo(() => {
-    const safe = Array.isArray(gallery) ? gallery : [];
-    // si ninguna tiene img, igual dejamos el array para que no truene
-    return safe.length ? safe : [];
+  const editions = useMemo(() => {
+    return Array.isArray(gallery) ? gallery : [];
   }, [gallery]);
 
-  // Si activeEdition no viene, usamos la primera
-  const current = activeEdition || slides[0] || null;
+  const currentEdition = activeEdition || editions[0] || null;
 
-  // armamos índice del active para sync
-  const currentIndex = useMemo(() => {
-    if (!current) return 0;
-    const idx = slides.findIndex(
-      (e) =>
-        String(e?.id_edicion ?? e?.nombre_edicion ?? "") ===
-        String(current?.id_edicion ?? current?.nombre_edicion ?? "")
-    );
-    return idx >= 0 ? idx : 0;
-  }, [slides, current]);
+  const slides = useMemo(() => {
+    const imgs = currentEdition?.images || [];
+    if (imgs.length) return imgs;
+
+    if (currentEdition?.img) return [{ url: currentEdition.img }];
+    if (fallbackImage) return [{ url: fallbackImage }];
+
+    return [];
+  }, [currentEdition, fallbackImage]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+    if (mainSwiper) {
+      mainSwiper.slideTo(0);
+    }
+  }, [currentEdition?.id_edicion, mainSwiper]);
 
   return (
-    <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-16 lg:mt-24 px-0 bg-black">
-      {/* THUMBNAILS */}
+    <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-0 px-0 bg-black">
       {slides.length > 1 && (
         <div className="order-2 lg:order-1 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 h-auto lg:max-h-[840px] pb-4 lg:pb-0 px-4 lg:px-0 custom-scrollbar flex-shrink-0 bg-black">
           {slides.map((item, index) => {
-            const imageUrl = item?.img || "";
-            const isActive = index === currentIndex;
+            const isActive = index === activeIndex;
 
             return (
               <button
-                key={`${item?.id_edicion ?? item?.nombre_edicion ?? index}-${index}`}
+                key={`${item.url}-${index}`}
                 onClick={() => {
-                  onEditionChange(item);
+                  setActiveIndex(index);
                   mainSwiper?.slideTo(index);
                 }}
                 className={classNames(
                   "relative w-16 lg:w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all duration-300 flex-shrink-0",
-                  isActive ? "border-white scale-105 shadow-md" : "border-transparent opacity-40 hover:opacity-100"
+                  isActive
+                    ? "border-white scale-105 shadow-md"
+                    : "border-transparent opacity-40 hover:opacity-100"
                 )}
-                title={item?.nombre_edicion || "Edición"}
+                title={currentEdition?.nombre_edicion || `Imagen ${index + 1}`}
               >
-                {imageUrl ? (
-                  <img
-                    src={imageUrl}
-                    alt={item?.nombre_edicion || `Edición ${index + 1}`}
-                    className="w-full h-full object-cover block pointer-events-none"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-zinc-900" />
-                )}
+                <img
+                  src={item.url}
+                  alt={currentEdition?.nombre_edicion || `Imagen ${index + 1}`}
+                  className="w-full h-full object-cover block pointer-events-none"
+                  loading="lazy"
+                />
               </button>
             );
           })}
         </div>
       )}
 
-      {/* SWIPER PRINCIPAL */}
-      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-3xl overflow-hidden shadow-sm">
+      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -97,7 +105,7 @@ export const Gallery: React.FC<Props> = ({ gallery, activeEdition, onEditionChan
                 transform: scale(0.6);
                 z-index: 20;
               }
-              .swiper-pagination-bullet-active { background: #000 !important; }
+              .swiper-pagination-bullet-active { background: #ef4444 !important; }
               .product-swiper { width: 100% !important; height: 100% !important; background: white !important; }
               @media (min-width: 1024px) { .product-swiper { height: 840px !important; } }
               .custom-scrollbar::-webkit-scrollbar { width: 3px; }
@@ -107,38 +115,33 @@ export const Gallery: React.FC<Props> = ({ gallery, activeEdition, onEditionChan
         />
 
         <Swiper
+          key={String(currentEdition?.id_edicion ?? "default")}
           modules={[Navigation, Pagination, A11y]}
           onSwiper={setMainSwiper}
           onSlideChange={(swiper) => {
             setActiveIndex(swiper.activeIndex);
-            const next = slides[swiper.activeIndex];
-            if (next) onEditionChange(next);
           }}
           spaceBetween={0}
           slidesPerView={1}
           navigation
           pagination={{ clickable: true }}
           className="product-swiper"
-          initialSlide={currentIndex}
+          initialSlide={0}
         >
           {slides.length ? (
-            slides.map((item, index) => {
-              const imageUrl = item?.img || "";
-              return (
-                <SwiperSlide key={`${item?.id_edicion ?? item?.nombre_edicion ?? index}-${index}`} className="bg-black flex items-center justify-center">
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={item?.nombre_edicion || `Edición ${index + 1}`}
-                      className="w-full h-full object-cover block"
-                      loading={index === 0 ? "eager" : "lazy"}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-zinc-900" />
-                  )}
-                </SwiperSlide>
-              );
-            })
+            slides.map((item, index) => (
+              <SwiperSlide
+                key={`${item.url}-${index}`}
+                className="bg-black flex items-center justify-center"
+              >
+                <img
+                  src={item.url}
+                  alt={currentEdition?.nombre_edicion || `Imagen ${index + 1}`}
+                  className="w-full h-full object-cover block"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              </SwiperSlide>
+            ))
           ) : (
             <SwiperSlide className="bg-black flex items-center justify-center">
               <div className="w-full h-full bg-zinc-900" />
@@ -146,11 +149,21 @@ export const Gallery: React.FC<Props> = ({ gallery, activeEdition, onEditionChan
           )}
         </Swiper>
 
-        <div className="absolute top-6 right-6 z-10 pointer-events-none">
-          <span className="bg-black/80 text-white text-[9px] font-bold px-4 py-2 uppercase tracking-[3px] rounded-full backdrop-blur-sm">
-            {slides.length} EDICIONES
-          </span>
-        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 via-black/10 to-transparent z-10" />
+
+      {currentEdition?.nombre_edicion && (
+  <div className="absolute bottom-5 left-5 z-20 pointer-events-none">
+    <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45 shadow-[0_0_14px_rgba(239,68,68,0.28)]">
+      {currentEdition.nombre_edicion}
+    </span>
+  </div>
+)}
+
+<div className="absolute bottom-5 right-5 z-20 pointer-events-none">
+  <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55 shadow-[0_0_16px_rgba(239,68,68,0.35)]">
+    ⚡ {slides.length} PERSPECTIVA{slides.length === 1 ? "" : "S"}
+  </span>
+</div>
       </div>
     </div>
   );

@@ -3,20 +3,17 @@ import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 import type {
   HomeEntryMetaItem,
-  ProductCategoryEntryMetaItem,
-  ProductGenderEntryMetaItem,
 } from "../../../bcms/types/ts";
-import { type ProductLite } from "../../utils/product";
 import { HomeHero } from "./Hero";
 import { HomeCategories } from "./Categories";
 import { HomeCta } from "./Cta";
-import { HomeProducts } from "./Products";
 import type { ClientConfig } from "@thebcms/client";
 
-// ✅ barra de "orígenes"
-import { OriginsBar } from "./OriginsBar"; // <- si OriginsBar es default export, cambia esto (ver nota abajo)
+// barra de orígenes
+import { OriginsBar } from "./OriginsBar";
 
 export type CategoryCardMeta = {
+  id_universo?: number | string;
   title: string;
   slug: string;
   gallery?: any[];
@@ -32,22 +29,13 @@ type OriginItem = { id: string; label: string };
 interface Props {
   meta: HomeEntryMetaItem;
   categories: CategoryCard[];
-  products: ProductLite[];
-  filters: {
-    genders: ProductGenderEntryMetaItem[];
-    categories: ProductCategoryEntryMetaItem[];
-  };
-
-  // ✅ hazlo opcional para que no reviente si no llega desde index.astro
   origins?: OriginItem[];
-
   bcms: ClientConfig;
 }
 
 const HomePageWrapper: React.FC<Props> = ({
   meta,
   categories,
- 
   origins = [],
   bcms,
 }) => {
@@ -61,14 +49,32 @@ const HomePageWrapper: React.FC<Props> = ({
           logo_dc3={(meta as any).logo_dc3}
           bcms={bcms}
         />
+
         <OriginsBar items={origins} />
-        <HomeCategories data={categories.slice(0, 3)} ctaTheme="dark-green" bcms={bcms} />
-        
-        <HomeCategories data={categories.slice(3, 6)} ctaTheme="orange" bcms={bcms} />
 
-       <HomeCategories data={categories.slice(6, 9)} ctaTheme="dark-green" bcms={bcms} />
+        <HomeCategories
+          data={categories.slice(0, 3)}
+          ctaTheme="dark-green"
+          bcms={bcms}
+        />
 
-        <HomeCategories data={categories.slice(9, 12)} ctaTheme="orange" bcms={bcms} />
+        <HomeCategories
+          data={categories.slice(3, 6)}
+          ctaTheme="orange"
+          bcms={bcms}
+        />
+
+        <HomeCategories
+          data={categories.slice(6, 9)}
+          ctaTheme="dark-green"
+          bcms={bcms}
+        />
+
+        <HomeCategories
+          data={categories.slice(9, 12)}
+          ctaTheme="orange"
+          bcms={bcms}
+        />
 
         <HomeCta
           title={meta.cta_title}
@@ -77,7 +83,6 @@ const HomePageWrapper: React.FC<Props> = ({
           cta={{ label: meta.cta_label, href: meta.cta_link }}
           bcms={bcms}
         />
-        
       </InnerPageWrapper>
     </ContextWrapper>
   );

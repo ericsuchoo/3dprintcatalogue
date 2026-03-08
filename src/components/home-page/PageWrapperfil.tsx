@@ -5,6 +5,7 @@ import { CategoriesMini } from "./CategoriesMini";
 
 type CategoryCard = {
   meta: {
+    id_personaje?: string | number;
     title: string;
     slug: string;
     gallery?: { url: string }[];

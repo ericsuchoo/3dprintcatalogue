@@ -15,7 +15,7 @@ const ProductPageWrapper: React.FC<Props> = ({ data }) => {
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="container bg-black pb-14 md:pb-20 lg:pb-[136px]">
-          {data?.meta ? <Main meta={data.meta} /> : null}
+          {data?.meta ? <Main data={data} /> : null}
         </div>
       </InnerPageWrapper>
     </ContextWrapper>

@@ -120,13 +120,11 @@ const categories = universosAgg.map((u) => ({
 ---
 
 <Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
-  <HomePageWrapper
-    client:load
-    bcms={clientConfig}
-    meta={homeMeta}
-    categories={categories}
-    products={productsLite}
-    filters={filters}
-    origins={origins}
-  />
+<HomePageWrapper
+  client:load
+  bcms={clientConfig}
+  meta={homeMeta}
+  categories={categories}
+  origins={origins}
+/>
 </Layout>
