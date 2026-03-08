@@ -1,4 +1,18 @@
-import React, { useEffect, useRef } from "react";
+import React, { useMemo, useState } from "react";
+import ContextWrapper from "../ContextWrapper";
+import InnerPageWrapper from "../InnnerPageWrapper";
+import { CategoriesMini } from "./CategoriesMini";
+import { UniverseRail } from "./UniverseRail";
+
+type CategoryCard = {
+  meta: {
+    id_personaje?: string | number;
+    title: string;
+    slug: string;
+    gallery?: { url: string }[];
+  };
+  productsCount: number;
+};
 
 type UniverseCard = {
   id: string;
@@ -7,145 +21,138 @@ type UniverseCard = {
 };
 
 interface Props {
-  items: UniverseCard[];
+  meta: { title?: string };
+  categories: CategoryCard[];
+  universes?: UniverseCard[];
   activeUniversoId?: string | null;
+  clearFilterHref?: string | null;
 }
 
-export const UniverseRail: React.FC<Props> = ({
-  items,
+const ITEMS_PER_PAGE = 24;
+
+const NewPageWrapper: React.FC<Props> = ({
+  meta,
+  categories,
+  universes = [],
   activeUniversoId = null,
+  clearFilterHref,
 }) => {
-  const railRef = useRef<HTMLDivElement | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const el = railRef.current;
-    if (!el) return;
+  const totalPages = Math.max(1, Math.ceil((categories?.length || 0) / ITEMS_PER_PAGE));
 
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaY;
-      }
-    };
+  const pageCategories = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return (categories || []).slice(start, start + ITEMS_PER_PAGE);
+  }, [categories, currentPage]);
 
-    el.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-    };
-  }, []);
-
-  if (!items?.length) return null;
-
-  const buildHref = (universoId: string) => {
-    const params = new URLSearchParams();
-    params.set("universoId", universoId);
-    return `/explorar?${params.toString()}`;
+  const goToPage = (page: number) => {
+    const safe = Math.min(Math.max(page, 1), totalPages);
+    setCurrentPage(safe);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .no-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-            }
-          `,
-        }}
-      />
+    <ContextWrapper>
+      <InnerPageWrapper>
+        <div className="pt-24 bg-[#0a0a0a] min-h-screen">
+          
+          <div className="container pb-8 text-center -mt-1">
+            <h1 className="text-3xl md:text-3xl font-black uppercase italic text-white tracking-tighter">
+              {activeUniversoId ? (
+                <>
+                  Personajes de{" "}
+                  <span className="text-red-600">
+                    {meta.title?.replace("Explorar: ", "")}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Todos los <span className="text-red-600">Personajes</span>
+                </>
+              )}
+            </h1>
 
-      <section>
-        <div className="mb-4">
-          <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-            Explora por{" "}
-            <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-              universos
-            </span>
-          </h3>
-          <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-            Desliza y filtra personajes por universo
-          </p>
-        </div>
+            <div className="w-14 h-[3px] bg-red-600 mx-auto mt-3 mb-2" />
 
-        <div
-          ref={railRef}
-          className="flex gap-5 overflow-x-auto overflow-y-hidden pb-1 snap-x snap-mandatory no-scrollbar scroll-smooth"
-        >
-          {items.map((item) => {
-            const isActive = String(activeUniversoId ?? "") === String(item.id);
+            <p className="text-zinc-500 text-[11px] md:text-xs uppercase tracking-[0.2em] font-bold">
+              Mostrando {categories?.length ?? 0} personajes disponibles
+            </p>
 
-            return (
-              <a
-                key={item.id}
-                href={buildHref(item.id)}
-                className={[
-                  "group relative min-w-[240px] md:min-w-[280px] h-[170px] md:h-[200px] rounded-2xl overflow-hidden border snap-start transition-all duration-500",
-                  "hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(0,0,0,0.45)]",
-                  isActive
-                    ? "border-[#00eeff] shadow-[0_0_24px_rgba(0,238,255,0.20)]"
-                    : "border-white/10 hover:border-[#00eeff]/60",
-                ].join(" ")}
+            {clearFilterHref && (
+              <div className="mt-4 flex justify-center">
+                <a
+                  href={clearFilterHref}
+                  className="px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                >
+                  Quitar filtro
+                </a>
+              </div>
+            )}
+          </div>
+          <div className="container pb-5">
+            <UniverseRail
+              items={universes}
+              activeUniversoId={activeUniversoId}
+            />
+          </div>
+
+
+          <div className="flex flex-col gap-8">
+            {pageCategories.length > 0 ? (
+              <CategoriesMini data={pageCategories} />
+            ) : (
+              <div className="text-center py-20 text-zinc-700 uppercase font-black">
+                No hay personajes vinculados aún
+              </div>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-10 pb-10">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 text-xs md:text-sm rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
+                  currentPage === 1 ? "opacity-40 cursor-not-allowed" : ""
+                }`}
               >
-                {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-[#111]" />
-                )}
+                Anterior
+              </button>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/10" />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#00eeff]/10 via-transparent to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              {Array.from({ length: totalPages }).map((_, idx) => {
+                const page = idx + 1;
+                const isActive = page === currentPage;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`w-8 h-8 text-xs md:text-sm rounded-full border transition ${
+                      isActive
+                        ? "bg-red-600 border-red-500 text-white font-bold"
+                        : "border-white/10 text-white/70 hover:border-white/40 hover:text-white"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
 
-                <div className="relative z-10 h-full flex flex-col justify-end p-5">
-                  <div className="mb-3">
-                    <span
-                      className={[
-                        "inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]",
-                        isActive
-                          ? "border-[#00eeff]/70 text-[#00eeff] bg-[#00eeff]/10"
-                          : "border-white/15 text-zinc-300 bg-black/30 backdrop-blur-sm",
-                      ].join(" ")}
-                    >
-                      Universo
-                    </span>
-                  </div>
-
-                  <h4 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight leading-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
-                    {item.title}
-                  </h4>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-[0.18em] text-zinc-300 font-black">
-                      Ver personajes
-                    </span>
-
-                    <span
-                      className={[
-                        "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-300",
-                        isActive
-                          ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/10"
-                          : "border-white/15 text-white/80 bg-black/30 backdrop-blur-sm group-hover:border-[#00eeff]/60 group-hover:text-[#00eeff]",
-                      ].join(" ")}
-                      aria-hidden="true"
-                    >
-                      →
-                    </span>
-                  </div>
-                </div>
-              </a>
-            );
-          })}
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 text-xs md:text-sm rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
+                  currentPage === totalPages ? "opacity-40 cursor-not-allowed" : ""
+                }`}
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
-      </section>
-    </>
+      </InnerPageWrapper>
+    </ContextWrapper>
   );
 };
+
+export default NewPageWrapper;
