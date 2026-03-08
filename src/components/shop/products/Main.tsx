@@ -225,7 +225,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
         <div className="lg:row-span-2 sticky top-28">
-          <div className="grid grid-cols-1 gap-8 border border-white/10 p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
+          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
             <div className="text-2xl leading-none font-bold italic text-red-500">
               {favoritesOnly ? "Mis Me gusta" : "Filtros"}
             </div>
@@ -235,7 +235,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                 <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                   Universos
                 </div>
-                <div className="grid grid-cols-1 gap-4 text-[#a200ff]">
+                <div className="grid grid-cols-1 gap-4 text-[#fdfdfd]">
                   {filters
                     .filter((e) => e.type === "universo")
                     .map((filter, index) => (
@@ -256,7 +256,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Precio / orden
               </div>
-              <div className="grid grid-cols-1 gap-4 text-[#ff0000]">
+              <div className="grid grid-cols-1 gap-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "price")
                   .map((filter, index) => (
@@ -276,7 +276,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Novedad
               </div>
-              <div className="grid grid-cols-1 gap-4 text-[#ffd900]">
+              <div className="grid grid-cols-1 gap-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "popularity")
                   .map((filter, index) => (
@@ -296,7 +296,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                 Personajes
               </div>
-              <div className="grid grid-cols-1 gap-4 text-[#66ff00]">
+              <div className="grid grid-cols-1 gap-4 text-[#fdfdfd]">
                 {filters
                   .filter((e) => e.type === "personaje")
                   .map((filter, index) => (
@@ -317,7 +317,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                 <div className="text-sm uppercase tracking-[0.18em] mb-4 text-zinc-400 font-bold">
                   Creadores 3D
                 </div>
-                <div className="grid grid-cols-1 gap-4 text-[#00ffea]">
+                <div className="grid grid-cols-1 gap-4 text-[#fdfdfd]">
                   {filters
                     .filter((e) => e.type === "proveedor")
                     .map((filter, index) => (

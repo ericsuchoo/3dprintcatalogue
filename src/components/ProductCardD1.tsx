@@ -128,7 +128,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
           <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">
               <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[2px] mb-1 italic truncate">
-                {card.subtitle || "Original Series"}
+                {card.subtitle || "Premium Series"}
               </p>
 
               <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight line-clamp-2">
