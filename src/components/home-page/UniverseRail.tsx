@@ -22,7 +22,9 @@ export const UniverseRail: React.FC<Props> = ({
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      if (!el) return;
+
+      if (Math.abs(e.deltaY) > 0) {
         e.preventDefault();
         el.scrollLeft += e.deltaY;
       }
@@ -61,13 +63,13 @@ export const UniverseRail: React.FC<Props> = ({
 
       <section>
         <div className="mb-4">
-          <h3 className="text-xl md:text-2xl font-black uppercase italic text-white tracking-tight">
+          <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
             Explora por{" "}
             <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
               universos
             </span>
           </h3>
-          <p className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-[0.22em] mt-2 font-bold">
+          <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
             Desliza y filtra personajes por universo
           </p>
         </div>
@@ -149,3 +151,5 @@ export const UniverseRail: React.FC<Props> = ({
     </>
   );
 };
+
+export default UniverseRail;
