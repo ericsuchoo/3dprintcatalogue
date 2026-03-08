@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type UniverseCard = {
   id: string;
@@ -15,13 +15,54 @@ export const UniverseRail: React.FC<Props> = ({
   items,
   activeUniversoId = null,
 }) => {
-  if (!items?.length) return null;
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollRef = useRef<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const loopItems = useMemo(() => {
+    if (!items?.length) return [];
+    return [...items, ...items];
+  }, [items]);
 
   const buildHref = (universoId: string) => {
     const params = new URLSearchParams();
     params.set("universoId", universoId);
     return `/explorar?${params.toString()}`;
   };
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || !items?.length) return;
+
+    let destroyed = false;
+
+    const step = () => {
+      if (destroyed || !el) return;
+
+      if (!isPaused) {
+        const halfWidth = el.scrollWidth / 2;
+
+        el.scrollLeft += 0.35;
+
+        if (el.scrollLeft >= halfWidth) {
+          el.scrollLeft -= halfWidth;
+        }
+      }
+
+      autoScrollRef.current = window.requestAnimationFrame(step);
+    };
+
+    autoScrollRef.current = window.requestAnimationFrame(step);
+
+    return () => {
+      destroyed = true;
+      if (autoScrollRef.current) {
+        window.cancelAnimationFrame(autoScrollRef.current);
+      }
+    };
+  }, [isPaused, items]);
+
+  if (!items?.length) return null;
 
   return (
     <>
@@ -67,14 +108,21 @@ export const UniverseRail: React.FC<Props> = ({
       />
 
       <section>
-        <div className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar scroll-smooth">
+        <div
+          ref={railRef}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onPointerDown={() => setIsPaused(true)}
+          onPointerUp={() => setIsPaused(false)}
+          className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar"
+        >
           <div className="flex gap-5 min-w-max pr-2">
-            {items.map((item) => {
+            {loopItems.map((item, index) => {
               const isActive = String(activeUniversoId ?? "") === String(item.id);
 
               return (
                 <a
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   href={buildHref(item.id)}
                   className={[
                     "group relative min-w-[240px] md:min-w-[280px] h-[170px] md:h-[200px] rounded-2xl overflow-hidden border transition-all duration-500",
