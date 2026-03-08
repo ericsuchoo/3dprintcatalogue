@@ -60,10 +60,16 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
     <div
       style={style}
       className={classNames(
-        "group flex flex-col h-full bg-black relative border border-white/5 hover:border-red-500/60 hover:-translate-y-1 transition-all duration-500 rounded-2xl overflow-hidden shadow-2xl",
+        "group flex flex-col h-full bg-black relative border border-white/5 hover:border-red-500/70 hover:-translate-y-1.5 transition-all duration-500 rounded-2xl overflow-hidden shadow-2xl hover:shadow-[0_18px_40px_rgba(0,0,0,0.55)]",
         className
       )}
     >
+      {/* PREMIUM GLOW LAYER */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+        <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-br from-[#00eeff]/20 via-transparent to-red-500/20" />
+        <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_30px_rgba(0,238,255,0.08),0_0_28px_rgba(239,68,68,0.10)]" />
+      </div>
+
       {/* FAVORITE BUTTON */}
       <button
         type="button"
@@ -89,7 +95,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
         </svg>
       </button>
 
-      <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative">
+      <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative z-10">
         <div className="aspect-[3/4] overflow-hidden bg-[#111] relative">
           {/* IMAGE */}
           {card.coverUrl ? (
@@ -117,7 +123,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
 
           {/* HOVER CTA */}
           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 bg-black/25 backdrop-blur-[2px]">
-            <div className="bg-red-500 text-white font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_20px_rgba(239,68,68,0.35)] border border-red-400 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+            <div className="bg-red-500 text-white font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_22px_rgba(239,68,68,0.42)] border border-red-300 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
               Ver detalles
             </div>
           </div>
