@@ -124,14 +124,13 @@ export const UniverseRail: React.FC<Props> = ({
 
       <section>
         <div
-          ref={railRef}
-          onMouseDown={() => setIsInteracting(true)}
-          onMouseUp={() => setIsInteracting(false)}
-          onMouseLeave={() => setIsInteracting(false)}
-          onTouchStart={() => setIsInteracting(true)}
-          onTouchEnd={() => setIsInteracting(false)}
-          className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar"
-        >
+  ref={railRef}
+  onMouseEnter={() => setIsInteracting(true)}
+  onMouseLeave={() => setIsInteracting(false)}
+  onTouchStart={() => setIsInteracting(true)}
+  onTouchEnd={() => setIsInteracting(false)}
+  className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar"
+>
           <div className="flex gap-5 min-w-max pr-2">
             {loopItems.map((item, index) => {
               const isActive = String(activeUniversoId ?? "") === String(item.id);
