@@ -151,17 +151,19 @@ export const Gallery: React.FC<Props> = ({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 via-black/10 to-transparent z-10" />
 
-        <div className="absolute bottom-5 left-5 z-20 flex flex-col items-start gap-2 pointer-events-none">
-          {currentEdition?.nombre_edicion ? (
-            <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45 shadow-[0_0_14px_rgba(239,68,68,0.28)] max-w-[85%]">
-              {currentEdition.nombre_edicion}
-            </span>
-          ) : null}
+      {currentEdition?.nombre_edicion && (
+  <div className="absolute bottom-5 left-5 z-20 pointer-events-none">
+    <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45 shadow-[0_0_14px_rgba(239,68,68,0.28)]">
+      {currentEdition.nombre_edicion}
+    </span>
+  </div>
+)}
 
-          <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55 shadow-[0_0_16px_rgba(239,68,68,0.35)]">
-            ⚡ {slides.length} PERSPECTIVA{slides.length === 1 ? "" : "S"}
-          </span>
-        </div>
+<div className="absolute bottom-5 right-5 z-20 pointer-events-none">
+  <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55 shadow-[0_0_16px_rgba(239,68,68,0.35)]">
+    ⚡ {slides.length} PERSPECTIVA{slides.length === 1 ? "" : "S"}
+  </span>
+</div>
       </div>
     </div>
   );

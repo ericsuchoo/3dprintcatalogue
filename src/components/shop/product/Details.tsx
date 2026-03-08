@@ -193,7 +193,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
 
         {meta?.disclaimer ? (
-          <div className="text-black font-sans italic text-[13px] leading-snug tracking-tight whitespace-pre-line mt-4">
+          <div className="text-#c900e481 font-sans italic text-[10px] leading-snug tracking-tight whitespace-pre-line mt-4">
             {meta.disclaimer}
           </div>
         ) : null}
