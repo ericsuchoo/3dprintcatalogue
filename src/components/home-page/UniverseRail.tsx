@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 
 type UniverseCard = {
   id: string;
@@ -17,34 +17,25 @@ export const UniverseRail: React.FC<Props> = ({
 }) => {
   const railRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const el = railRef.current;
-    if (!el) return;
-
-    const onWheel = (e: WheelEvent) => {
-      const isScrollable = el.scrollWidth > el.clientWidth;
-      if (!isScrollable) return;
-
-      // si hay movimiento vertical, lo convertimos en horizontal
-      if (Math.abs(e.deltaY) > 0 || Math.abs(e.deltaX) > 0) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaY + e.deltaX;
-      }
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-    };
-  }, []);
-
   if (!items?.length) return null;
 
   const buildHref = (universoId: string) => {
     const params = new URLSearchParams();
     params.set("universoId", universoId);
     return `/explorar?${params.toString()}`;
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = railRef.current;
+    if (!el) return;
+
+    const isScrollable = el.scrollWidth > el.clientWidth;
+    if (!isScrollable) return;
+
+    if (Math.abs(e.deltaY) > 0 || Math.abs(e.deltaX) > 0) {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY + e.deltaX;
+    }
   };
 
   return (
@@ -64,20 +55,9 @@ export const UniverseRail: React.FC<Props> = ({
       />
 
       <section>
-        <div className="mb-4">
-          <h3 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-            Explora por{" "}
-            <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-              universos
-            </span>
-          </h3>
-          <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-            Desliza y filtra personajes por universo
-          </p>
-        </div>
-
         <div
           ref={railRef}
+          onWheel={handleWheel}
           className="flex gap-5 overflow-x-auto overflow-y-hidden pb-1 snap-x snap-mandatory no-scrollbar scroll-smooth"
         >
           {items.map((item) => {

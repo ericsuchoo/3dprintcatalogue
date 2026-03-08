@@ -31,6 +31,7 @@ interface Props {
 const ITEMS_PER_PAGE = 24;
 
 const NewPageWrapper: React.FC<Props> = ({
+  meta,
   categories,
   universes = [],
   activeUniversoId = null,
@@ -56,7 +57,33 @@ const NewPageWrapper: React.FC<Props> = ({
       <InnerPageWrapper>
         <div className="pt-24 bg-[#0a0a0a] min-h-screen">
           <div className="container pb-5">
-            <div className="flex justify-end mb-4">
+            <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                  {activeUniversoId ? (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        {meta.title?.replace("Explorar: ", "")}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Explora por{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        universos
+                      </span>
+                    </>
+                  )}
+                </h1>
+
+                <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
+                  {activeUniversoId
+                    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                    : "Desliza y filtra personajes por universo"}
+                </p>
+              </div>
+
               {clearFilterHref && (
                 <a
                   href={clearFilterHref}
