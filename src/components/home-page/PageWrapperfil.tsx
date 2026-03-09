@@ -27,6 +27,8 @@ interface Props {
   activeUniversoId?: string | null;
   clearFilterHref?: string | null;
   origenNombre?: string | null;
+  cosplayOnly?: boolean;
+  cosplayToggleHref?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -38,6 +40,8 @@ const NewPageWrapper: React.FC<Props> = ({
   activeUniversoId = null,
   clearFilterHref,
   origenNombre = null,
+  cosplayOnly = false,
+  cosplayToggleHref = null,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -97,14 +101,29 @@ const NewPageWrapper: React.FC<Props> = ({
                 </p>
               </div>
 
-              {clearFilterHref && (
-                <a
-                  href={clearFilterHref}
-                  className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
-                >
-                  Quitar filtro
-                </a>
-              )}
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {cosplayToggleHref && (
+                  <a
+                    href={cosplayToggleHref}
+                    className={`inline-flex items-center justify-center px-4 py-2 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
+                      cosplayOnly
+                        ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)]"
+                        : "border-white/10 text-white/70 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
+                    }`}
+                  >
+                    {cosplayOnly ? "Cosplay activo" : "Solo cosplay"}
+                  </a>
+                )}
+
+                {clearFilterHref && (
+                  <a
+                    href={clearFilterHref}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                  >
+                    Quitar filtro
+                  </a>
+                )}
+              </div>
             </div>
 
             <UniverseRail
