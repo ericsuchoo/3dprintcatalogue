@@ -20,12 +20,17 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type ProductMode = "all" | "cosplay" | "figura";
+
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
   universes?: UniverseCard[];
   activeUniversoId?: string | null;
   clearFilterHref?: string | null;
+  origenNombre?: string | null;
+  productMode?: ProductMode;
+  productModeToggleHref?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -36,6 +41,9 @@ const NewPageWrapper: React.FC<Props> = ({
   universes = [],
   activeUniversoId = null,
   clearFilterHref,
+  origenNombre = null,
+  productMode = "all",
+  productModeToggleHref = null,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -49,8 +57,24 @@ const NewPageWrapper: React.FC<Props> = ({
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);
     setCurrentPage(safe);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
+
+  const productModeLabel =
+    productMode === "all"
+      ? "Filtrar: cosplay"
+      : productMode === "cosplay"
+        ? "Filtrar: figuras"
+        : "Ver todos";
+
+  const currentModeBadge =
+    productMode === "all"
+      ? "Modo actual: todos"
+      : productMode === "cosplay"
+        ? "Modo actual: cosplay"
+        : "Modo actual: figuras";
 
   return (
     <ContextWrapper>
@@ -60,7 +84,14 @@ const NewPageWrapper: React.FC<Props> = ({
             <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
-                  {activeUniversoId ? (
+                  {origenNombre ? (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        {origenNombre}
+                      </span>
+                    </>
+                  ) : activeUniversoId ? (
                     <>
                       Explora:{" "}
                       <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
@@ -78,20 +109,54 @@ const NewPageWrapper: React.FC<Props> = ({
                 </h1>
 
                 <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-                  {activeUniversoId
-                    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
-                    : "Desliza y filtra personajes por universo"}
+                  {origenNombre ? (
+                    productMode === "cosplay"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
+                      : productMode === "figura"
+                        ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
+                        : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
+                  ) : activeUniversoId ? (
+                    productMode === "cosplay"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos cosplay`
+                      : productMode === "figura"
+                        ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
+                        : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                  ) : productMode === "cosplay" ? (
+                    `Mostrando ${categories?.length ?? 0} personajes con productos cosplay`
+                  ) : productMode === "figura" ? (
+                    `Mostrando ${categories?.length ?? 0} personajes con productos figura`
+                  ) : (
+                    "Desliza y filtra personajes por universo"
+                  )}
                 </p>
               </div>
 
-              {clearFilterHref && (
-                <a
-                  href={clearFilterHref}
-                  className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
-                >
-                  Quitar filtro
-                </a>
-              )}
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {productModeToggleHref && (
+                  <a
+                    href={productModeToggleHref}
+                    title={currentModeBadge}
+                    className={`inline-flex items-center justify-center px-4 py-2 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
+                      productMode === "cosplay"
+                        ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)] hover:bg-red-500/10 hover:border-red-400/40 hover:text-white"
+                        : productMode === "figura"
+                          ? "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-white/10 hover:border-white/30 hover:text-white"
+                          : "border-white/10 text-white/80 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
+                    }`}
+                  >
+                    {productModeLabel}
+                  </a>
+                )}
+
+                {clearFilterHref && (
+                  <a
+                    href={clearFilterHref}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                  >
+                    Quitar filtro
+                  </a>
+                )}
+              </div>
             </div>
 
             <UniverseRail

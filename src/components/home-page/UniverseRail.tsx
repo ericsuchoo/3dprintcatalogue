@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type UniverseCard = {
   id: string;
@@ -15,13 +15,69 @@ export const UniverseRail: React.FC<Props> = ({
   items,
   activeUniversoId = null,
 }) => {
-  if (!items?.length) return null;
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const intervalRef = useRef<number | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
+
+  const loopItems = useMemo(() => {
+    if (!items?.length) return [];
+    return [...items, ...items];
+  }, [items]);
 
   const buildHref = (universoId: string) => {
     const params = new URLSearchParams();
     params.set("universoId", universoId);
     return `/explorar?${params.toString()}`;
   };
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || !items?.length) return;
+
+    const onWheel = (e: WheelEvent) => {
+      const isScrollable = el.scrollWidth > el.clientWidth;
+      if (!isScrollable) return;
+
+      e.preventDefault();
+      el.scrollLeft += e.deltaY + e.deltaX;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [items]);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || !items?.length) return;
+
+    const startAutoScroll = () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+
+      intervalRef.current = window.setInterval(() => {
+        if (!el || isInteracting) return;
+
+        const halfWidth = el.scrollWidth / 2;
+        el.scrollLeft += 1;
+
+        if (el.scrollLeft >= halfWidth) {
+          el.scrollLeft = el.scrollLeft - halfWidth;
+        }
+      }, 18);
+    };
+
+    startAutoScroll();
+
+    return () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+      }
+    };
+  }, [items, isInteracting]);
+
+  if (!items?.length) return null;
 
   return (
     <>
@@ -67,14 +123,21 @@ export const UniverseRail: React.FC<Props> = ({
       />
 
       <section>
-        <div className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar scroll-smooth">
+        <div
+  ref={railRef}
+  onMouseEnter={() => setIsInteracting(true)}
+  onMouseLeave={() => setIsInteracting(false)}
+  onTouchStart={() => setIsInteracting(true)}
+  onTouchEnd={() => setIsInteracting(false)}
+  className="overflow-x-auto overflow-y-hidden pb-3 glass-scrollbar"
+>
           <div className="flex gap-5 min-w-max pr-2">
-            {items.map((item) => {
+            {loopItems.map((item, index) => {
               const isActive = String(activeUniversoId ?? "") === String(item.id);
 
               return (
                 <a
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   href={buildHref(item.id)}
                   className={[
                     "group relative min-w-[240px] md:min-w-[280px] h-[170px] md:h-[200px] rounded-2xl overflow-hidden border transition-all duration-500",
