@@ -26,6 +26,7 @@ interface Props {
   universes?: UniverseCard[];
   activeUniversoId?: string | null;
   clearFilterHref?: string | null;
+  origenNombre?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -36,6 +37,7 @@ const NewPageWrapper: React.FC<Props> = ({
   universes = [],
   activeUniversoId = null,
   clearFilterHref,
+  origenNombre = null,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -49,7 +51,9 @@ const NewPageWrapper: React.FC<Props> = ({
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);
     setCurrentPage(safe);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
@@ -60,7 +64,14 @@ const NewPageWrapper: React.FC<Props> = ({
             <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
-                  {activeUniversoId ? (
+                  {origenNombre ? (
+                    <>
+                      Explora:{" "}
+                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                        {origenNombre}
+                      </span>
+                    </>
+                  ) : activeUniversoId ? (
                     <>
                       Explora:{" "}
                       <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
@@ -78,7 +89,9 @@ const NewPageWrapper: React.FC<Props> = ({
                 </h1>
 
                 <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-                  {activeUniversoId
+                  {origenNombre
+                    ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
+                    : activeUniversoId
                     ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
                     : "Desliza y filtra personajes por universo"}
                 </p>

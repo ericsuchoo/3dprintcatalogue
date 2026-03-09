@@ -182,12 +182,13 @@ const meta = {
 ---
 
 <Layout title={`${meta.title} | 3D Shop`}>
-  <NewPageWrapper
-    client:load
-    meta={meta}
-    categories={categories}
-    universes={universos}
-    activeUniversoId={universoId}
-    clearFilterHref={clearFilterHref}
-  />
+<NewPageWrapper
+  client:load
+  meta={meta}
+  categories={categories}
+  universes={universos}
+  activeUniversoId={universoId}
+  clearFilterHref={clearFilterHref}
+  origenNombre={origenNombre}
+/>
 </Layout>
