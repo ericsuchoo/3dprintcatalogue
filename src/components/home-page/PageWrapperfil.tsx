@@ -64,17 +64,17 @@ const NewPageWrapper: React.FC<Props> = ({
 
   const productModeLabel =
     productMode === "all"
-      ? "Ver: todos"
+      ? "Filtrar: cosplay"
       : productMode === "cosplay"
-        ? "Ver: solo cosplay"
-        : "Ver: solo figuras";
+        ? "Filtrar: figuras"
+        : "Ver todos";
 
-  const nextModeLabel =
+  const currentModeBadge =
     productMode === "all"
-      ? "Cambiar a cosplay"
+      ? "Modo actual: todos"
       : productMode === "cosplay"
-        ? "Cambiar a figuras"
-        : "Quitar filtro tipo";
+        ? "Modo actual: cosplay"
+        : "Modo actual: figuras";
 
   return (
     <ContextWrapper>
@@ -135,13 +135,13 @@ const NewPageWrapper: React.FC<Props> = ({
                 {productModeToggleHref && (
                   <a
                     href={productModeToggleHref}
-                    title={nextModeLabel}
+                    title={currentModeBadge}
                     className={`inline-flex items-center justify-center px-4 py-2 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
                       productMode === "cosplay"
-                        ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)]"
+                        ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)] hover:bg-red-500/10 hover:border-red-400/40 hover:text-white"
                         : productMode === "figura"
-                          ? "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.14)]"
-                          : "border-white/10 text-white/70 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
+                          ? "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-white/10 hover:border-white/30 hover:text-white"
+                          : "border-white/10 text-white/80 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
                     }`}
                   >
                     {productModeLabel}
