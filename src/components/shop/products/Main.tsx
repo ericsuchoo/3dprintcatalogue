@@ -199,16 +199,22 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     }
   };
 
-  const currentPage = data.pagination?.currentPage || 1;
-  const totalPages = data.pagination?.totalPages || 1;
-  const totalProducts = data.pagination?.totalProducts ?? filteredProducts.length;
-  const itemsPerPage = data.pagination?.itemsPerPage || filteredProducts.length;
-  const pageCount = data.pagination?.pageCount ?? (data.products?.length || 0);
+const currentPage = data.pagination?.currentPage || 1;
+const totalPages = favoritesOnly ? 1 : data.pagination?.totalPages || 1;
+const totalProducts = favoritesOnly
+  ? filteredProducts.length
+  : data.pagination?.totalProducts ?? filteredProducts.length;
+const itemsPerPage = favoritesOnly
+  ? filteredProducts.length || 1
+  : data.pagination?.itemsPerPage || filteredProducts.length;
+const pageCount = favoritesOnly
+  ? filteredProducts.length
+  : data.pagination?.pageCount ?? (data.products?.length || 0);
 
-  const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const pageEnd =
-    totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
-
+const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+const pageEnd =
+  totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
+  
   const buildPageHref = (page: number) => buildUrl({ page });
 
   const getVisiblePages = () => {

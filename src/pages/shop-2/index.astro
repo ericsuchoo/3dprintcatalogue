@@ -53,7 +53,6 @@ function slugify(s: string) {
 
 const db = Astro.locals.runtime.env.DB as any;
 
-// Si DB no existe, render vacío sin crashear
 if (!db) {
   console.warn("[shop-2] DB binding no disponible. Revisa wrangler.toml/bindings.");
 }
@@ -69,10 +68,25 @@ async function tableExists(name: string) {
 }
 
 // --------------------
-// Param opcional: venir filtrado por personaje
-// /shop-2?personajeId=123
+// Param opcional
 // --------------------
 const personajeId = Astro.url.searchParams.get("personajeId");
+
+let personajeNombre: string | null = null;
+
+if (db && personajeId) {
+  const personajeRow = await db
+    .prepare(`
+      SELECT id_personaje, nombre_personaje
+      FROM personajes
+      WHERE id_personaje = ?
+      LIMIT 1
+    `)
+    .bind(personajeId)
+    .first();
+
+  personajeNombre = (personajeRow as PersonajeRow | null)?.nombre_personaje ?? null;
+}
 
 // --------------------
 // 1) Productos
@@ -82,13 +96,24 @@ let productos: ProductoRow[] = [];
 if (db) {
   let sql = `
     SELECT
-      id_producto, nombre_producto, subtitulo, descripcion, img_producto,
-      unidades, precio, descuento, id_proveedor, id_universo, id_personaje,
-      fecha_creacion, fecha_modifica
+      id_producto,
+      nombre_producto,
+      subtitulo,
+      descripcion,
+      img_producto,
+      unidades,
+      precio,
+      descuento,
+      id_proveedor,
+      id_universo,
+      id_personaje,
+      fecha_creacion,
+      fecha_modifica
     FROM productos
   `;
 
   const params: any[] = [];
+
   if (personajeId) {
     sql += ` WHERE id_personaje = ? `;
     params.push(personajeId);
@@ -105,9 +130,6 @@ if (db) {
 
 // --------------------
 // 2) Filtros D1
-// genders -> personajes
-// categories -> universos (si existe)
-// brands -> proveedores (si existe)
 // --------------------
 let personajes: PersonajeRow[] = [];
 let universos: UniversoRow[] = [];
@@ -137,8 +159,7 @@ if (db) {
 }
 
 // --------------------
-// 3) Data para Shop-2 wrapper (D1)
-// OJO: esto debe empatar con tu type ShopPageDataD1
+// 3) Data para React
 // --------------------
 const data = {
   products: productos.map((pr) => ({
@@ -154,9 +175,9 @@ const data = {
     personajeId: pr.id_personaje ?? null,
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
+    date: pr.fecha_modifica ?? pr.fecha_creacion ?? null,
   })),
 
-  // En tu UI vieja se llaman genders/categories/brands
   genders: personajes.map((p) => ({
     title: p.nombre_personaje,
     slug: String(p.id_personaje),
@@ -167,16 +188,30 @@ const data = {
     slug: String(u.id_universo),
   })),
 
-  brands: proveedores.map((p) => ({
-    title: p.nombre_proveedor,
-    slug: String(p.id_proveedor),
+  brands: proveedores.map((pr) => ({
+    title: pr.nombre_proveedor,
+    slug: String(pr.id_proveedor),
   })),
 
-  // Para auto-activar filtro cuando vienes de /explorar
   initialPersonajeId: personajeId ? String(personajeId) : null,
+  personajeNombre,
+  clearFilterHref: personajeId ? "/shop-2" : null,
+
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalProducts: productos.length,
+    itemsPerPage: productos.length || 1,
+    pageCount: productos.length,
+    basePath: "/shop-2",
+    personajeId: personajeId ? String(personajeId) : null,
+    universoId: null,
+    proveedorId: null,
+    sort: "newest" as const,
+  },
 };
 ---
 
-<Layout title="Mis Me Gusta - DCimpress 3D">
+<Layout title="Mis Me Gusta | DCimpress 3D">
   <ProductsPageWrapper client:load data={data} />
 </Layout>
