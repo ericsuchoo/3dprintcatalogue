@@ -137,9 +137,14 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
   };
 
-  const clearFilters = () => {
-    window.location.href = data.clearFilterHref || "/shop";
-  };
+const clearFilters = () => {
+  if (favoritesOnly) {
+    window.location.href = "/shop-2";
+    return;
+  }
+
+  window.location.href = data.clearFilterHref || "/shop";
+};
 
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
