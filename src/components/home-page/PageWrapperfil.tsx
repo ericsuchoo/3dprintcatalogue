@@ -20,6 +20,8 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type ProductMode = "all" | "cosplay" | "figura";
+
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
@@ -27,8 +29,8 @@ interface Props {
   activeUniversoId?: string | null;
   clearFilterHref?: string | null;
   origenNombre?: string | null;
-  cosplayOnly?: boolean;
-  cosplayToggleHref?: string | null;
+  productMode?: ProductMode;
+  productModeToggleHref?: string | null;
 }
 
 const ITEMS_PER_PAGE = 24;
@@ -40,8 +42,8 @@ const NewPageWrapper: React.FC<Props> = ({
   activeUniversoId = null,
   clearFilterHref,
   origenNombre = null,
-  cosplayOnly = false,
-  cosplayToggleHref = null,
+  productMode = "all",
+  productModeToggleHref = null,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -59,6 +61,20 @@ const NewPageWrapper: React.FC<Props> = ({
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  const productModeLabel =
+    productMode === "all"
+      ? "Ver: todos"
+      : productMode === "cosplay"
+        ? "Ver: solo cosplay"
+        : "Ver: solo figuras";
+
+  const nextModeLabel =
+    productMode === "all"
+      ? "Cambiar a cosplay"
+      : productMode === "cosplay"
+        ? "Cambiar a figuras"
+        : "Quitar filtro tipo";
 
   return (
     <ContextWrapper>
@@ -93,25 +109,42 @@ const NewPageWrapper: React.FC<Props> = ({
                 </h1>
 
                 <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
-                  {origenNombre
-                    ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
-                    : activeUniversoId
-                    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
-                    : "Desliza y filtra personajes por universo"}
+                  {origenNombre ? (
+                    productMode === "cosplay"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
+                      : productMode === "figura"
+                        ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
+                        : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
+                  ) : activeUniversoId ? (
+                    productMode === "cosplay"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos cosplay`
+                      : productMode === "figura"
+                        ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
+                        : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                  ) : productMode === "cosplay" ? (
+                    `Mostrando ${categories?.length ?? 0} personajes con productos cosplay`
+                  ) : productMode === "figura" ? (
+                    `Mostrando ${categories?.length ?? 0} personajes con productos figura`
+                  ) : (
+                    "Desliza y filtra personajes por universo"
+                  )}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-3">
-                {cosplayToggleHref && (
+                {productModeToggleHref && (
                   <a
-                    href={cosplayToggleHref}
+                    href={productModeToggleHref}
+                    title={nextModeLabel}
                     className={`inline-flex items-center justify-center px-4 py-2 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
-                      cosplayOnly
+                      productMode === "cosplay"
                         ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)]"
-                        : "border-white/10 text-white/70 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
+                        : productMode === "figura"
+                          ? "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.14)]"
+                          : "border-white/10 text-white/70 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
                     }`}
                   >
-                    {cosplayOnly ? "Cosplay activo" : "Solo cosplay"}
+                    {productModeLabel}
                   </a>
                 )}
 

@@ -37,6 +37,8 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type ProductMode = "all" | "cosplay" | "figura";
+
 function slugify(s: string) {
   return s
     .toString()
@@ -53,8 +55,14 @@ const db = Astro.locals.runtime.env.DB as any;
 
 const universoId = Astro.url.searchParams.get("universoId");
 const origenId = Astro.url.searchParams.get("origenId");
-const cosplayParam = Astro.url.searchParams.get("cosplay");
-const cosplayOnly = cosplayParam === "1";
+const tipoProductoParam = Astro.url.searchParams.get("tipoProducto");
+
+const productMode: ProductMode =
+  tipoProductoParam === "cosplay"
+    ? "cosplay"
+    : tipoProductoParam === "figura"
+      ? "figura"
+      : "all";
 
 let categories: CategoryCard[] = [];
 let universos: UniverseCard[] = [];
@@ -64,25 +72,35 @@ let origenNombre: string | null = null;
 const buildExploreUrl = (next: {
   universoId?: string | null;
   origenId?: string | null;
-  cosplay?: string | null;
+  tipoProducto?: ProductMode | null;
 }) => {
   const params = new URLSearchParams();
 
   if (next.universoId) params.set("universoId", next.universoId);
   if (next.origenId) params.set("origenId", next.origenId);
-  if (next.cosplay) params.set("cosplay", next.cosplay);
+  if (next.tipoProducto && next.tipoProducto !== "all") {
+    params.set("tipoProducto", next.tipoProducto);
+  }
 
   const query = params.toString();
   return `/explorar${query ? `?${query}` : ""}`;
 };
 
-const clearFilterHref = universoId || origenId || cosplayOnly ? "/explorar" : null;
+const nextProductMode: ProductMode =
+  productMode === "all"
+    ? "cosplay"
+    : productMode === "cosplay"
+      ? "figura"
+      : "all";
 
-const cosplayToggleHref = buildExploreUrl({
+const productModeToggleHref = buildExploreUrl({
   universoId,
   origenId,
-  cosplay: cosplayOnly ? null : "1",
+  tipoProducto: nextProductMode,
 });
+
+const clearFilterHref =
+  universoId || origenId || productMode !== "all" ? "/explorar" : null;
 
 if (!db) {
   console.warn("[explorar] DB binding no disponible.");
@@ -165,13 +183,24 @@ if (!db) {
     params.push(universoId);
   }
 
-  if (cosplayOnly) {
+  if (productMode === "cosplay") {
     whereClauses.push(`
       EXISTS (
         SELECT 1
         FROM productos prc
         WHERE prc.id_personaje = p.id_personaje
           AND CAST(COALESCE(prc.tipo_cosplay, '0') AS TEXT) = '1'
+      )
+    `);
+  }
+
+  if (productMode === "figura") {
+    whereClauses.push(`
+      EXISTS (
+        SELECT 1
+        FROM productos prf
+        WHERE prf.id_personaje = p.id_personaje
+          AND CAST(COALESCE(prf.tipo_cosplay, '0') AS TEXT) <> '1'
       )
     `);
   }
@@ -206,8 +235,8 @@ const meta = {
   title: origenNombre
     ? `Explorar: ${origenNombre}`
     : universoNombre
-    ? `Explorar: ${universoNombre}`
-    : "Explorar Personajes",
+      ? `Explorar: ${universoNombre}`
+      : "Explorar Personajes",
 };
 ---
 
@@ -220,7 +249,7 @@ const meta = {
     activeUniversoId={universoId}
     clearFilterHref={clearFilterHref}
     origenNombre={origenNombre}
-    cosplayOnly={cosplayOnly}
-    cosplayToggleHref={cosplayToggleHref}
+    productMode={productMode}
+    productModeToggleHref={productModeToggleHref}
   />
 </Layout>
