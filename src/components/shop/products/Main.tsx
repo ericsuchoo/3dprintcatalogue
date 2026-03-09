@@ -380,15 +380,7 @@ const pageEnd =
               />
             </label>
 
-            <button
-              className="flex items-center justify-center gap-2 px-5 py-4 rounded-lg transition-colors duration-300 text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-white"
-              onClick={clearFilters}
-            >
-              <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[16px] h-[16px]" />
-              <span className="text-sm uppercase tracking-[0.18em] font-bold">
-                Limpiar filtros
-              </span>
-            </button>
+           
           </div>
 
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
