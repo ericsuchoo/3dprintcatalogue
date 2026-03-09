@@ -138,21 +138,33 @@ let proveedores: ProveedorRow[] = [];
 if (db) {
   if (await tableExists("personajes")) {
     const res = await db
-      .prepare(`SELECT id_personaje, nombre_personaje FROM personajes ORDER BY nombre_personaje ASC`)
+      .prepare(`
+        SELECT id_personaje, nombre_personaje
+        FROM personajes
+        ORDER BY nombre_personaje ASC
+      `)
       .all();
     personajes = (res?.results || []) as PersonajeRow[];
   }
 
   if (await tableExists("universos")) {
     const res = await db
-      .prepare(`SELECT id_universo, nombre_universo FROM universos ORDER BY nombre_universo ASC`)
+      .prepare(`
+        SELECT id_universo, nombre_universo
+        FROM universos
+        ORDER BY nombre_universo ASC
+      `)
       .all();
     universos = (res?.results || []) as UniversoRow[];
   }
 
   if (await tableExists("proveedores")) {
     const res = await db
-      .prepare(`SELECT id_proveedor, nombre_proveedor FROM proveedores ORDER BY nombre_proveedor ASC`)
+      .prepare(`
+        SELECT id_proveedor, nombre_proveedor
+        FROM proveedores
+        ORDER BY nombre_proveedor ASC
+      `)
       .all();
     proveedores = (res?.results || []) as ProveedorRow[];
   }
