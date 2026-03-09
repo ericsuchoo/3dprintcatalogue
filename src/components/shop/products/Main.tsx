@@ -137,9 +137,14 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
   };
 
-  const clearFilters = () => {
-    window.location.href = data.clearFilterHref || "/shop";
-  };
+const clearFilters = () => {
+  if (favoritesOnly) {
+    window.location.href = "/shop-2";
+    return;
+  }
+
+  window.location.href = data.clearFilterHref || "/shop";
+};
 
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
@@ -198,17 +203,21 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       });
     }
   };
+const currentPage = data.pagination?.currentPage || 1;
+const totalPages = favoritesOnly ? 1 : data.pagination?.totalPages || 1;
+const totalProducts = favoritesOnly
+  ? filteredProducts.length
+  : data.pagination?.totalProducts ?? filteredProducts.length;
+const itemsPerPage = favoritesOnly
+  ? filteredProducts.length || 1
+  : data.pagination?.itemsPerPage || filteredProducts.length;
+const pageCount = favoritesOnly
+  ? filteredProducts.length
+  : data.pagination?.pageCount ?? (data.products?.length || 0);
 
-  const currentPage = data.pagination?.currentPage || 1;
-  const totalPages = data.pagination?.totalPages || 1;
-  const totalProducts = data.pagination?.totalProducts ?? filteredProducts.length;
-  const itemsPerPage = data.pagination?.itemsPerPage || filteredProducts.length;
-  const pageCount = data.pagination?.pageCount ?? (data.products?.length || 0);
-
-  const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const pageEnd =
-    totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
-
+const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+const pageEnd =
+  totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
   const buildPageHref = (page: number) => buildUrl({ page });
 
   const getVisiblePages = () => {
@@ -371,15 +380,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
               />
             </label>
 
-            <button
-              className="flex items-center justify-center gap-2 px-5 py-4 rounded-lg transition-colors duration-300 text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:text-white"
-              onClick={clearFilters}
-            >
-              <div dangerouslySetInnerHTML={{ __html: TrashIcon }} className="w-[16px] h-[16px]" />
-              <span className="text-sm uppercase tracking-[0.18em] font-bold">
-                Limpiar filtros
-              </span>
-            </button>
+           
           </div>
 
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
