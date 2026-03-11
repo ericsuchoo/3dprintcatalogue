@@ -1,13 +1,11 @@
 import React from "react";
 import classNames from "classnames";
-import { BCMSImage } from "@thebcms/components-react";
 import { useFavorites } from "../context/FavoritesContext";
 
 export interface ProductCardProps {
   card: any;
   className?: string;
   style?: React.CSSProperties;
-  bcms?: any;
 }
 
 function getImageSrc(media: any): string | null {
@@ -17,22 +15,17 @@ function getImageSrc(media: any): string | null {
   return null;
 }
 
-function isBcmsMedia(media: any): boolean {
-  return !!media && !getImageSrc(media);
-}
-
 export const ProductCard: React.FC<ProductCardProps> = ({
   card,
   className,
   style,
-  bcms,
 }) => {
   const { favorites, toggleFavorite } = useFavorites();
   const productID = card.slug;
   const isFavorite = favorites.includes(productID);
 
   const media = card.cover || card.gallery?.[0];
-  const d1Url = getImageSrc(media);
+  const imageUrl = getImageSrc(media);
 
   return (
     <div
@@ -49,11 +42,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       <button
+        type="button"
         onClick={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           toggleFavorite(productID);
         }}
         className="absolute top-3 right-3 z-40 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-white hover:text-black transition-all duration-300"
+        aria-label={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
       >
         <svg
           className={classNames(
@@ -71,20 +67,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <a href={`/shop/${card.slug}`} className="flex flex-col h-full relative">
         <div className="aspect-[3/4] overflow-hidden bg-[#111] relative">
-          {media && isBcmsMedia(media) ? (
-            <BCMSImage
-              media={media}
-              clientConfig={bcms}
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-40"
-            />
-          ) : d1Url ? (
+          {imageUrl ? (
             <img
-              src={d1Url}
+              src={imageUrl}
               alt={card.title || "Producto"}
               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-40"
               loading="lazy"
             />
-          ) : null}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">
+              Sin imagen
+            </div>
+          )}
 
           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 bg-black/20 backdrop-blur-[2px]">
             <div className="bg-white text-black font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[4px_4px_0px_#000] border-2 border-black transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">

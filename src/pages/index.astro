@@ -82,10 +82,7 @@ const categories = (universosAgg || []).map((u) => ({
 ---
 
 <Layout title={`${homeStaticData.seo?.title || homeStaticData.title} | 3D Shop`}>
-  <!--
-    Pasamos bcms como objeto vacío porque algunos componentes esperan la prop `bcms`.
-    Si en el futuro quitas los BCMSImage, puedes quitar este prop.
-  -->
+
   <HomePageWrapper
     client:load
    
