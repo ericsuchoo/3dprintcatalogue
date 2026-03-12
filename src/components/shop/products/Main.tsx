@@ -65,10 +65,8 @@ function matchesCharacterSearch(title: string, query: string) {
   const normalizedQuery = normalizeText(query);
 
   if (!normalizedQuery) return false;
-  if (normalizedTitle.includes(normalizedQuery)) return true;
 
-  const words = normalizedTitle.split(/\s+/).filter(Boolean);
-  return words.some((word) => word.startsWith(normalizedQuery));
+  return normalizedTitle.includes(normalizedQuery);
 }
 
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
@@ -293,17 +291,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
     return source
       .filter((item) => matchesCharacterSearch(item.title, q))
-      .sort((a, b) => {
-        const aNorm = normalizeText(a.title);
-        const bNorm = normalizeText(b.title);
-        const qNorm = normalizeText(q);
-
-        const aStarts = aNorm.startsWith(qNorm) ? 1 : 0;
-        const bStarts = bNorm.startsWith(qNorm) ? 1 : 0;
-
-        if (aStarts !== bStarts) return bStarts - aStarts;
-        return aNorm.localeCompare(bNorm);
-      })
+      .sort((a, b) => normalizeText(a.title).localeCompare(normalizeText(b.title)))
       .slice(0, 8);
   }, [data.quickCharacterSuggestions, data.genders, characterSearch]);
 
@@ -499,6 +487,16 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         placeholder="Buscar personaje..."
                         className="bg-transparent px-2 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                       />
+                      {characterSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setCharacterSearch("")}
+                          className="text-[#3b82f6] hover:text-white transition text-base leading-none"
+                          aria-label="Limpiar búsqueda"
+                        >
+                          ×
+                        </button>
+                      )}
                     </label>
                   </div>
                 </div>
