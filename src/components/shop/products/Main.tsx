@@ -14,6 +14,12 @@ export interface ProductFilterD1 {
   active: boolean;
 }
 
+type CharacterSuggestion = {
+  id: string;
+  title: string;
+  href: string;
+};
+
 interface Props {
   data: ShopPageDataD1 & {
     personajeNombre?: string | null;
@@ -29,6 +35,7 @@ interface Props {
       id: string;
       name: string;
     } | null;
+    quickCharacterSuggestions?: CharacterSuggestion[];
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -45,14 +52,8 @@ interface Props {
   favoritesOnly?: boolean;
 }
 
-type CharacterSuggestion = {
-  id: string;
-  title: string;
-  href: string;
-};
-
 function normalizeText(value: string) {
-  return (value || "")
+  return value
     .toLowerCase()
     .trim()
     .normalize("NFD")
@@ -265,32 +266,49 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return pages;
   };
 
-  const allCharacterSuggestions = useMemo<CharacterSuggestion[]>(() => {
+  const characterSource: CharacterSuggestion[] = useMemo(() => {
+    if ((data.quickCharacterSuggestions || []).length > 0) {
+      return data.quickCharacterSuggestions || [];
+    }
+
     return (data.genders || []).map((p) => ({
       id: String(p.slug),
       title: p.title,
       href: `/shop?personajeId=${p.slug}`,
     }));
-  }, [data.genders]);
+  }, [data.quickCharacterSuggestions, data.genders]);
 
   const characterSuggestions = useMemo(() => {
     const q = normalizeText(characterSearch);
 
     if (!q) return [];
 
-    return allCharacterSuggestions
+    return characterSource
       .filter((item) => normalizeText(item.title).includes(q))
-      .sort((a, b) => normalizeText(a.title).localeCompare(normalizeText(b.title)))
       .slice(0, 8);
-  }, [allCharacterSuggestions, characterSearch]);
+  }, [characterSource, characterSearch]);
+
+  const sidebarCharacterFilters = useMemo(() => {
+    const q = normalizeText(characterSearch);
+
+    const personajes = filters.filter((e) => e.type === "personaje");
+
+    if (!q) {
+      return personajes.slice(0, 8);
+    }
+
+    return personajes
+      .filter((item) => normalizeText(item.label).includes(q))
+      .slice(0, 8);
+  }, [filters, characterSearch]);
 
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
-      <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
-        <div className="lg:row-span-2 sticky top-28">
-          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)] max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+        <div className="xl:sticky xl:top-28">
+          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-7 bg-[#0f0f0f] rounded-xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div className="text-2xl leading-none font-bold italic text-red-500">
                 {favoritesOnly ? "Mis Me gusta" : "Filtros"}
@@ -300,7 +318,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[10px] bg-red-500/10 hover:bg-red-500/20 whitespace-nowrap"
+                  className="shrink-0 px-3 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[9px] bg-red-500/10 hover:bg-red-500/20"
                 >
                   Quitar filtros
                 </button>
@@ -365,20 +383,51 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
             <div>
               <div className={filterTitleClass}>Personajes</div>
-              <div className="grid grid-cols-1 gap-4 mt-4 text-[#fdfdfd]">
-                {filters
-                  .filter((e) => e.type === "personaje")
-                  .map((filter, index) => (
-                    <FormCheck
-                      key={index}
-                      value={filter.label}
-                      label={filter.label}
-                      onCheck={() => setProductFilter(filter)}
-                      checked={filter.active}
-                      size="sm"
-                    />
-                  ))}
+
+              <div className="mt-4">
+                <label className="flex items-center px-4 border border-white/10 bg-black rounded-lg">
+                  <div
+                    dangerouslySetInnerHTML={{ __html: SearchIcon }}
+                    className="w-[15px] h-[15px] text-zinc-500"
+                  />
+                  <input
+                    type="search"
+                    value={characterSearch}
+                    onChange={(e) => setCharacterSearch(e.target.value)}
+                    placeholder="Filtrar personajes..."
+                    className="bg-transparent px-2 py-3 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                  />
+                  {characterSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCharacterSearch("")}
+                      className="text-zinc-500 hover:text-white transition text-sm"
+                      aria-label="Limpiar búsqueda de personajes"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </label>
               </div>
+
+              <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+                {sidebarCharacterFilters.map((filter, index) => (
+                  <FormCheck
+                    key={`${filter.value}-${index}`}
+                    value={filter.label}
+                    label={filter.label}
+                    onCheck={() => setProductFilter(filter)}
+                    checked={filter.active}
+                    size="sm"
+                  />
+                ))}
+              </div>
+
+              {characterSearch && sidebarCharacterFilters.length === 0 && (
+                <div className="text-xs text-zinc-500 mt-3">
+                  No hay personajes con esa coincidencia.
+                </div>
+              )}
             </div>
 
             {filters.some((f) => f.type === "proveedor") && (
@@ -403,9 +452,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           </div>
         </div>
 
-        <div className="lg:col-start-2">
+        <div>
           {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
-            <div className="mb-8 flex flex-col gap-4">
+            <div className="mb-6 flex flex-col gap-4">
               {selectedCharacterName && (
                 <div className="rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-500/10 via-[#111] to-[#111] px-6 py-5 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
                   <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
@@ -451,53 +500,43 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           )}
 
           {!favoritesOnly && (
-            <div className="mb-6 rounded-2xl border border-white/10 bg-[#0f0f0f] p-4 md:p-5">
+            <div className="mb-6 rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-5 md:px-6 md:py-5">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-500 font-black mb-1">
+                    <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
                       Buscar personaje
                     </div>
-                    <h3 className="text-white text-xl md:text-2xl font-black italic uppercase">
+                    <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
                       Salta directo al catálogo
                     </h3>
                   </div>
 
                   <div className="w-full md:max-w-[340px]">
-                    <label className="flex items-center px-4 border border-white/10 bg-black rounded-full h-11">
+                    <label className="flex items-center px-4 border border-white/10 bg-black rounded-full">
                       <div
                         dangerouslySetInnerHTML={{ __html: SearchIcon }}
                         className="w-[15px] h-[15px] text-zinc-500"
                       />
                       <input
-                        type="text"
+                        type="search"
                         value={characterSearch}
                         onChange={(e) => setCharacterSearch(e.target.value)}
                         placeholder="Buscar personaje..."
-                        className="bg-transparent px-2 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                        className="bg-transparent px-2 py-3 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                       />
-                      {characterSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setCharacterSearch("")}
-                          className="text-[#3b82f6] hover:text-white transition text-base leading-none"
-                          aria-label="Limpiar búsqueda"
-                        >
-                          ×
-                        </button>
-                      )}
                     </label>
                   </div>
                 </div>
 
-                {characterSearch.trim().length > 0 && (
+                {characterSearch && (
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-bold mb-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold mb-3">
                       Coincidencias
                     </div>
 
                     {characterSuggestions.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                         {characterSuggestions.map((item) => {
                           const isActive =
                             String(data.initialPersonajeId ?? "") === String(item.id);
@@ -506,17 +545,17 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                             <a
                               key={item.id}
                               href={item.href}
-                              className={`group rounded-xl border px-4 py-3 transition min-h-[88px] ${
+                              className={`group rounded-xl border p-4 transition ${
                                 isActive
                                   ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
                                   : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
                               }`}
                             >
-                              <div className="text-[9px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+                              <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
                                 Personaje
                               </div>
                               <div
-                                className={`text-sm md:text-[15px] font-black uppercase italic leading-tight transition ${
+                                className={`text-sm md:text-base font-black uppercase italic transition ${
                                   isActive
                                     ? "text-red-400"
                                     : "text-white group-hover:text-red-400"
@@ -524,7 +563,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                               >
                                 {item.title}
                               </div>
-                              <div className="mt-2 text-[9px] uppercase tracking-[0.18em] text-zinc-500">
+                              <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                                 Ver catálogo
                               </div>
                             </a>
@@ -532,7 +571,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         })}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-white/10 bg-black px-4 py-4 text-sm text-zinc-400">
+                      <div className="rounded-xl border border-white/10 bg-black px-4 py-5 text-sm text-zinc-400">
                         No encontramos coincidencias para ese personaje.
                       </div>
                     )}
