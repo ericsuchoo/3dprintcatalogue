@@ -52,10 +52,19 @@ interface Props {
   favoritesOnly?: boolean;
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
   const [searchVal, setSearchVal] = useState("");
+  const [characterSearch, setCharacterSearch] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -257,20 +266,32 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return pages;
   };
 
-  const recommendedCharacters = useMemo(() => {
-    const source =
-      (data.quickCharacterSuggestions || []).length > 0
-        ? data.quickCharacterSuggestions || []
-        : (data.genders || []).map((p) => ({
-            id: String(p.slug),
-            title: p.title,
-            href: `/shop?personajeId=${p.slug}`,
-          }));
-
-    return source.slice(0, 8);
+  const characterSource = useMemo(() => {
+    return (data.quickCharacterSuggestions || []).length > 0
+      ? data.quickCharacterSuggestions || []
+      : (data.genders || []).map((p) => ({
+          id: String(p.slug),
+          title: p.title,
+          href: `/shop?personajeId=${p.slug}`,
+        }));
   }, [data.quickCharacterSuggestions, data.genders]);
 
+  const recommendedCharacters = useMemo(() => {
+    return characterSource.slice(0, 8);
+  }, [characterSource]);
+
+  const matchedCharacters = useMemo(() => {
+    const q = normalizeText(characterSearch);
+
+    if (!q) return [];
+
+    return characterSource
+      .filter((item) => normalizeText(item.title).includes(q))
+      .slice(0, 8);
+  }, [characterSource, characterSearch]);
+
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
+  const hasCharacterSearch = characterSearch.trim().length > 0;
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
@@ -434,47 +455,125 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
           )}
 
-          {!favoritesOnly && recommendedCharacters.length > 0 && (
+          {!favoritesOnly && (
             <div className="mb-8 rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 md:p-6">
-              <div className="mb-4">
-                <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
-                  Explora por personaje
-                </div>
-                <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
-                  Personajes recomendados
-                </h3>
-              </div>
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
+                      Explora por personaje
+                    </div>
+                    <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
+                      Busca y salta directo al shop
+                    </h3>
+                  </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {recommendedCharacters.map((item) => {
-                  const isActive = String(data.initialPersonajeId ?? "") === String(item.id);
-
-                  return (
-                    <a
-                      key={item.id}
-                      href={item.href}
-                      className={`group rounded-xl border p-4 transition ${
-                        isActive
-                          ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
-                          : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
-                      }`}
-                    >
-                      <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
-                        Personaje
-                      </div>
+                  <div className="w-full md:max-w-[420px]">
+                    <label className="flex items-center px-5 border border-white/10 bg-black rounded-lg">
                       <div
-                        className={`text-sm md:text-base font-black uppercase italic transition ${
-                          isActive ? "text-red-400" : "text-white group-hover:text-red-400"
-                        }`}
-                      >
-                        {item.title}
+                        dangerouslySetInnerHTML={{ __html: SearchIcon }}
+                        className="w-[18px] h-[18px] text-zinc-500"
+                      />
+                      <input
+                        type="search"
+                        value={characterSearch}
+                        onChange={(e) => setCharacterSearch(e.target.value)}
+                        placeholder="Buscar personaje..."
+                        className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {hasCharacterSearch ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold mb-3">
+                      Coincidencias
+                    </div>
+
+                    {matchedCharacters.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {matchedCharacters.map((item) => {
+                          const isActive =
+                            String(data.initialPersonajeId ?? "") === String(item.id);
+
+                          return (
+                            <a
+                              key={item.id}
+                              href={item.href}
+                              className={`group rounded-xl border p-4 transition ${
+                                isActive
+                                  ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                                  : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
+                              }`}
+                            >
+                              <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
+                                Personaje
+                              </div>
+                              <div
+                                className={`text-sm md:text-base font-black uppercase italic transition ${
+                                  isActive
+                                    ? "text-red-400"
+                                    : "text-white group-hover:text-red-400"
+                                }`}
+                              >
+                                {item.title}
+                              </div>
+                              <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                                Ver catálogo
+                              </div>
+                            </a>
+                          );
+                        })}
                       </div>
-                      <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-                        Ver catálogo
+                    ) : (
+                      <div className="rounded-xl border border-white/10 bg-black px-4 py-5 text-sm text-zinc-400">
+                        No encontramos coincidencias para ese personaje.
                       </div>
-                    </a>
-                  );
-                })}
+                    )}
+                  </div>
+                ) : recommendedCharacters.length > 0 ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold mb-3">
+                      Personajes recomendados
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {recommendedCharacters.map((item) => {
+                        const isActive =
+                          String(data.initialPersonajeId ?? "") === String(item.id);
+
+                        return (
+                          <a
+                            key={item.id}
+                            href={item.href}
+                            className={`group rounded-xl border p-4 transition ${
+                              isActive
+                                ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                                : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
+                            }`}
+                          >
+                            <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
+                              Personaje
+                            </div>
+                            <div
+                              className={`text-sm md:text-base font-black uppercase italic transition ${
+                                isActive
+                                  ? "text-red-400"
+                                  : "text-white group-hover:text-red-400"
+                              }`}
+                            >
+                              {item.title}
+                            </div>
+                            <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                              Ver catálogo
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
