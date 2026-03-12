@@ -14,12 +14,6 @@ export interface ProductFilterD1 {
   active: boolean;
 }
 
-type CharacterSuggestion = {
-  id: string;
-  title: string;
-  href: string;
-};
-
 interface Props {
   data: ShopPageDataD1 & {
     personajeNombre?: string | null;
@@ -35,7 +29,6 @@ interface Props {
       id: string;
       name: string;
     } | null;
-    quickCharacterSuggestions?: CharacterSuggestion[];
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -52,21 +45,18 @@ interface Props {
   favoritesOnly?: boolean;
 }
 
+type CharacterSuggestion = {
+  id: string;
+  title: string;
+  href: string;
+};
+
 function normalizeText(value: string) {
-  return value
+  return (value || "")
     .toLowerCase()
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-}
-
-function matchesCharacterSearch(title: string, query: string) {
-  const normalizedTitle = normalizeText(title);
-  const normalizedQuery = normalizeText(query);
-
-  if (!normalizedQuery) return false;
-
-  return normalizedTitle.includes(normalizedQuery);
 }
 
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
@@ -275,25 +265,24 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return pages;
   };
 
-  const characterSuggestions = useMemo(() => {
-    const source: CharacterSuggestion[] =
-      data.quickCharacterSuggestions && data.quickCharacterSuggestions.length > 0
-        ? data.quickCharacterSuggestions
-        : (data.genders || []).map((p) => ({
-            id: String(p.slug),
-            title: p.title,
-            href: `/shop?personajeId=${p.slug}`,
-          }));
+  const allCharacterSuggestions = useMemo<CharacterSuggestion[]>(() => {
+    return (data.genders || []).map((p) => ({
+      id: String(p.slug),
+      title: p.title,
+      href: `/shop?personajeId=${p.slug}`,
+    }));
+  }, [data.genders]);
 
-    const q = characterSearch.trim();
+  const characterSuggestions = useMemo(() => {
+    const q = normalizeText(characterSearch);
 
     if (!q) return [];
 
-    return source
-      .filter((item) => matchesCharacterSearch(item.title, q))
+    return allCharacterSuggestions
+      .filter((item) => normalizeText(item.title).includes(q))
       .sort((a, b) => normalizeText(a.title).localeCompare(normalizeText(b.title)))
       .slice(0, 8);
-  }, [data.quickCharacterSuggestions, data.genders, characterSearch]);
+  }, [allCharacterSuggestions, characterSearch]);
 
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
 
@@ -481,7 +470,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         className="w-[15px] h-[15px] text-zinc-500"
                       />
                       <input
-                        type="search"
+                        type="text"
                         value={characterSearch}
                         onChange={(e) => setCharacterSearch(e.target.value)}
                         placeholder="Buscar personaje..."

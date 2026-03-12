@@ -334,12 +334,13 @@ const activeFilterLabels: string[] = [
 // --------------------
 // 7) Sugerencias para buscador tipo mini slides
 // --------------------
-const quickCharacterSuggestions = personajes.slice(0, 24).map((p) => ({
-  id: String(p.id_personaje),
-  title: p.nombre_personaje,
-  href: `/shop?personajeId=${p.id_personaje}`,
-}));
-
+const quickCharacterSuggestions = personajes
+  .filter((p) => p.id_personaje && p.nombre_personaje)
+  .map((p) => ({
+    id: String(p.id_personaje),
+    title: p.nombre_personaje,
+    href: `/shop?personajeId=${p.id_personaje}`,
+  }));
 // --------------------
 // 8) Data para React
 // --------------------
