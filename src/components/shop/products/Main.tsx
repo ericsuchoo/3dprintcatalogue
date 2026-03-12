@@ -276,10 +276,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         }));
   }, [data.quickCharacterSuggestions, data.genders]);
 
-  const recommendedCharacters = useMemo(() => {
-    return characterSource.slice(0, 8);
-  }, [characterSource]);
-
   const matchedCharacters = useMemo(() => {
     const q = normalizeText(characterSearch);
 
@@ -287,7 +283,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
     return characterSource
       .filter((item) => normalizeText(item.title).includes(q))
-      .slice(0, 8);
+      .slice(0, 10);
   }, [characterSource, characterSearch]);
 
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
@@ -456,43 +452,43 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           )}
 
           {!favoritesOnly && (
-            <div className="mb-8 rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 md:p-6">
-              <div className="flex flex-col gap-5">
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="mb-6 rounded-2xl border border-white/10 bg-[#0f0f0f] p-4 md:p-5">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
-                    <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
-                      Explora por personaje
+                    <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-500 font-black mb-1">
+                      Buscar personaje
                     </div>
-                    <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
-                      Busca y salta directo al shop
+                    <h3 className="text-white text-lg md:text-xl font-black italic uppercase">
+                      Salta directo al catálogo
                     </h3>
                   </div>
 
-                  <div className="w-full md:max-w-[420px]">
-                    <label className="flex items-center px-5 border border-white/10 bg-black rounded-lg">
+                  <div className="w-full md:max-w-[360px]">
+                    <label className="flex items-center px-4 border border-white/10 bg-black rounded-full">
                       <div
                         dangerouslySetInnerHTML={{ __html: SearchIcon }}
-                        className="w-[18px] h-[18px] text-zinc-500"
+                        className="w-[16px] h-[16px] text-zinc-500"
                       />
                       <input
                         type="search"
                         value={characterSearch}
                         onChange={(e) => setCharacterSearch(e.target.value)}
-                        placeholder="Buscar personaje..."
-                        className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                        placeholder="Ej: Batman, Goku, Thor..."
+                        className="bg-transparent px-2 py-3 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
                       />
                     </label>
                   </div>
                 </div>
 
-                {hasCharacterSearch ? (
+                {hasCharacterSearch && (
                   <div>
-                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold mb-3">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-3">
                       Coincidencias
                     </div>
 
                     {matchedCharacters.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                      <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                         {matchedCharacters.map((item) => {
                           const isActive =
                             String(data.initialPersonajeId ?? "") === String(item.id);
@@ -501,25 +497,25 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                             <a
                               key={item.id}
                               href={item.href}
-                              className={`group rounded-xl border p-4 transition ${
+                              className={`min-w-[170px] max-w-[170px] rounded-xl border px-4 py-3 transition ${
                                 isActive
                                   ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
                                   : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
                               }`}
                             >
-                              <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
+                              <div className="text-[9px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
                                 Personaje
                               </div>
                               <div
-                                className={`text-sm md:text-base font-black uppercase italic transition ${
+                                className={`text-sm font-black uppercase italic leading-tight transition ${
                                   isActive
                                     ? "text-red-400"
-                                    : "text-white group-hover:text-red-400"
+                                    : "text-white hover:text-red-400"
                                 }`}
                               >
                                 {item.title}
                               </div>
-                              <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                              <div className="mt-2 text-[9px] uppercase tracking-[0.22em] text-zinc-500">
                                 Ver catálogo
                               </div>
                             </a>
@@ -527,53 +523,12 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                         })}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-white/10 bg-black px-4 py-5 text-sm text-zinc-400">
+                      <div className="rounded-xl border border-white/10 bg-black px-4 py-4 text-sm text-zinc-400">
                         No encontramos coincidencias para ese personaje.
                       </div>
                     )}
                   </div>
-                ) : recommendedCharacters.length > 0 ? (
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold mb-3">
-                      Personajes recomendados
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                      {recommendedCharacters.map((item) => {
-                        const isActive =
-                          String(data.initialPersonajeId ?? "") === String(item.id);
-
-                        return (
-                          <a
-                            key={item.id}
-                            href={item.href}
-                            className={`group rounded-xl border p-4 transition ${
-                              isActive
-                                ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
-                                : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
-                            }`}
-                          >
-                            <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
-                              Personaje
-                            </div>
-                            <div
-                              className={`text-sm md:text-base font-black uppercase italic transition ${
-                                isActive
-                                  ? "text-red-400"
-                                  : "text-white group-hover:text-red-400"
-                              }`}
-                            >
-                              {item.title}
-                            </div>
-                            <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-                              Ver catálogo
-                            </div>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
+                )}
               </div>
             </div>
           )}
