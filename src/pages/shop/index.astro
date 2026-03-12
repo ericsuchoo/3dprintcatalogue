@@ -335,66 +335,58 @@ const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].fi
 );
 
 // --------------------
-// 7) Buscador superior: personaje + universo + etiquetas
+// 7) Sugerencias para buscador superior
 // --------------------
+type QuickCharacterSuggestionRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  nombre_universo: string | null;
+  etiquetas_personaje: string | null;
+};
+
 let quickCharacterSuggestions: {
   id: string;
   title: string;
   href: string;
-  universe: string;
-  tags: string[];
+  universe?: string;
+  tags?: string[];
 }[] = [];
 
 if (db && (await tableExists("personajes"))) {
-  const hasPersonajesEtiquetas = await tableExists("personajes_etiquetas");
-  const hasEtiquetas = await tableExists("etiquetas");
-  const hasUniversos = await tableExists("universos");
+  const quickRes = await db
+    .prepare(`
+      SELECT
+        p.id_personaje,
+        p.nombre_personaje,
+        u.nombre_universo,
+        (
+          SELECT GROUP_CONCAT(e.nombre_etiqueta, '||')
+          FROM personajes_etiquetas pe
+          INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+          WHERE pe.id_personaje = p.id_personaje
+        ) as etiquetas_personaje
+      FROM personajes p
+      LEFT JOIN universos u
+        ON u.id_universo = p.id_universo
+      ORDER BY p.nombre_personaje ASC
+    `)
+    .all();
 
-  if (hasPersonajesEtiquetas && hasEtiquetas && hasUniversos) {
-    const quickSuggestionsRes = await db
-      .prepare(`
-        SELECT
-          p.id_personaje,
-          p.nombre_personaje,
-          u.nombre_universo,
-          GROUP_CONCAT(DISTINCT e.nombre_etiqueta) as tags
-        FROM personajes p
-        LEFT JOIN universos u
-          ON u.id_universo = p.id_universo
-        LEFT JOIN personajes_etiquetas pe
-          ON pe.id_personaje = p.id_personaje
-        LEFT JOIN etiquetas e
-          ON e.id_etiqueta = pe.id_etiqueta
-        GROUP BY p.id_personaje, p.nombre_personaje, u.nombre_universo
-        ORDER BY p.nombre_personaje ASC
-      `)
-      .all();
+  const quickRows = (quickRes?.results || []) as QuickCharacterSuggestionRow[];
 
-    const rows = (quickSuggestionsRes?.results || []) as CharacterSuggestionRow[];
-
-    quickCharacterSuggestions = rows.map((p) => ({
-      id: String(p.id_personaje),
-      title: p.nombre_personaje,
-      href: `/shop?personajeId=${p.id_personaje}`,
-      universe: p.nombre_universo ?? "",
-      tags: p.tags
-        ? p.tags
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : [],
-    }));
-  } else {
-    quickCharacterSuggestions = personajes.map((p) => ({
-      id: String(p.id_personaje),
-      title: p.nombre_personaje,
-      href: `/shop?personajeId=${p.id_personaje}`,
-      universe: "",
-      tags: [],
-    }));
-  }
+  quickCharacterSuggestions = quickRows.map((row) => ({
+    id: String(row.id_personaje),
+    title: row.nombre_personaje,
+    href: `/shop?personajeId=${row.id_personaje}`,
+    universe: row.nombre_universo ?? "",
+    tags: row.etiquetas_personaje
+      ? row.etiquetas_personaje
+          .split("||")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [],
+  }));
 }
-
 // --------------------
 // 8) Data para React
 // --------------------
