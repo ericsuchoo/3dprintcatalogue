@@ -25,7 +25,7 @@ function getImageSrc(media: MediaLike | null | undefined): string {
   return "";
 }
 
-export const HomeHero: React.FC<Props> = ({ title, description, gallery, logo_dc3 }) => {
+export const HomeHero: React.FC<Props> = ({ title, gallery, logo_dc3 }) => {
   const slides = gallery && gallery.length > 0 ? gallery : [];
   const logoSrc = getImageSrc(logo_dc3);
 

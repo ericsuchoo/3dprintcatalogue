@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import SearchIcon from "../../../assets/icons/search.svg?raw";
-import TrashIcon from "../../../assets/icons/trash.svg?raw";
 
 import { FormCheck } from "../../form/Check";
 import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
@@ -15,6 +14,12 @@ export interface ProductFilterD1 {
   active: boolean;
 }
 
+type CharacterSuggestion = {
+  id: string;
+  title: string;
+  href: string;
+};
+
 interface Props {
   data: ShopPageDataD1 & {
     personajeNombre?: string | null;
@@ -22,9 +27,15 @@ interface Props {
     proveedorNombre?: string | null;
     activeFilterLabels?: string[];
     clearFilterHref?: string | null;
+    initialPersonajeId?: string | null;
     initialUniversoId?: string | null;
     initialProveedorId?: string | null;
     initialSort?: "newest" | "price_asc" | "price_desc";
+    selectedCharacter?: {
+      id: string;
+      name: string;
+    } | null;
+    quickCharacterSuggestions?: CharacterSuggestion[];
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -41,9 +52,19 @@ interface Props {
   favoritesOnly?: boolean;
 }
 
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
+
   const [searchVal, setSearchVal] = useState("");
+  const [characterSearch, setCharacterSearch] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -112,6 +133,13 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
   const activeFilters = useMemo(() => filters.filter((f) => f.active), [filters]);
 
+  const hasActiveFilters =
+    activeFilters.length > 0 ||
+    !!data.initialPersonajeId ||
+    !!data.initialUniversoId ||
+    !!data.initialProveedorId ||
+    data.initialSort !== "newest";
+
   const buildUrl = (next: {
     personajeId?: string | null;
     universoId?: string | null;
@@ -137,14 +165,14 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return `${data.pagination?.basePath || "/shop"}${query ? `?${query}` : ""}`;
   };
 
-const clearFilters = () => {
-  if (favoritesOnly) {
-    window.location.href = "/shop-2";
-    return;
-  }
+  const clearFilters = () => {
+    if (favoritesOnly) {
+      window.location.href = "/shop-2";
+      return;
+    }
 
-  window.location.href = data.clearFilterHref || "/shop";
-};
+    window.location.href = data.clearFilterHref || "/shop";
+  };
 
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
@@ -155,6 +183,7 @@ const clearFilters = () => {
       if (searchVal) {
         const haystack =
           `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
+
         if (!haystack.includes(searchVal.toLowerCase())) return false;
       }
 
@@ -203,21 +232,23 @@ const clearFilters = () => {
       });
     }
   };
-const currentPage = data.pagination?.currentPage || 1;
-const totalPages = favoritesOnly ? 1 : data.pagination?.totalPages || 1;
-const totalProducts = favoritesOnly
-  ? filteredProducts.length
-  : data.pagination?.totalProducts ?? filteredProducts.length;
-const itemsPerPage = favoritesOnly
-  ? filteredProducts.length || 1
-  : data.pagination?.itemsPerPage || filteredProducts.length;
-const pageCount = favoritesOnly
-  ? filteredProducts.length
-  : data.pagination?.pageCount ?? (data.products?.length || 0);
 
-const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-const pageEnd =
-  totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
+  const currentPage = data.pagination?.currentPage || 1;
+  const totalPages = favoritesOnly ? 1 : data.pagination?.totalPages || 1;
+  const totalProducts = favoritesOnly
+    ? filteredProducts.length
+    : data.pagination?.totalProducts ?? filteredProducts.length;
+  const itemsPerPage = favoritesOnly
+    ? filteredProducts.length || 1
+    : data.pagination?.itemsPerPage || filteredProducts.length;
+  const pageCount = favoritesOnly
+    ? filteredProducts.length
+    : data.pagination?.pageCount ?? (data.products?.length || 0);
+
+  const pageStart = totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const pageEnd =
+    totalProducts === 0 ? 0 : Math.min((currentPage - 1) * itemsPerPage + pageCount, totalProducts);
+
   const buildPageHref = (page: number) => buildUrl({ page });
 
   const getVisiblePages = () => {
@@ -235,11 +266,32 @@ const pageEnd =
     return pages;
   };
 
+  const characterSuggestions = useMemo(() => {
+    const source =
+      (data.quickCharacterSuggestions || []).length > 0
+        ? data.quickCharacterSuggestions || []
+        : (data.genders || []).map((p) => ({
+            id: String(p.slug),
+            title: p.title,
+            href: `/shop?personajeId=${p.slug}`,
+          }));
+
+    const q = normalizeText(characterSearch);
+
+    const result = !q
+      ? source
+      : source.filter((item) => normalizeText(item.title).includes(q));
+
+    return result.slice(0, 12);
+  }, [data.quickCharacterSuggestions, data.genders, characterSearch]);
+
+  const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
+
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
       <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr] lg:grid-rows-[auto,1fr]">
         <div className="lg:row-span-2 sticky top-28">
-          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
+          <div className="grid grid-cols-1 gap-8 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)] max-h-[calc(100vh-8rem)] overflow-y-auto">
             <div className="text-2xl leading-none font-bold italic text-red-500">
               {favoritesOnly ? "Mis Me gusta" : "Filtros"}
             </div>
@@ -337,31 +389,143 @@ const pageEnd =
                 </div>
               </div>
             )}
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-2 inline-flex items-center justify-center px-5 py-3 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
+              >
+                Quitar filtros
+              </button>
+            )}
           </div>
         </div>
 
         <div className="lg:col-start-2">
-          {(data.activeFilterLabels?.length || data.clearFilterHref) && (
-            <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                {data.activeFilterLabels?.length ? (
-                  <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
-                    Shop:{" "}
-                    <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
-                      {data.activeFilterLabels.join(" / ")}
-                    </span>
-                  </h2>
-                ) : null}
-              </div>
+          {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
+            <div className="mb-8 flex flex-col gap-4">
+              {selectedCharacterName && (
+                <div className="rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-500/10 via-[#111] to-[#111] px-6 py-5 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
+                  <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
+                    Explorando personaje
+                  </div>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                      {selectedCharacterName}
+                    </h2>
 
-              {data.clearFilterHref && (
-                <a
-                  href={data.clearFilterHref}
-                  className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
-                >
-                  Quitar filtros
-                </a>
+                    <a
+                      href="/shop"
+                      className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
+                    >
+                      Ver todo el catálogo
+                    </a>
+                  </div>
+                </div>
               )}
+
+              {!selectedCharacterName && data.activeFilterLabels?.length ? (
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h2 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                      Shop:{" "}
+                      <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
+                        {data.activeFilterLabels.join(" / ")}
+                      </span>
+                    </h2>
+                  </div>
+
+                  {data.clearFilterHref && (
+                    <a
+                      href={data.clearFilterHref}
+                      className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.22em] font-black text-[10px] md:text-xs bg-red-500/10 hover:bg-red-500/20"
+                    >
+                      Quitar filtros
+                    </a>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {!favoritesOnly && (
+            <div className="mb-8 rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 md:p-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
+                      Explora por personaje
+                    </div>
+                    <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
+                      Busca y salta directo al shop
+                    </h3>
+                  </div>
+
+                  <div className="w-full md:max-w-[420px]">
+                    <label className="flex items-center px-5 border border-white/10 bg-black rounded-lg">
+                      <div
+                        dangerouslySetInnerHTML={{ __html: SearchIcon }}
+                        className="w-[18px] h-[18px] text-zinc-500"
+                      />
+                      <input
+                        type="search"
+                        value={characterSearch}
+                        onChange={(e) => setCharacterSearch(e.target.value)}
+                        placeholder="Buscar personaje..."
+                        className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold">
+                  {characterSearch ? "Coincidencias" : "Personajes destacados"}
+                </div>
+
+                {characterSuggestions.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {characterSuggestions.map((item) => {
+                      const isActive =
+                        String(data.initialPersonajeId ?? "") === String(item.id);
+
+                      return (
+                        <a
+                          key={item.id}
+                          href={item.href}
+                          className={`group rounded-xl border p-4 transition ${
+                            isActive
+                              ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                              : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
+                          }`}
+                        >
+                          <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
+                            Personaje
+                          </div>
+                          <div
+                            className={`text-sm md:text-base font-black uppercase italic transition ${
+                              isActive
+                                ? "text-red-400"
+                                : "text-white group-hover:text-red-400"
+                            }`}
+                          >
+                            {item.title}
+                          </div>
+                          <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                            Ver catálogo
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {characterSearch && characterSuggestions.length === 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black px-4 py-5 text-sm text-zinc-400">
+                    No encontramos coincidencias para ese personaje.
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -379,13 +543,11 @@ const pageEnd =
                 className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
               />
             </label>
-
-           
           </div>
 
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
             <div className="text-sm uppercase tracking-[0.18em] text-zinc-400 font-bold">
-              {totalProducts} Variante{totalProducts === 1 ? "" : "s"}
+              {totalProducts} Producto{totalProducts === 1 ? "" : "s"}
             </div>
 
             <div className="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">

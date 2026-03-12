@@ -20,16 +20,27 @@ export type CategoryCard = {
 
 type OriginItem = { id: string; label: string };
 
+export type CharacterItem = {
+  id: string;
+  slug?: string;
+  name: string;
+  image?: string;
+  universe?: string;
+  href?: string;
+};
+
 interface Props {
   meta: any;
   categories: CategoryCard[];
   origins?: OriginItem[];
+  characters?: CharacterItem[];
 }
 
 const HomePageWrapper: React.FC<Props> = ({
   meta,
   categories,
   origins = [],
+  characters = [],
 }) => {
   return (
     <ContextWrapper>
@@ -68,6 +79,7 @@ const HomePageWrapper: React.FC<Props> = ({
           description={meta.cta_description}
           image={meta.cta_cover_image}
           cta={{ label: meta.cta_label, href: meta.cta_link }}
+          characters={characters}
         />
       </InnerPageWrapper>
     </ContextWrapper>

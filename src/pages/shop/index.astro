@@ -73,6 +73,10 @@ const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
 const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
 const sort = normalizeSort(Astro.url.searchParams.get("sort"));
 
+// nuevos params para navegación desde home
+const personajeQuery = Astro.url.searchParams.get("personaje")?.trim() || null;
+const personajeNombreParam = Astro.url.searchParams.get("characterName")?.trim() || null;
+
 const ITEMS_PER_PAGE = 30;
 
 let personajeNombre: string | null = null;
@@ -93,9 +97,52 @@ async function tableExists(name: string) {
 }
 
 // --------------------
-// 0) Resolver nombres activos
+// 0) Resolver personaje si viene por nombre
 // --------------------
-if (db && personajeId) {
+let resolvedPersonajeId = personajeId;
+
+if (db && !resolvedPersonajeId && personajeQuery && (await tableExists("personajes"))) {
+  const row = await db
+    .prepare(`
+      SELECT id_personaje, nombre_personaje
+      FROM personajes
+      WHERE LOWER(nombre_personaje) = LOWER(?)
+      LIMIT 1
+    `)
+    .bind(personajeQuery)
+    .first();
+
+  if (row) {
+    resolvedPersonajeId = Number((row as PersonajeRow).id_personaje);
+    personajeNombre = (row as PersonajeRow).nombre_personaje ?? null;
+  } else {
+    const likeRow = await db
+      .prepare(`
+        SELECT id_personaje, nombre_personaje
+        FROM personajes
+        WHERE LOWER(nombre_personaje) LIKE LOWER(?)
+        ORDER BY nombre_personaje ASC
+        LIMIT 1
+      `)
+      .bind(`%${personajeQuery}%`)
+      .first();
+
+    if (likeRow) {
+      resolvedPersonajeId = Number((likeRow as PersonajeRow).id_personaje);
+      personajeNombre = (likeRow as PersonajeRow).nombre_personaje ?? null;
+    }
+  }
+}
+
+// fallback por nombre recibido en URL
+if (!personajeNombre && personajeNombreParam) {
+  personajeNombre = personajeNombreParam;
+}
+
+// --------------------
+// 1) Resolver nombres activos
+// --------------------
+if (db && resolvedPersonajeId) {
   const row = await db
     .prepare(`
       SELECT id_personaje, nombre_personaje
@@ -103,10 +150,10 @@ if (db && personajeId) {
       WHERE id_personaje = ?
       LIMIT 1
     `)
-    .bind(personajeId)
+    .bind(resolvedPersonajeId)
     .first();
 
-  personajeNombre = (row as PersonajeRow | null)?.nombre_personaje ?? null;
+  personajeNombre = (row as PersonajeRow | null)?.nombre_personaje ?? personajeNombre;
 }
 
 if (db && universoId) {
@@ -138,14 +185,14 @@ if (db && proveedorId && (await tableExists("proveedores"))) {
 }
 
 // --------------------
-// 1) WHERE dinámico
+// 2) WHERE dinámico
 // --------------------
 const whereClauses: string[] = [];
 const whereParams: any[] = [];
 
-if (personajeId) {
+if (resolvedPersonajeId) {
   whereClauses.push(`p.id_personaje = ?`);
-  whereParams.push(personajeId);
+  whereParams.push(resolvedPersonajeId);
 }
 
 if (universoId) {
@@ -161,7 +208,7 @@ if (proveedorId) {
 const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
 // --------------------
-// 2) ORDER dinámico
+// 3) ORDER dinámico
 // --------------------
 let orderSql = `ORDER BY COALESCE(p.fecha_modifica, p.fecha_creacion) DESC, p.id_producto DESC`;
 
@@ -172,7 +219,7 @@ if (sort === "price_asc") {
 }
 
 // --------------------
-// 3) Conteo real
+// 4) Conteo real
 // --------------------
 let totalProducts = 0;
 
@@ -195,7 +242,7 @@ const currentPage = Math.min(requestedPage, totalPages);
 const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
 // --------------------
-// 4) Productos paginados
+// 5) Productos paginados
 // --------------------
 let productos: ProductoRow[] = [];
 
@@ -237,7 +284,7 @@ if (db) {
 }
 
 // --------------------
-// 5) Filtros D1
+// 6) Filtros D1
 // --------------------
 let personajes: PersonajeRow[] = [];
 let universos: UniversoRow[] = [];
@@ -278,10 +325,23 @@ if (db) {
   }
 }
 
-const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(Boolean);
+const activeFilterLabels: string[] = [
+  personajeNombre,
+  universoNombre,
+  proveedorNombre,
+].filter((value): value is string => Boolean(value));
 
 // --------------------
-// 6) Data para React
+// 7) Sugerencias para buscador tipo mini slides
+// --------------------
+const quickCharacterSuggestions = personajes.slice(0, 24).map((p) => ({
+  id: String(p.id_personaje),
+  title: p.nombre_personaje,
+  href: `/shop?personajeId=${p.id_personaje}`,
+}));
+
+// --------------------
+// 8) Data para React
 // --------------------
 const data = {
   products: productos.map((pr) => ({
@@ -316,7 +376,7 @@ const data = {
     slug: String(pr.id_proveedor),
   })),
 
-  initialPersonajeId: personajeId ? String(personajeId) : null,
+  initialPersonajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
   initialUniversoId: universoId ? String(universoId) : null,
   initialProveedorId: proveedorId ? String(proveedorId) : null,
   initialSort: sort,
@@ -326,8 +386,19 @@ const data = {
   proveedorNombre,
   activeFilterLabels,
 
+  selectedCharacter: resolvedPersonajeId
+    ? {
+        id: String(resolvedPersonajeId),
+        name: personajeNombre ?? personajeQuery ?? personajeNombreParam ?? "",
+      }
+    : null,
+
+  quickCharacterSuggestions,
+
   clearFilterHref:
-    personajeId || universoId || proveedorId || sort !== "newest" ? "/shop" : null,
+    resolvedPersonajeId || universoId || proveedorId || sort !== "newest"
+      ? "/shop"
+      : null,
 
   pagination: {
     currentPage,
@@ -336,7 +407,7 @@ const data = {
     itemsPerPage: ITEMS_PER_PAGE,
     pageCount: productos.length,
     basePath: "/shop",
-    personajeId: personajeId ? String(personajeId) : null,
+    personajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
     universoId: universoId ? String(universoId) : null,
     proveedorId: proveedorId ? String(proveedorId) : null,
     sort,
