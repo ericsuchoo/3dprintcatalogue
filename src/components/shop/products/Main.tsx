@@ -52,19 +52,10 @@ interface Props {
   favoritesOnly?: boolean;
 }
 
-function normalizeText(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
   const [searchVal, setSearchVal] = useState("");
-  const [characterSearch, setCharacterSearch] = useState("");
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -266,7 +257,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     return pages;
   };
 
-  const characterSuggestions = useMemo(() => {
+  const recommendedCharacters = useMemo(() => {
     const source =
       (data.quickCharacterSuggestions || []).length > 0
         ? data.quickCharacterSuggestions || []
@@ -276,14 +267,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             href: `/shop?personajeId=${p.slug}`,
           }));
 
-    const q = normalizeText(characterSearch);
-
-    const result = !q
-      ? source
-      : source.filter((item) => normalizeText(item.title).includes(q));
-
-    return result.slice(0, 12);
-  }, [data.quickCharacterSuggestions, data.genders, characterSearch]);
+    return source.slice(0, 8);
+  }, [data.quickCharacterSuggestions, data.genders]);
 
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
 
@@ -449,82 +434,47 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
           )}
 
-          {!favoritesOnly && (
+          {!favoritesOnly && recommendedCharacters.length > 0 && (
             <div className="mb-8 rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 md:p-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
-                      Explora por personaje
-                    </div>
-                    <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
-                      Busca y salta directo al shop
-                    </h3>
-                  </div>
+              <div className="mb-4">
+                <div className="text-[11px] md:text-xs uppercase tracking-[0.28em] text-zinc-400 font-black mb-2">
+                  Explora por personaje
+                </div>
+                <h3 className="text-white text-2xl md:text-3xl font-black italic uppercase">
+                  Personajes recomendados
+                </h3>
+              </div>
 
-                  <div className="w-full md:max-w-[420px]">
-                    <label className="flex items-center px-5 border border-white/10 bg-black rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                {recommendedCharacters.map((item) => {
+                  const isActive = String(data.initialPersonajeId ?? "") === String(item.id);
+
+                  return (
+                    <a
+                      key={item.id}
+                      href={item.href}
+                      className={`group rounded-xl border p-4 transition ${
+                        isActive
+                          ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+                          : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
+                      }`}
+                    >
+                      <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
+                        Personaje
+                      </div>
                       <div
-                        dangerouslySetInnerHTML={{ __html: SearchIcon }}
-                        className="w-[18px] h-[18px] text-zinc-500"
-                      />
-                      <input
-                        type="search"
-                        value={characterSearch}
-                        onChange={(e) => setCharacterSearch(e.target.value)}
-                        placeholder="Buscar personaje..."
-                        className="bg-transparent px-2 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="text-xs uppercase tracking-[0.18em] text-zinc-500 font-bold">
-                  {characterSearch ? "Coincidencias" : "Personajes destacados"}
-                </div>
-
-                {characterSuggestions.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {characterSuggestions.map((item) => {
-                      const isActive =
-                        String(data.initialPersonajeId ?? "") === String(item.id);
-
-                      return (
-                        <a
-                          key={item.id}
-                          href={item.href}
-                          className={`group rounded-xl border p-4 transition ${
-                            isActive
-                              ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
-                              : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
-                          }`}
-                        >
-                          <div className="text-[10px] uppercase tracking-[0.24em] text-zinc-500 font-black mb-2">
-                            Personaje
-                          </div>
-                          <div
-                            className={`text-sm md:text-base font-black uppercase italic transition ${
-                              isActive
-                                ? "text-red-400"
-                                : "text-white group-hover:text-red-400"
-                            }`}
-                          >
-                            {item.title}
-                          </div>
-                          <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-                            Ver catálogo
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {characterSearch && characterSuggestions.length === 0 && (
-                  <div className="rounded-xl border border-white/10 bg-black px-4 py-5 text-sm text-zinc-400">
-                    No encontramos coincidencias para ese personaje.
-                  </div>
-                )}
+                        className={`text-sm md:text-base font-black uppercase italic transition ${
+                          isActive ? "text-red-400" : "text-white group-hover:text-red-400"
+                        }`}
+                      >
+                        {item.title}
+                      </div>
+                      <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                        Ver catálogo
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
             </div>
           )}
