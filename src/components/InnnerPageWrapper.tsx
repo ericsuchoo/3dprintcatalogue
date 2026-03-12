@@ -1,12 +1,9 @@
 import React, { type PropsWithChildren } from "react";
 import Header from "./layout/Header";
-import type { ClientConfig } from "@thebcms/client";
 
-interface Props extends PropsWithChildren {
-  bcms?: ClientConfig;
-}
+type Props = PropsWithChildren;
 
-const InnnerPageWrapper: React.FC<Props> = ({ children }) => {
+const InnerPageWrapper: React.FC<Props> = ({ children }) => {
   return (
     <div className="relative bg-black">
       <Header />
@@ -15,4 +12,4 @@ const InnnerPageWrapper: React.FC<Props> = ({ children }) => {
   );
 };
 
-export default InnnerPageWrapper;
+export default InnerPageWrapper;

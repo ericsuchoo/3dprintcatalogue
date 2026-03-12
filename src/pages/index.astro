@@ -1,77 +1,41 @@
 ---
-import type {
-  HomeEntry,
-  ProductCategoryEntryMetaItem,
-  ProductEntry,
-  ProductGenderEntryMetaItem,
-} from "../../bcms/types/ts";
-
-import { productToLite } from "../utils/product";
+// src/pages/index.astro
 import Layout from "../layouts/Layout.astro";
 import HomePageWrapper from "../components/home-page/PageWrapper";
+import { homeStaticData } from "../data/home";
 
-import { getBcmsPrivate } from "../bcms-private";
-import { getBcmsPublic } from "../bcms-public";
-
-// ✅ Clientes BCMS usando runtime env (Cloudflare Pages SSR)
-const bcmsPrivate = getBcmsPrivate(Astro.locals.runtime.env);
-const bcmsPublic = getBcmsPublic(Astro.locals.runtime.env);
-const clientConfig = bcmsPublic.getConfig(); // 👈 NO ES NULL
-
-// 1) Home (BCMS)
-const home = (await bcmsPrivate.entry.getById("home", "home")) as HomeEntry;
-const homeMeta = home.meta.en as any;
-
-// 2) Productos (BCMS) para HomeProducts
-const products = (await bcmsPrivate.entry.getAll("product")) as ProductEntry[];
-const productsLite = products.map((e) => productToLite(e));
-
-// 3) Géneros (BCMS) para filtros de HomeProducts
-const genderEntries = await bcmsPrivate.entry.getAll("product-gender");
-
-// 4) Filtros (igual que antes)
-const filters = {
-  categories: products.reduce((acc, e) => {
-    e.meta.en?.categories.forEach((i) => {
-      if (i.meta.en && !acc.find((c) => c.slug === i.meta.en?.slug)) {
-        acc.push(i.meta.en);
-      }
-    });
-    return acc;
-  }, [] as ProductCategoryEntryMetaItem[]),
-
-  genders: (genderEntries as any[]).map(
-    (e) => e.meta.en as ProductGenderEntryMetaItem
-  ),
-};
-
-// 5) 🔥 D1: universos + conteo de personajes (1 query)
+// ✅ D1
 const db = Astro.locals.runtime.env.DB;
+
+// --------------------
+// ORÍGENES
+// --------------------
 type EtiquetaRow = {
   id_etiqueta: string;
   nombre_etiqueta: string;
   tipo_etiqueta: string;
 };
 
-// 5.4 🔥 Etiquetas tipo "origen"
 const etiquetasRes = await db
-  .prepare(
-    `SELECT id_etiqueta, nombre_etiqueta, tipo_etiqueta
-     FROM etiquetas
-     WHERE tipo_etiqueta = ?
-     ORDER BY nombre_etiqueta ASC`,
-  )
+  .prepare(`
+    SELECT id_etiqueta, nombre_etiqueta, tipo_etiqueta
+    FROM etiquetas
+    WHERE tipo_etiqueta = ?
+    ORDER BY nombre_etiqueta ASC
+  `)
   .bind("origen")
   .all();
 
 const etiquetas = etiquetasRes as { results: EtiquetaRow[] };
 
-// Solo mandamos lo necesario al cliente
-const origins = etiquetas.results.map((e: EtiquetaRow) => ({
+const origins = (etiquetas.results || []).map((e: EtiquetaRow) => ({
   id: e.id_etiqueta,
   label: e.nombre_etiqueta,
 }));
 
+// --------------------
+// UNIVERSOS + CONTEO DE PERSONAJES
+// --------------------
 type UniversoCardRow = {
   id_universo: number;
   nombre_universo: string;
@@ -106,25 +70,72 @@ const toSlug = (s: string) =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-// ✅ Esto ahora alimenta tus cards
-// 👇 CAMBIO: agregamos id_universo en meta para poder linkear a /explorar?universoId=#
-const categories = universosAgg.map((u) => ({
+const categories = (universosAgg || []).map((u) => ({
   meta: {
-    id_universo: u.id_universo, // ✅ NUEVO
+    id_universo: u.id_universo,
     title: u.nombre_universo,
     slug: toSlug(u.nombre_universo),
     gallery: u.img_universo ? [{ url: u.img_universo }] : [],
   },
   productsCount: u.personajesCount,
 }));
+
+// --------------------
+// PERSONAJES PARA CTA
+// --------------------
+type PersonajeRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  img_personaje: string | null;
+  id_universo: number | null;
+  nombre_universo: string | null;
+};
+
+// cambia esto si tu ruta real del catálogo es otra
+const SHOP_BASE_URL = "/shop";
+
+const personajesRes = await db
+  .prepare(`
+    SELECT
+      p.id_personaje,
+      p.nombre_personaje,
+      p.img_personaje,
+      p.id_universo,
+      u.nombre_universo
+    FROM personajes p
+    LEFT JOIN universos u
+      ON u.id_universo = p.id_universo
+    ORDER BY p.nombre_personaje ASC
+  `)
+  .all();
+
+const personajesRows = (personajesRes.results || []) as unknown as PersonajeRow[];
+
+const characters = personajesRows.map((p) => {
+  const slug = toSlug(p.nombre_personaje);
+  const params = new URLSearchParams({
+    character: slug,
+    characterId: String(p.id_personaje),
+    characterName: p.nombre_personaje,
+  });
+
+  return {
+    id: String(p.id_personaje),
+    slug,
+    name: p.nombre_personaje,
+    image: p.img_personaje || "",
+    universe: p.nombre_universo || "",
+    href: `${SHOP_BASE_URL}?${params.toString()}`,
+  };
+});
 ---
 
-<Layout title={`${homeMeta.seo?.title || homeMeta.title} | 3D Shop`}>
-<HomePageWrapper
-  client:load
-  bcms={clientConfig}
-  meta={homeMeta}
-  categories={categories}
-  origins={origins}
-/>
+<Layout title={`${homeStaticData.seo?.title || homeStaticData.title} | 3D Shop`}>
+  <HomePageWrapper
+    client:load
+    meta={homeStaticData as any}
+    categories={categories}
+    origins={origins}
+    characters={characters}
+  />
 </Layout>

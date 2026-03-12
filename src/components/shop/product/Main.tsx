@@ -28,7 +28,7 @@ export const Main: React.FC<Props> = ({ data }) => {
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
-          onEditionChange={setActiveEdition}
+      
           fallbackImage={meta?.cover?.url || null}
         />
 

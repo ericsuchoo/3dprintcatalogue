@@ -1,15 +1,9 @@
 import React from "react";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
-import type {
-  HomeEntryMetaItem,
-} from "../../../bcms/types/ts";
 import { HomeHero } from "./Hero";
 import { HomeCategories } from "./Categories";
 import { HomeCta } from "./Cta";
-import type { ClientConfig } from "@thebcms/client";
-
-// barra de orígenes
 import { OriginsBar } from "./OriginsBar";
 
 export type CategoryCardMeta = {
@@ -26,28 +20,36 @@ export type CategoryCard = {
 
 type OriginItem = { id: string; label: string };
 
+export type CharacterItem = {
+  id: string;
+  slug?: string;
+  name: string;
+  image?: string;
+  universe?: string;
+  href?: string;
+};
+
 interface Props {
-  meta: HomeEntryMetaItem;
+  meta: any;
   categories: CategoryCard[];
   origins?: OriginItem[];
-  bcms: ClientConfig;
+  characters?: CharacterItem[];
 }
 
 const HomePageWrapper: React.FC<Props> = ({
   meta,
   categories,
   origins = [],
-  bcms,
+  characters = [],
 }) => {
   return (
     <ContextWrapper>
-      <InnerPageWrapper bcms={bcms}>
+      <InnerPageWrapper>
         <HomeHero
           title={meta.hero_title}
           description={meta.hero_description}
           gallery={(meta as any).hero_gallery || [meta.hero_cover_image]}
           logo_dc3={(meta as any).logo_dc3}
-          bcms={bcms}
         />
 
         <OriginsBar items={origins} />
@@ -55,25 +57,21 @@ const HomePageWrapper: React.FC<Props> = ({
         <HomeCategories
           data={categories.slice(0, 3)}
           ctaTheme="dark-green"
-          bcms={bcms}
         />
 
         <HomeCategories
           data={categories.slice(3, 6)}
           ctaTheme="orange"
-          bcms={bcms}
         />
 
         <HomeCategories
           data={categories.slice(6, 9)}
           ctaTheme="dark-green"
-          bcms={bcms}
         />
 
         <HomeCategories
           data={categories.slice(9, 12)}
           ctaTheme="orange"
-          bcms={bcms}
         />
 
         <HomeCta
@@ -81,7 +79,7 @@ const HomePageWrapper: React.FC<Props> = ({
           description={meta.cta_description}
           image={meta.cta_cover_image}
           cta={{ label: meta.cta_label, href: meta.cta_link }}
-          bcms={bcms}
+          characters={characters}
         />
       </InnerPageWrapper>
     </ContextWrapper>
