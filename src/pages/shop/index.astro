@@ -37,6 +37,13 @@ type ProveedorRow = {
   nombre_proveedor: string;
 };
 
+type CharacterSuggestionRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  nombre_universo?: string | null;
+  tags?: string | null;
+};
+
 function slugify(s: string) {
   return s
     .toString()
@@ -73,7 +80,6 @@ const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
 const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
 const sort = normalizeSort(Astro.url.searchParams.get("sort"));
 
-// nuevos params para navegación desde home
 const personajeQuery = Astro.url.searchParams.get("personaje")?.trim() || null;
 const personajeNombreParam = Astro.url.searchParams.get("characterName")?.trim() || null;
 
@@ -134,7 +140,6 @@ if (db && !resolvedPersonajeId && personajeQuery && (await tableExists("personaj
   }
 }
 
-// fallback por nombre recibido en URL
 if (!personajeNombre && personajeNombreParam) {
   personajeNombre = personajeNombreParam;
 }
@@ -325,20 +330,71 @@ if (db) {
   }
 }
 
-const activeFilterLabels: string[] = [
-  personajeNombre,
-  universoNombre,
-  proveedorNombre,
-].filter((value): value is string => Boolean(value));
+const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(
+  (value): value is string => Boolean(value)
+);
 
 // --------------------
-// 7) Sugerencias para buscador tipo mini slides
+// 7) Buscador superior: personaje + universo + etiquetas
 // --------------------
-const quickCharacterSuggestions = personajes.map((p) => ({
-  id: String(p.id_personaje),
-  title: p.nombre_personaje,
-  href: `/shop?personajeId=${p.id_personaje}`,
-}));
+let quickCharacterSuggestions: {
+  id: string;
+  title: string;
+  href: string;
+  universe: string;
+  tags: string[];
+}[] = [];
+
+if (db && (await tableExists("personajes"))) {
+  const hasPersonajesEtiquetas = await tableExists("personajes_etiquetas");
+  const hasEtiquetas = await tableExists("etiquetas");
+  const hasUniversos = await tableExists("universos");
+
+  if (hasPersonajesEtiquetas && hasEtiquetas && hasUniversos) {
+    const quickSuggestionsRes = await db
+      .prepare(`
+        SELECT
+          p.id_personaje,
+          p.nombre_personaje,
+          u.nombre_universo,
+          GROUP_CONCAT(DISTINCT e.nombre_etiqueta) as tags
+        FROM personajes p
+        LEFT JOIN universos u
+          ON u.id_universo = p.id_universo
+        LEFT JOIN personajes_etiquetas pe
+          ON pe.id_personaje = p.id_personaje
+        LEFT JOIN etiquetas e
+          ON e.id_etiqueta = pe.id_etiqueta
+        GROUP BY p.id_personaje, p.nombre_personaje, u.nombre_universo
+        ORDER BY p.nombre_personaje ASC
+      `)
+      .all();
+
+    const rows = (quickSuggestionsRes?.results || []) as CharacterSuggestionRow[];
+
+    quickCharacterSuggestions = rows.map((p) => ({
+      id: String(p.id_personaje),
+      title: p.nombre_personaje,
+      href: `/shop?personajeId=${p.id_personaje}`,
+      universe: p.nombre_universo ?? "",
+      tags: p.tags
+        ? p.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+        : [],
+    }));
+  } else {
+    quickCharacterSuggestions = personajes.map((p) => ({
+      id: String(p.id_personaje),
+      title: p.nombre_personaje,
+      href: `/shop?personajeId=${p.id_personaje}`,
+      universe: "",
+      tags: [],
+    }));
+  }
+}
+
 // --------------------
 // 8) Data para React
 // --------------------
