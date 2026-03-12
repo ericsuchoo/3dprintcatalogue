@@ -82,7 +82,6 @@ function getMatchLabel(matchType: CharacterSuggestionMatchType) {
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
-  const [searchVal, setSearchVal] = useState("");
   const [characterSearch, setCharacterSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sidebarCharacterSearch, setSidebarCharacterSearch] = useState("");
@@ -152,6 +151,17 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     );
   }, [data.initialPersonajeId, data.initialUniversoId, data.initialProveedorId]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [filtersOpen]);
+
   const activeFilters = useMemo(() => filters.filter((f) => f.active), [filters]);
 
   const hasActiveFilters =
@@ -200,17 +210,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
     return products.filter((p) => {
       if (favoritesOnly && !favorites.includes(String(p.slug))) return false;
-
-      if (searchVal) {
-        const haystack =
-          `${p.title} ${p.subtitle || ""} ${p.description || ""} ${p.price ?? ""}`.toLowerCase();
-
-        if (!haystack.includes(searchVal.toLowerCase())) return false;
-      }
-
       return true;
     });
-  }, [data.products, searchVal, favorites, favoritesOnly]);
+  }, [data.products, favorites, favoritesOnly]);
 
   const setProductFilter = (filter: ProductFilterD1) => {
     const currentPersonajeId = data.pagination?.personajeId ?? null;
@@ -334,9 +336,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       };
     });
 
-    if (!q) {
-      return resolved.slice(0, 6);
-    }
+    if (!q) return [];
 
     return resolved
       .filter((item) => {
@@ -363,170 +363,200 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
         return a.title.localeCompare(b.title);
       })
-      .slice(0, 6);
+      .slice(0, 4);
   }, [data.quickCharacterSuggestions, data.genders, characterSearch]);
 
   const selectedCharacterName = data.selectedCharacter?.name || data.personajeNombre || null;
 
+  const renderFiltersContent = () => (
+    <div className="grid grid-cols-1 gap-6 border border-[#00eeff] p-4 sm:p-5 md:p-6 bg-[#0f0f0f] rounded-2xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[18px] sm:text-[20px] leading-none font-bold italic text-red-500">
+          {favoritesOnly ? "Mis Me gusta" : "Filtros"}
+        </div>
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center justify-center px-3 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.16em] font-black text-[9px] bg-red-500/10 hover:bg-red-500/20"
+          >
+            Quitar filtros
+          </button>
+        )}
+      </div>
+
+      {filters.some((f) => f.type === "universo") && (
+        <div>
+          <div className={filterTitleClass}>Universos</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "universo")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <div className={filterTitleClass}>Precio / orden</div>
+        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+          {filters
+            .filter((e) => e.type === "price")
+            .map((filter, index) => (
+              <FormCheck
+                key={index}
+                value={filter.label}
+                label={filter.label}
+                onCheck={() => setProductFilter(filter)}
+                checked={filter.active}
+                size="sm"
+              />
+            ))}
+        </div>
+      </div>
+
+      <div>
+        <div className={filterTitleClass}>Novedad</div>
+        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+          {filters
+            .filter((e) => e.type === "popularity")
+            .map((filter, index) => (
+              <FormCheck
+                key={index}
+                value={filter.label}
+                label={filter.label}
+                onCheck={() => setProductFilter(filter)}
+                checked={filter.active}
+                size="sm"
+              />
+            ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className={filterTitleClass}>Personajes</div>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-black">
+            {sidebarCharacterFilters.length}
+          </span>
+        </div>
+
+        <label className="mt-4 flex items-center px-4 border border-white/10 bg-black rounded-xl">
+          <div
+            dangerouslySetInnerHTML={{ __html: SearchIcon }}
+            className="w-[14px] h-[14px] text-zinc-500"
+          />
+          <input
+            type="search"
+            value={sidebarCharacterSearch}
+            onChange={(e) => setSidebarCharacterSearch(e.target.value)}
+            placeholder="Filtrar personajes..."
+            className="bg-transparent px-2 py-3 w-full text-xs text-white placeholder:text-zinc-500 focus:outline-none"
+          />
+        </label>
+
+        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd] max-h-[320px] overflow-y-auto pr-1">
+          {sidebarCharacterFilters.map((filter, index) => (
+            <FormCheck
+              key={`${filter.value}-${index}`}
+              value={filter.label}
+              label={filter.label}
+              onCheck={() => setProductFilter(filter)}
+              checked={filter.active}
+              size="sm"
+            />
+          ))}
+
+          {sidebarCharacterFilters.length === 0 && (
+            <div className="rounded-xl border border-white/10 bg-black px-3 py-4 text-xs text-zinc-500">
+              No encontramos personajes en este filtro.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {filters.some((f) => f.type === "proveedor") && (
+        <div>
+          <div className={filterTitleClass}>Creadores 3D</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "proveedor")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
-      <div className="mb-5 lg:hidden">
+    <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-20 md:pt-24 pb-8">
+      <div className="mb-4 xl:hidden">
         <button
           type="button"
-          onClick={() => setFiltersOpen((prev) => !prev)}
-          className="inline-flex items-center justify-center px-5 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.22em] font-black text-[10px] bg-[#00eeff]/10"
+          onClick={() => setFiltersOpen(true)}
+          className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
         >
-          {filtersOpen ? "Cerrar filtros" : "Abrir filtros"}
+          Abrir filtros
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-x-7 gap-y-8 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
-        <div className={`${filtersOpen ? "block" : "hidden"} xl:block xl:sticky xl:top-28 self-start`}>
-          <div className="grid grid-cols-1 gap-6 border border-[#00eeff] p-5 md:p-6 bg-[#0f0f0f] rounded-2xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[20px] leading-none font-bold italic text-red-500">
-                {favoritesOnly ? "Mis Me gusta" : "Filtros"}
+      {filtersOpen && (
+        <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
+              <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
+                Filtros
               </div>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="inline-flex items-center justify-center px-3 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[9px] bg-red-500/10 hover:bg-red-500/20"
-                >
-                  Quitar filtros
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
+                aria-label="Cerrar filtros"
+              >
+                ✕
+              </button>
             </div>
 
-            {filters.some((f) => f.type === "universo") && (
-              <div>
-                <div className={filterTitleClass}>Universos</div>
-                <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-                  {filters
-                    .filter((e) => e.type === "universo")
-                    .map((filter, index) => (
-                      <FormCheck
-                        key={index}
-                        value={filter.label}
-                        label={filter.label}
-                        onCheck={() => setProductFilter(filter)}
-                        checked={filter.active}
-                        size="sm"
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className={filterTitleClass}>Precio / orden</div>
-              <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-                {filters
-                  .filter((e) => e.type === "price")
-                  .map((filter, index) => (
-                    <FormCheck
-                      key={index}
-                      value={filter.label}
-                      label={filter.label}
-                      onCheck={() => setProductFilter(filter)}
-                      checked={filter.active}
-                      size="sm"
-                    />
-                  ))}
-              </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {renderFiltersContent()}
             </div>
-
-            <div>
-              <div className={filterTitleClass}>Novedad</div>
-              <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-                {filters
-                  .filter((e) => e.type === "popularity")
-                  .map((filter, index) => (
-                    <FormCheck
-                      key={index}
-                      value={filter.label}
-                      label={filter.label}
-                      onCheck={() => setProductFilter(filter)}
-                      checked={filter.active}
-                      size="sm"
-                    />
-                  ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <div className={filterTitleClass}>Personajes</div>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-black">
-                  {sidebarCharacterFilters.length}
-                </span>
-              </div>
-
-              <label className="mt-4 flex items-center px-4 border border-white/10 bg-black rounded-xl">
-                <div
-                  dangerouslySetInnerHTML={{ __html: SearchIcon }}
-                  className="w-[14px] h-[14px] text-zinc-500"
-                />
-                <input
-                  type="search"
-                  value={sidebarCharacterSearch}
-                  onChange={(e) => setSidebarCharacterSearch(e.target.value)}
-                  placeholder="Filtrar personajes..."
-                  className="bg-transparent px-2 py-3 w-full text-xs text-white placeholder:text-zinc-500 focus:outline-none"
-                />
-              </label>
-
-              <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd] max-h-[320px] overflow-y-auto pr-1">
-                {sidebarCharacterFilters.map((filter, index) => (
-                  <FormCheck
-                    key={`${filter.value}-${index}`}
-                    value={filter.label}
-                    label={filter.label}
-                    onCheck={() => setProductFilter(filter)}
-                    checked={filter.active}
-                    size="sm"
-                  />
-                ))}
-
-                {sidebarCharacterFilters.length === 0 && (
-                  <div className="rounded-xl border border-white/10 bg-black px-3 py-4 text-xs text-zinc-500">
-                    No encontramos personajes en este filtro.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {filters.some((f) => f.type === "proveedor") && (
-              <div>
-                <div className={filterTitleClass}>Creadores 3D</div>
-                <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-                  {filters
-                    .filter((e) => e.type === "proveedor")
-                    .map((filter, index) => (
-                      <FormCheck
-                        key={index}
-                        value={filter.label}
-                        label={filter.label}
-                        onCheck={() => setProductFilter(filter)}
-                        checked={filter.active}
-                        size="sm"
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
+      )}
 
-        <div className="xl:col-start-2 min-w-0">
+      <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+        <div className="hidden xl:block xl:sticky xl:top-28 self-start">
+          {renderFiltersContent()}
+        </div>
+
+        <div className="min-w-0">
           {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
-            <div className="mb-6 flex flex-col gap-4">
+            <div className="mb-5 flex flex-col gap-4">
               {selectedCharacterName && (
-                <div className="rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-500/10 via-[#111] to-[#111] px-5 py-4 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
+                <div className="rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-500/10 via-[#111] to-[#111] px-4 sm:px-5 py-4 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
                   <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
                     Explorando personaje
                   </div>
+
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <h2 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
                       {selectedCharacterName}
@@ -567,20 +597,20 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           )}
 
           {!favoritesOnly && (
-            <div className="mb-6 rounded-2xl border border-white/10 bg-[#0f0f0f] px-5 py-4 md:px-6 md:py-5">
+            <div className="mb-5 rounded-2xl border border-white/10 bg-[#0f0f0f] px-4 sm:px-5 py-4">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
                       Buscar personaje
                     </div>
-                    <h3 className="text-white text-[26px] md:text-[34px] leading-none font-black italic uppercase">
+                    <h3 className="text-white text-[22px] sm:text-[26px] md:text-[32px] leading-none font-black italic uppercase">
                       Salta directo al catálogo
                     </h3>
                   </div>
 
-                  <div className="w-full md:max-w-[330px]">
-                    <label className="flex items-center px-4 border border-white/10 bg-black rounded-full min-h-[42px]">
+                  <div className="w-full lg:max-w-[360px]">
+                    <label className="flex items-center px-4 border border-white/10 bg-black rounded-full min-h-[44px]">
                       <div
                         dangerouslySetInnerHTML={{ __html: SearchIcon }}
                         className="w-[14px] h-[14px] text-zinc-500"
@@ -613,7 +643,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                     </div>
 
                     {characterSuggestions.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-3">
                         {characterSuggestions.map((item) => {
                           const isActive =
                             String(data.initialPersonajeId ?? "") === String(item.id);
@@ -622,7 +652,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                             <a
                               key={item.id}
                               href={item.href}
-                              className={`group rounded-2xl border px-4 py-3 transition ${
+                              className={`group rounded-2xl border px-4 py-3 transition min-w-0 ${
                                 isActive
                                   ? "border-red-500 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
                                   : "border-white/10 bg-black hover:border-red-500/40 hover:bg-red-500/5"
@@ -633,7 +663,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                               </div>
 
                               <div
-                                className={`text-sm md:text-[15px] font-black uppercase italic transition leading-tight ${
+                                className={`text-sm md:text-[15px] font-black uppercase italic transition leading-tight break-words ${
                                   isActive
                                     ? "text-red-400"
                                     : "text-white group-hover:text-red-400"
@@ -643,13 +673,13 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                               </div>
 
                               {item.universe ? (
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                                <div className="mt-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500 break-words">
                                   {item.universe}
                                 </div>
                               ) : null}
 
                               {!!item.tags?.length && (
-                                <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-zinc-600 line-clamp-1">
+                                <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-zinc-600 line-clamp-1">
                                   {item.tags.slice(0, 2).join(" · ")}
                                 </div>
                               )}
@@ -676,33 +706,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             </div>
           )}
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
-            <label className="flex items-center px-5 flex-1 border border-white/10 bg-[#0f0f0f] rounded-lg min-h-[48px]">
-              <div
-                dangerouslySetInnerHTML={{ __html: SearchIcon }}
-                className="w-[16px] h-[16px] text-zinc-500"
-              />
-              <input
-                type="search"
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                placeholder={favoritesOnly ? "Buscar en mis favoritos..." : "Buscar figuras..."}
-                className="bg-transparent px-2 py-3 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
-              />
-              {searchVal && (
-                <button
-                  type="button"
-                  onClick={() => setSearchVal("")}
-                  className="text-[#3b82f6] hover:text-white transition text-base leading-none"
-                  aria-label="Limpiar búsqueda"
-                >
-                  ×
-                </button>
-              )}
-            </label>
-          </div>
-
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between my-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between my-5">
             <div className="text-sm uppercase tracking-[0.18em] text-zinc-400 font-bold">
               {totalProducts} Producto{totalProducts === 1 ? "" : "s"}
             </div>
@@ -718,11 +722,11 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                 No hay resultados
               </div>
               <p className="text-zinc-400 mt-3 max-w-2xl mx-auto">
-                Ajusta los filtros o limpia la búsqueda local.
+                Ajusta los filtros para encontrar más resultados.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.slug ?? index} card={product} />
               ))}
@@ -730,10 +734,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           )}
 
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-12 flex-wrap">
+            <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
               <a
                 href={currentPage > 1 ? buildPageHref(currentPage - 1) : "#"}
-                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                className={`px-4 py-2 rounded-full border text-[11px] md:text-sm uppercase tracking-[0.18em] font-bold transition ${
                   currentPage === 1
                     ? "pointer-events-none border-white/10 text-white/30"
                     : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
@@ -749,7 +753,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                     key={page}
                     href={buildPageHref(page)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`w-10 h-10 rounded-full border text-sm font-black transition flex items-center justify-center ${
+                    className={`w-9 h-9 md:w-10 md:h-10 rounded-full border text-xs md:text-sm font-black transition flex items-center justify-center ${
                       isActive
                         ? "bg-red-500 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]"
                         : "border-white/10 text-white/70 hover:text-white hover:border-red-500/50 hover:bg-red-500/10"
@@ -762,7 +766,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
               <a
                 href={currentPage < totalPages ? buildPageHref(currentPage + 1) : "#"}
-                className={`px-4 py-2 rounded-full border text-xs md:text-sm uppercase tracking-[0.18em] font-bold transition ${
+                className={`px-4 py-2 rounded-full border text-[11px] md:text-sm uppercase tracking-[0.18em] font-bold transition ${
                   currentPage === totalPages
                     ? "pointer-events-none border-white/10 text-white/30"
                     : "border-red-500/40 text-red-400 hover:text-white hover:border-red-500 bg-red-500/10 hover:bg-red-500/20"
