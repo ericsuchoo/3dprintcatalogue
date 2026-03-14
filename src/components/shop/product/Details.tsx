@@ -29,11 +29,11 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
   const favoriteId = meta?.model_id || meta?.slug || String(meta?.id_producto ?? "");
   const isFavorite = favorites.includes(favoriteId);
 
-  const editions = useMemo(() => {
+  const editions = useMemo<EditionItem[]>(() => {
     return Array.isArray(meta?.editions) ? meta.editions : [];
   }, [meta]);
 
-  const scales = useMemo(() => {
+  const scales = useMemo<ScaleItem[]>(() => {
     return Array.isArray(meta?.scales) ? meta.scales : [];
   }, [meta]);
 
@@ -45,7 +45,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
   const activeScaleDescription =
     activeScale?.descripcion ||
-    scales.find((s) => s.disponible)?.descripcion ||
+    scales.find((s: ScaleItem) => s.disponible)?.descripcion ||
     scales[0]?.descripcion ||
     "";
 
@@ -55,10 +55,9 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
       style={{ background: "rgba(255,255,255,0.96)" }}
     >
       <div className="flex flex-col mb-6 sm:mb-7 lg:mb-5">
-
         <h1
           className="text-[26px] sm:text-[36px] lg:text-[28px] font-bold tracking-tighter leading-tight text-black mb-4 uppercase"
-          style={{ textAlign:"center", fontFamily:"Voga-Medium, sans-serif" }}
+          style={{ textAlign: "center", fontFamily: "Voga-Medium, sans-serif" }}
         >
           <span className="block w-full px-3 py-2.5 border-2 border-red-500 bg-white">
             {meta?.title || meta?.nombre_producto || "Producto"}
@@ -70,32 +69,27 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
 
-          <span className="text-[20px] sm:text-[26px] lg:text-[20px] font-light">
+          <span className="text-[20px] sm:text-[26px] lg:text-[20px] font-light whitespace-nowrap">
             {priceLabel ?? ""}
           </span>
         </div>
-
       </div>
 
       <div className="mb-7 sm:mb-8 lg:mb-6">
-
         <p className="text-[12px] sm:text-[22px] lg:text-[14px] font-black uppercase tracking-[1.8px] mb-4">
           Versión del modelo
         </p>
 
         <div className="grid grid-cols-1 gap-3 lg:gap-2">
-
           {editions.length ? (
-            editions.map((e, i) => {
-
+            editions.map((e: EditionItem, i: number) => {
               const isActive =
                 String(activeEdition?.id_edicion ?? activeEdition?.nombre_edicion ?? "") ===
                 String(e?.id_edicion ?? e?.nombre_edicion ?? "");
 
               return (
-
                 <button
-                  key={i}
+                  key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
                     "relative flex items-center justify-between px-3 py-2.5 border text-[12px] sm:text-[20px] lg:text-[12px] uppercase font-bold",
@@ -104,31 +98,24 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                       : "border-black bg-black text-white"
                   )}
                 >
-                  <span>{e?.nombre_edicion || `Edición ${i+1}`}</span>
+                  <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
 
                   {isActive && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"/>
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
-
                 </button>
-
               );
-
             })
           ) : (
             <div className="text-[14px] sm:text-[20px] lg:text-[12px] text-zinc-500 italic">
               Sin ediciones registradas
             </div>
           )}
-
         </div>
-
       </div>
 
       {scales.length > 0 && (
-
         <div className="mb-8 sm:mb-9 lg:mb-7">
-
           <p className="text-[12px] sm:text-[22px] lg:text-[14px] font-black uppercase tracking-[1.8px] mb-4">
             Escala disponible
           </p>
@@ -140,16 +127,13 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           )}
 
           <div className="flex flex-wrap gap-3">
-
-            {scales.map((scale, index) => {
-
+            {scales.map((scale: ScaleItem, index: number) => {
               const isActive =
                 String(activeScale?.id_escala ?? "") === String(scale?.id_escala ?? "");
 
               return (
-
                 <button
-                  key={index}
+                  key={`${scale?.id_escala ?? scale?.nombre_escala ?? index}-${index}`}
                   onClick={() => setActiveScale(scale)}
                   className={classNames(
                     "min-w-[48px] px-3 py-2.5 border text-[12px] sm:text-[18px] lg:text-[11px] uppercase font-bold",
@@ -159,22 +143,17 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                         ? "bg-white text-black border-red-500 shadow"
                         : "bg-black text-white border-black"
                   )}
+                  disabled={!scale?.disponible}
                 >
                   {scale?.nombre_escala || "N/A"}
                 </button>
-
               );
-
             })}
-
           </div>
-
         </div>
-
       )}
 
       <div className="flex flex-col gap-2 mb-6">
-
         <button
           onClick={() => toggleFavorite(favoriteId)}
           className={classNames(
@@ -186,20 +165,16 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         >
           {isFavorite ? "En Favoritos" : "Añadir a Favoritos"}
         </button>
-
       </div>
 
       <div className="border-t border-zinc-200 mt-4 pt-3">
-
         {meta?.aspectos_variables && (
           <div className="mb-5 border-l-4 border-red-500 bg-red-50 px-3 py-3.5">
             <div className="text-[14px] sm:text-[20px] lg:text-[14px] italic">
               <span className="font-extrabold uppercase text-red-600">
                 Piezas alternas:
               </span>{" "}
-              <span className="font-semibold">
-                {meta.aspectos_variables}
-              </span>
+              <span className="font-semibold">{meta.aspectos_variables}</span>
             </div>
           </div>
         )}
@@ -213,9 +188,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
             {meta.disclaimer}
           </div>
         )}
-
       </div>
-
     </div>
   );
 };
