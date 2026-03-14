@@ -180,7 +180,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </button>
       </div>
 
-      <div className="border-t border-zinc-200 pt-5 sm:pt-6 lg:pt-4 mt-auto">
+      <div className="border-t border-zinc-200 mt-4 pt-3">
         {meta?.aspectos_variables ? (
           <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-3 py-3.5 shadow-sm">
             <div className="text-[12px] sm:text-[11px] lg:text-[14px] italic leading-relaxed tracking-tight text-black">
