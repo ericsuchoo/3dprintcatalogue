@@ -51,7 +51,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
   return (
     <div
-      className="flex flex-col relative p-6 lg:p-8 xl:p-9 mt-0 lg:mt-0 max-w-[620px] w-full mx-auto xl:ml-auto xl:mr-0 border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+      className="flex flex-col relative p-5 sm:p-6 lg:p-8 xl:p-9 mt-0 lg:mt-0 w-full max-w-none border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
       style={{ background: "rgba(255, 255, 255, 0.96)" }}
     >
       <div className="flex flex-col mb-4">
@@ -74,11 +74,13 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </span>
         </h1>
 
-        <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-4 gap-4">
           <span className="text-[10px] font-medium text-black uppercase tracking-widest">
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
-          <span className="text-[20px] font-light text-black">{priceLabel ?? ""}</span>
+          <span className="text-[20px] font-light text-black whitespace-nowrap">
+            {priceLabel ?? ""}
+          </span>
         </div>
       </div>
 
@@ -99,7 +101,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "relative flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold",
+                    "relative flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
                     isActive
                       ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "border-black bg-black text-white hover:bg-zinc-900"
@@ -112,7 +114,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
 
                   {isActive && (
-                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
                   )}
                 </button>
               );

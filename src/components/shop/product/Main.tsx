@@ -23,15 +23,15 @@ export const Main: React.FC<Props> = ({ data }) => {
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-    <div className="container bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_620px] gap-6 xl:gap-8 items-start">
+    <div className="w-full max-w-[1500px] mx-auto bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_620px] gap-6 xl:gap-8 items-start">
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
           fallbackImage={meta?.cover?.url || null}
         />
 
-        <div className="xl:sticky xl:top-24 self-start">
+        <div className="xl:sticky xl:top-24 self-start w-full">
           <Details
             meta={meta}
             activeEdition={activeEdition}
