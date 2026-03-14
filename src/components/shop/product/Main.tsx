@@ -23,8 +23,8 @@ export const Main: React.FC<Props> = ({ data }) => {
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-    <div className="w-full max-w-[1500px] mx-auto bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.25fr)_620px] gap-6 xl:gap-8 items-start">
+    <div className="w-full max-w-[1600px] mx-auto bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-6 xl:gap-8 items-start">
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
@@ -48,10 +48,7 @@ export const Main: React.FC<Props> = ({ data }) => {
 
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mt-6">
             {otherProducts.map((product: any, index: number) => (
-              <ProductCard
-                key={product.slug ?? index}
-                card={product}
-              />
+              <ProductCard key={product.slug ?? index} card={product} />
             ))}
           </div>
         </div>
