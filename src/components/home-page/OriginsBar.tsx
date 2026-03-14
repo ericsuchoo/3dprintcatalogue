@@ -6,19 +6,36 @@ type OriginItem = { id: string; label: string };
 type Props = {
   items: OriginItem[];
   speedPxPerFrame?: number;
+  activeId?: string | null;
+  basePath?: string;
+  paramName?: string;
+  autoScroll?: boolean;
+  sticky?: boolean;
+  stickyTopClassName?: string;
 };
 
-export const OriginsBar: React.FC<Props> = ({ items, speedPxPerFrame = 0.8 }) => {
+export const OriginsBar: React.FC<Props> = ({
+  items,
+  speedPxPerFrame = 0.8,
+  activeId = null,
+  basePath = "/explorar",
+  paramName = "origenId",
+  autoScroll = true,
+  sticky = false,
+  stickyTopClassName = "top-[72px]",
+}) => {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [paused, setPaused] = useState(false);
 
   const loopItems = useMemo(() => {
     if (!items?.length) return [];
-    return [...items, ...items];
-  }, [items]);
+    return autoScroll ? [...items, ...items] : items;
+  }, [items, autoScroll]);
 
   useEffect(() => {
+    if (!autoScroll) return;
+
     const el = scrollerRef.current;
     if (!el) return;
 
@@ -41,18 +58,22 @@ export const OriginsBar: React.FC<Props> = ({ items, speedPxPerFrame = 0.8 }) =>
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [paused, speedPxPerFrame, loopItems.length]);
+  }, [paused, speedPxPerFrame, loopItems.length, autoScroll]);
 
   if (!items?.length) return null;
 
   const buildHref = (id: string) => {
     const params = new URLSearchParams();
-    params.set("origenId", id);
-    return `/explorar?${params.toString()}`;
+    params.set(paramName, id);
+    return `${basePath}?${params.toString()}`;
   };
 
+  const sectionClass = sticky
+    ? `originsBarWrap sticky ${stickyTopClassName} z-40`
+    : "originsBarWrap";
+
   return (
-    <section className="originsBarWrap">
+    <section className={sectionClass}>
       <div className="originsBarInner">
 
         <div className="originsBarHeader">
@@ -70,20 +91,24 @@ export const OriginsBar: React.FC<Props> = ({ items, speedPxPerFrame = 0.8 }) =>
           onMouseLeave={() => setPaused(false)}
         >
           <div className="originsRow">
-            {loopItems.map((o, idx) => (
-              <a
-                key={`${o.id}-${idx}`}
-                href={buildHref(o.id)}
-                className="originPill"
-              >
-                <span className="originText">
-                  {o.label}
-                  <span className="hoverText" aria-hidden="true">
+            {loopItems.map((o, idx) => {
+              const isActive = activeId && String(activeId) === String(o.id);
+
+              return (
+                <a
+                  key={`${o.id}-${idx}`}
+                  href={buildHref(o.id)}
+                  className={`originPill ${isActive ? "originPillActive" : ""}`}
+                >
+                  <span className="originText">
                     {o.label}
+                    <span className="hoverText" aria-hidden="true">
+                      {o.label}
+                    </span>
                   </span>
-                </span>
-              </a>
-            ))}
+                </a>
+              );
+            })}
           </div>
         </div>
 

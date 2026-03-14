@@ -37,6 +37,11 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type OriginItem = {
+  id: string;
+  label: string;
+};
+
 type ProductMode = "all" | "cosplay" | "figura";
 
 function slugify(s: string) {
@@ -66,6 +71,8 @@ const productMode: ProductMode =
 
 let categories: CategoryCard[] = [];
 let universos: UniverseCard[] = [];
+let origins: OriginItem[] = [];
+
 let universoNombre: string | null = null;
 let origenNombre: string | null = null;
 
@@ -105,12 +112,34 @@ const clearFilterHref =
 if (!db) {
   console.warn("[explorar] DB binding no disponible.");
 } else {
+
+  /* ========================= */
+  /* ORIGENES                  */
+  /* ========================= */
+
+  const origenesRes = await db
+    .prepare(`
+      SELECT id_etiqueta, nombre_etiqueta
+      FROM etiquetas
+      WHERE tipo_etiqueta = 'origen'
+      ORDER BY nombre_etiqueta ASC
+    `)
+    .all();
+
+  const origenRows = (origenesRes?.results || []) as EtiquetaRow[];
+
+  origins = origenRows.map((o) => ({
+    id: String(o.id_etiqueta),
+    label: o.nombre_etiqueta,
+  }));
+
+  /* ========================= */
+  /* UNIVERSOS                 */
+  /* ========================= */
+
   const universosRes = await db
     .prepare(`
-      SELECT
-        id_universo,
-        nombre_universo,
-        img_universo
+      SELECT id_universo, nombre_universo, img_universo
       FROM universos
       ORDER BY nombre_universo ASC
     `)
@@ -127,7 +156,7 @@ if (!db) {
   if (universoId) {
     const universoRes = await db
       .prepare(`
-        SELECT id_universo, nombre_universo, img_universo
+        SELECT nombre_universo
         FROM universos
         WHERE id_universo = ?
         LIMIT 1
@@ -135,14 +164,13 @@ if (!db) {
       .bind(universoId)
       .first();
 
-    const universo = universoRes as UniversoRow | null;
-    universoNombre = universo?.nombre_universo ?? null;
+    universoNombre = (universoRes as UniversoRow | null)?.nombre_universo ?? null;
   }
 
   if (origenId) {
     const origenRes = await db
       .prepare(`
-        SELECT id_etiqueta, nombre_etiqueta
+        SELECT nombre_etiqueta
         FROM etiquetas
         WHERE id_etiqueta = ?
         LIMIT 1
@@ -150,9 +178,12 @@ if (!db) {
       .bind(origenId)
       .first();
 
-    const origen = origenRes as EtiquetaRow | null;
-    origenNombre = origen?.nombre_etiqueta ?? null;
+    origenNombre = (origenRes as EtiquetaRow | null)?.nombre_etiqueta ?? null;
   }
+
+  /* ========================= */
+  /* PERSONAJES                */
+  /* ========================= */
 
   let sql = `
     SELECT
@@ -189,7 +220,7 @@ if (!db) {
         SELECT 1
         FROM productos prc
         WHERE prc.id_personaje = p.id_personaje
-          AND CAST(COALESCE(prc.tipo_cosplay, '0') AS TEXT) = '1'
+          AND CAST(COALESCE(prc.tipo_cosplay,'0') AS TEXT) = '1'
       )
     `);
   }
@@ -200,7 +231,7 @@ if (!db) {
         SELECT 1
         FROM productos prf
         WHERE prf.id_personaje = p.id_personaje
-          AND CAST(COALESCE(prf.tipo_cosplay, '0') AS TEXT) <> '1'
+          AND CAST(COALESCE(prf.tipo_cosplay,'0') AS TEXT) <> '1'
       )
     `);
   }
@@ -210,7 +241,7 @@ if (!db) {
   }
 
   sql += `
-    GROUP BY p.id_personaje, p.nombre_personaje, p.img_personaje, p.id_universo
+    GROUP BY p.id_personaje
     ORDER BY p.nombre_personaje ASC
   `;
 
@@ -246,6 +277,8 @@ const meta = {
     meta={meta}
     categories={categories}
     universes={universos}
+    origins={origins}
+    activeOrigenId={origenId}
     activeUniversoId={universoId}
     clearFilterHref={clearFilterHref}
     origenNombre={origenNombre}

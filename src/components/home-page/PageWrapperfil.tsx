@@ -3,6 +3,7 @@ import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 import { CategoriesMini } from "./CategoriesMini";
 import { UniverseRail } from "./UniverseRail";
+import { OriginsBar } from "../home-page/OriginsBar";
 
 type CategoryCard = {
   meta: {
@@ -20,13 +21,20 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type OriginItem = {
+  id: string;
+  label: string;
+};
+
 type ProductMode = "all" | "cosplay" | "figura";
 
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
   universes?: UniverseCard[];
+  origins?: OriginItem[];
   activeUniversoId?: string | null;
+  activeOrigenId?: string | null;
   clearFilterHref?: string | null;
   origenNombre?: string | null;
   productMode?: ProductMode;
@@ -39,7 +47,9 @@ const NewPageWrapper: React.FC<Props> = ({
   meta,
   categories,
   universes = [],
+  origins = [],
   activeUniversoId = null,
+  activeOrigenId = null,
   clearFilterHref,
   origenNombre = null,
   productMode = "all",
@@ -159,34 +169,24 @@ const NewPageWrapper: React.FC<Props> = ({
                 )}
               </div>
             </div>
-<div className="sticky top-[72px] z-40 bg-[#0a0a0a] py-3 border-y border-white/5 backdrop-blur">
 
-  <div className="container">
-
-    <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-
-      {universes.map((u) => (
-
-        <a
-          key={u.id}
-          href={`/explorar?universo=${u.id}`}
-          className="flex-shrink-0 px-4 py-2 rounded-full border border-[#00eeff]/40 text-[#00eeff] text-[11px] uppercase tracking-[0.18em] font-black bg-[#00eeff]/10 hover:bg-[#00eeff]/20 transition"
-        >
-          {u.title}
-        </a>
-
-      ))}
-
-    </div>
-
-  </div>
-
-</div>
             <UniverseRail
               items={universes}
               activeUniversoId={activeUniversoId}
             />
           </div>
+
+          {origins.length > 0 && (
+            <OriginsBar
+              items={origins}
+              activeId={activeOrigenId}
+              basePath="/explorar"
+              paramName="origenId"
+              autoScroll={false}
+              sticky
+              stickyTopClassName="top-[72px]"
+            />
+          )}
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (

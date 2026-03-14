@@ -211,3 +211,55 @@ html, body {
 .originPill:hover .originText {
   --text-stroke-color: rgba(206, 145, 145, 0.863);
 }
+/* ========================= */
+/* ORIGIN ACTIVO (Explorar)  */
+/* ========================= */
+
+.originPillActive {
+  border-color: rgba(0, 183, 255, 0.95) !important;
+
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 140, 255, 0.18),
+    rgba(0,0,0,0.85)
+  ) !important;
+
+  box-shadow:
+    0 0 0 1px rgba(0,183,255,0.35),
+    0 0 20px rgba(0,140,255,0.25),
+    0 0 40px rgba(0,183,255,0.15);
+
+  transform: scale(1.12);
+}
+
+.originPillActive .originText {
+  --animation-color: rgb(255, 40, 40);
+}
+
+.originPillActive .hoverText {
+  width: 100%;
+  filter: drop-shadow(0 0 18px rgba(255, 40, 40, 0.6));
+}
+
+
+/* ========================= */
+/* STICKY BAR LOOK           */
+/* ========================= */
+
+.originsBarWrap.sticky {
+  backdrop-filter: blur(14px);
+  background: rgba(10,10,10,0.92);
+}
+
+
+/* ========================= */
+/* SNAP SCROLL (UX MEJOR)    */
+/* ========================= */
+
+.originsScroller {
+  scroll-snap-type: x mandatory;
+}
+
+.originPill {
+  scroll-snap-align: start;
+}
