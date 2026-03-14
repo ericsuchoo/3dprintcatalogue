@@ -1,11 +1,13 @@
 import "../../styles/carrusel.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-type OriginItem = { id: string; label: string };
+type OriginItem = {
+  id: string;
+  label: string;
+};
 
 type Props = {
   items: OriginItem[];
-  speedPxPerFrame?: number;
   activeId?: string | null;
   basePath?: string;
   paramName?: string;
@@ -16,7 +18,6 @@ type Props = {
 
 export const OriginsBar: React.FC<Props> = ({
   items,
-  speedPxPerFrame = 0.8,
   activeId = null,
   basePath = "/explorar",
   paramName = "origenId",
@@ -33,18 +34,19 @@ export const OriginsBar: React.FC<Props> = ({
     return autoScroll ? [...items, ...items] : items;
   }, [items, autoScroll]);
 
+  /* ========================= */
+  /* AUTO SCROLL               */
+  /* ========================= */
+
   useEffect(() => {
     if (!autoScroll) return;
 
     const el = scrollerRef.current;
     if (!el) return;
 
-    const hasOverflow = el.scrollWidth > el.clientWidth + 5;
-    if (!hasOverflow) return;
-
     const step = () => {
       if (!paused) {
-        el.scrollLeft += speedPxPerFrame;
+        el.scrollLeft += 0.6;
 
         const half = el.scrollWidth / 2;
         if (el.scrollLeft >= half) el.scrollLeft = 0;
@@ -58,9 +60,33 @@ export const OriginsBar: React.FC<Props> = ({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [paused, speedPxPerFrame, loopItems.length, autoScroll]);
+  }, [paused, autoScroll]);
 
-  if (!items?.length) return null;
+  /* ========================= */
+  /* CENTER ACTIVE ORIGIN      */
+  /* ========================= */
+
+  useEffect(() => {
+    if (!activeId) return;
+
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const activeEl = el.querySelector(
+      `[data-origin-id="${activeId}"]`
+    ) as HTMLElement | null;
+
+    if (!activeEl) return;
+
+    const containerWidth = el.clientWidth;
+    const elementLeft = activeEl.offsetLeft;
+    const elementWidth = activeEl.offsetWidth;
+
+    el.scrollTo({
+      left: elementLeft - containerWidth / 2 + elementWidth / 2,
+      behavior: "smooth",
+    });
+  }, [activeId]);
 
   const buildHref = (id: string) => {
     const params = new URLSearchParams();
@@ -71,6 +97,8 @@ export const OriginsBar: React.FC<Props> = ({
   const sectionClass = sticky
     ? `originsBarWrap sticky ${stickyTopClassName} z-40`
     : "originsBarWrap";
+
+  if (!items?.length) return null;
 
   return (
     <section className={sectionClass}>
@@ -98,20 +126,20 @@ export const OriginsBar: React.FC<Props> = ({
                 <a
                   key={`${o.id}-${idx}`}
                   href={buildHref(o.id)}
+                  data-origin-id={o.id}
                   className={`originPill ${isActive ? "originPillActive" : ""}`}
                 >
-                  <span className="originText">
-                    {o.label}
-                    <span className="hoverText" aria-hidden="true">
-                      {o.label}
-                    </span>
-                  </span>
+                  <span className="originText">{o.label}</span>
+
+                  <span className="line top" />
+                  <span className="line right" />
+                  <span className="line bottom" />
+                  <span className="line left" />
                 </a>
               );
             })}
           </div>
         </div>
-
       </div>
     </section>
   );
