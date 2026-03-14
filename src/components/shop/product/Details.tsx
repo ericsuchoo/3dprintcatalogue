@@ -56,7 +56,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
     >
       <div className="flex flex-col mb-6 sm:mb-7 lg:mb-5">
         <h1
-          className="text-[24px] sm:text-[22px] lg:text-[28px] font-bold tracking-tighter leading-tight text-black mb-4 uppercase
+          className="text-[24px] sm:text-[28px] lg:text-[28px] font-bold tracking-tighter leading-tight text-black mb-4 uppercase
           [text-shadow:_-2px_-2px_0_#fff,_2px_-2px_0_#fff,_-2px_2px_0_#fff]"
           style={{
             textAlign: "center",
@@ -74,18 +74,18 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </h1>
 
         <div className="flex items-center justify-between border-b border-zinc-200 pb-4 gap-3">
-          <span className="text-[10px] sm:text-[9px] lg:text-[10px] font-medium text-black uppercase tracking-[0.18em]">
+          <span className="text-[10px] sm:text-[12px] lg:text-[10px] font-medium text-black uppercase tracking-[0.18em]">
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
 
-          <span className="text-[18px] sm:text-[16px] lg:text-[20px] font-light text-black whitespace-nowrap">
+          <span className="text-[18px] sm:text-[20px] lg:text-[20px] font-light text-black whitespace-nowrap">
             {priceLabel ?? ""}
           </span>
         </div>
       </div>
 
       <div className="mb-7 sm:mb-8 lg:mb-6">
-        <p className="text-[11px] sm:text-[10px] lg:text-[10px] font-black uppercase tracking-[1.8px] mb-4 text-black">
+        <p className="text-[11px] sm:text-[10px] lg:text-[14px] font-black uppercase tracking-[1.8px] mb-4 text-black">
           Versión del modelo
         </p>
 
@@ -101,7 +101,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "relative flex items-center justify-between px-3 py-2.5 border text-[11px] sm:text-[10px] lg:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
+                    "relative flex items-center justify-between px-3 py-2.5 border text-[11px] sm:text-[14px] lg:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
                     isActive
                       ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "border-black bg-black text-white hover:bg-zinc-900"
@@ -129,12 +129,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
       {scales.length > 0 && (
         <div className="mb-8 sm:mb-9 lg:mb-7">
-          <p className="text-[11px] sm:text-[10px] lg:text-[10px] font-black uppercase tracking-[1.8px] mb-4 text-black">
+          <p className="text-[11px] sm:text-[14px] lg:text-[10px] font-black uppercase tracking-[1.8px] mb-4 text-black">
             Escala disponible
           </p>
 
           {activeScaleDescription && (
-            <div className="text-[12px] sm:text-[11px] lg:text-[12px] italic text-zinc-700 leading-relaxed mb-5 whitespace-pre-line">
+            <div className="text-[12px] sm:text-[14px] lg:text-[12px] italic text-zinc-700 leading-relaxed mb-5 whitespace-pre-line">
               {activeScaleDescription}
             </div>
           )}
@@ -149,7 +149,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${scale?.id_escala ?? scale?.nombre_escala ?? index}-${index}`}
                   onClick={() => setActiveScale(scale)}
                   className={classNames(
-                    "min-w-[44px] sm:min-w-[42px] lg:min-w-[46px] px-2.5 py-2.5 border text-[10px] sm:text-[9px] lg:text-[10px] font-bold uppercase leading-none transition-all duration-300",
+                    "min-w-[44px] sm:min-w-[42px] lg:min-w-[46px] px-2.5 py-2.5 border text-[10px] sm:text-[14px] lg:text-[10px] font-bold uppercase leading-none transition-all duration-300",
                     !scale?.disponible
                       ? "opacity-25 cursor-not-allowed border-zinc-300 bg-white text-zinc-400"
                       : isActive
@@ -170,7 +170,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         <button
           onClick={() => toggleFavorite(favoriteId)}
           className={classNames(
-            "w-full py-3.5 lg:py-3 font-bold uppercase text-[10px] sm:text-[9px] lg:text-[10px] tracking-[2px] border transition-colors",
+            "w-full py-3.5 lg:py-3 font-bold uppercase text-[10px] sm:text-[14px] lg:text-[10px] tracking-[2px] border transition-colors",
             isFavorite
               ? "bg-red-500 border-red-500 text-white"
               : "border-black text-black hover:bg-black hover:text-white"
@@ -183,7 +183,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
       <div className="border-t border-zinc-200 mt-4 pt-3">
         {meta?.aspectos_variables ? (
           <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-3 py-3.5 shadow-sm">
-            <div className="text-[12px] sm:text-[11px] lg:text-[14px] italic leading-relaxed tracking-tight text-black">
+            <div className="text-[12px] sm:text-[14px] lg:text-[14px] italic leading-relaxed tracking-tight text-black">
               <span className="font-extrabold uppercase text-red-600 tracking-[0.04em]">
                 Piezas alternas:
               </span>{" "}
@@ -192,12 +192,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </div>
         ) : null}
 
-        <div className="text-black font-sans italic text-[12px] sm:text-[11px] lg:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
+        <div className="text-black font-sans italic text-[12px] sm:text-[14px] lg:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
           {meta?.description || meta?.descripcion || "Sin descripción por el momento."}
         </div>
 
         {meta?.disclaimer ? (
-          <div className="text-black/60 font-sans italic text-[10px] sm:text-[9px] lg:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-5">
+          <div className="text-black/60 font-sans italic text-[10px] sm:text-[12px] lg:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-5">
             {meta.disclaimer}
           </div>
         ) : null}
