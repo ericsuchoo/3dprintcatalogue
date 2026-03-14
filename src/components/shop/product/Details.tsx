@@ -75,7 +75,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </h1>
 
         <div className="flex items-center justify-between border-b border-zinc-200 pb-4 gap-4">
-          <span className="text-[10px] font-medium text-black uppercase tracking-widest">
+          <span className="text-[12px] md:text-[11px] font-medium text-black uppercase tracking-widest">
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
           <span className="text-[20px] font-light text-black whitespace-nowrap">
@@ -101,7 +101,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "relative flex items-center justify-between px-4 py-2 border text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
+                    "relative flex items-center justify-between px-4 py-2 border text-[13px] md:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
                     isActive
                       ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "border-black bg-black text-white hover:bg-zinc-900"
@@ -190,12 +190,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </div>
         ) : null}
 
-        <div className="text-black font-sans italic text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
+        <div className="text-black font-sans italic text-[15px] md:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
           {meta?.description || meta?.descripcion || "Sin descripción por el momento."}
         </div>
 
         {meta?.disclaimer ? (
-          <div className="text-black/60 font-sans italic text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-4">
+          <div className="text-black/60 font-sans italic text-[12px] md:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-4">
             {meta.disclaimer}
           </div>
         ) : null}
