@@ -507,7 +507,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   );
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-20 md:pt-24 pb-8">
+<div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-24 sm:pt-24 md:pt-24 pb-8">
       <div className="mb-4 xl:hidden">
         <button
           type="button"
@@ -604,9 +604,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                     <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
                       Buscar personaje
                     </div>
-                    <h3 className="text-white text-[22px] sm:text-[26px] md:text-[32px] leading-none font-black italic uppercase">
-                      Salta directo al catálogo
-                    </h3>
+                   <h3 className="text-white text-[15px] sm:text-[22px] md:text-[32px] leading-[1.05] font-black italic uppercase">
+  Salta directo al catálogo
+</h3>
                   </div>
 
                   <div className="w-full lg:max-w-[360px]">
