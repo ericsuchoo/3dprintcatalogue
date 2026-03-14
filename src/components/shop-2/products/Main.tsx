@@ -9,6 +9,7 @@ interface Props {
 
 export const Main: React.FC<Props> = ({ data }) => {
   const { favorites } = useFavorites();
+
   const [searchVal, setSearchVal] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [isSharing, setIsSharing] = useState(false);
@@ -20,7 +21,7 @@ export const Main: React.FC<Props> = ({ data }) => {
   }, [products, favorites]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchVal) return favoriteProducts;
+    if (!searchVal.trim()) return favoriteProducts;
 
     return favoriteProducts.filter((p) => {
       const haystack =
@@ -61,7 +62,7 @@ export const Main: React.FC<Props> = ({ data }) => {
     return result.shareUrl as string;
   };
 
-  const handleNativeShare = async () => {
+  const handleShare = async () => {
     try {
       setIsSharing(true);
 
@@ -86,7 +87,7 @@ export const Main: React.FC<Props> = ({ data }) => {
     }
   };
 
-  const handleWhatsAppShare = async () => {
+  const handleWhatsApp = async () => {
     try {
       setIsSharing(true);
 
@@ -104,7 +105,7 @@ export const Main: React.FC<Props> = ({ data }) => {
     }
   };
 
-  const handleCopyLink = async () => {
+  const handleCopy = async () => {
     try {
       setIsSharing(true);
 
@@ -121,30 +122,38 @@ export const Main: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-8">
-      <div className="grid grid-cols-1 gap-x-10 gap-y-10 items-start lg:grid-cols-[240px,1fr]">
-        <div className="sticky top-28">
-          <div className="grid grid-cols-1 gap-6 border border-[#00eeff] p-6 md:p-8 bg-[#0f0f0f] rounded-xl backdrop-blur-sm">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-10 items-start lg:grid-cols-[300px,1fr]">
+        <aside className="sticky top-28">
+          <div className="grid grid-cols-1 gap-6 border border-[#00eeff] p-6 md:p-7 bg-[#0f0f0f] rounded-2xl backdrop-blur-sm shadow-[0_0_24px_rgba(0,238,255,0.06)]">
             <div className="flex items-center gap-3">
               <span className="text-2xl animate-pulse">❤️</span>
               <div className="text-2xl leading-none font-bold italic text-red-500">
-                Mis Me gusta
+                Mis favoritos
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] font-black text-zinc-300">
-              <span className="text-red-400">Guardados:</span>
-              <span className="text-white">{favoriteProducts.length}</span>
+            <div className="text-sm text-zinc-400 leading-relaxed">
+              Aquí puedes revisar tus productos guardados, filtrarlos y compartir
+              tu lista con otra persona.
             </div>
 
-            <div className="text-sm text-zinc-400 leading-relaxed">
-              Aquí se muestran únicamente los productos que marcaste como favoritos.
+            <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.18em] font-black">
+              <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+                <div className="text-zinc-500 mb-1">Guardados</div>
+                <div className="text-white text-lg">{favoriteProducts.length}</div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+                <div className="text-zinc-500 mb-1">Visibles</div>
+                <div className="text-white text-lg">{filteredProducts.length}</div>
+              </div>
             </div>
 
             {favoriteProducts.length > 0 && (
               <div className="flex flex-col gap-3">
                 <button
                   type="button"
-                  onClick={handleNativeShare}
+                  onClick={handleShare}
                   disabled={isSharing}
                   className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/10 hover:bg-[#00eeff]/20 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
                 >
@@ -153,16 +162,16 @@ export const Main: React.FC<Props> = ({ data }) => {
 
                 <button
                   type="button"
-                  onClick={handleWhatsAppShare}
+                  onClick={handleWhatsApp}
                   disabled={isSharing}
                   className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
                 >
-                  WhatsApp
+                  Enviar por WhatsApp
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleCopyLink}
+                  onClick={handleCopy}
                   disabled={isSharing}
                   className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
                 >
@@ -170,15 +179,24 @@ export const Main: React.FC<Props> = ({ data }) => {
                 </button>
               </div>
             )}
-          </div>
-        </div>
 
-        <div>
+            {shareUrl && (
+              <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+                <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-black mb-2">
+                  Último enlace generado
+                </div>
+                <div className="text-xs text-zinc-300 break-all">{shareUrl}</div>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <section>
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
                 <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                  Mis favoritos
+                  Lista guardada
                 </span>
               </h1>
 
@@ -187,46 +205,15 @@ export const Main: React.FC<Props> = ({ data }) => {
                 {favoriteProducts.length === 1 ? "" : "s"}
               </p>
             </div>
-
-            {favoriteProducts.length > 0 && (
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleNativeShare}
-                  disabled={isSharing}
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/10 hover:bg-[#00eeff]/20 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
-                >
-                  {isSharing ? "Generando..." : "Compartir"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleWhatsAppShare}
-                  disabled={isSharing}
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
-                >
-                  WhatsApp
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  disabled={isSharing}
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/80 bg-white/5 hover:bg-white/10 hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] disabled:opacity-50"
-                >
-                  Copiar enlace
-                </button>
-              </div>
-            )}
           </div>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+          <div className="mb-6">
             <input
               type="search"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               placeholder="Buscar en mis favoritos..."
-              className="bg-[#0f0f0f] border border-white/10 rounded-lg px-5 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+              className="bg-[#0f0f0f] border border-white/10 rounded-xl px-5 py-4 w-full text-sm text-white placeholder:text-zinc-500 focus:outline-none"
             />
           </div>
 
@@ -245,7 +232,7 @@ export const Main: React.FC<Props> = ({ data }) => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
               {filteredProducts.map((product, index) => (
                 <ProductCard
                   key={product.slug ?? index}
@@ -254,7 +241,7 @@ export const Main: React.FC<Props> = ({ data }) => {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
