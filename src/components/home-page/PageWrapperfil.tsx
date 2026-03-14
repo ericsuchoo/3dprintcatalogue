@@ -3,6 +3,7 @@ import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 import { CategoriesMini } from "./CategoriesMini";
 import { UniverseRail } from "./UniverseRail";
+import { OriginsBar } from "../home-page/OriginsBar";
 
 type CategoryCard = {
   meta: {
@@ -20,13 +21,20 @@ type UniverseCard = {
   imageUrl: string | null;
 };
 
+type OriginItem = {
+  id: string;
+  label: string;
+};
+
 type ProductMode = "all" | "cosplay" | "figura";
 
 interface Props {
   meta: { title?: string };
   categories: CategoryCard[];
   universes?: UniverseCard[];
+  origins?: OriginItem[];
   activeUniversoId?: string | null;
+  activeOrigenId?: string | null;
   clearFilterHref?: string | null;
   origenNombre?: string | null;
   productMode?: ProductMode;
@@ -39,7 +47,9 @@ const NewPageWrapper: React.FC<Props> = ({
   meta,
   categories,
   universes = [],
+  origins = [],
   activeUniversoId = null,
+  activeOrigenId = null,
   clearFilterHref,
   origenNombre = null,
   productMode = "all",
@@ -165,6 +175,18 @@ const NewPageWrapper: React.FC<Props> = ({
               activeUniversoId={activeUniversoId}
             />
           </div>
+{origins.length > 0 && (
+  <OriginsBar
+    items={origins}
+    activeId={activeOrigenId}
+    basePath="/explorar"
+    paramName="origenId"
+    autoScroll
+    sticky
+    stickyTopClassName="top-[72px]"
+    speedPxPerFrame={0.55}
+  />
+)}
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
@@ -191,6 +213,7 @@ const NewPageWrapper: React.FC<Props> = ({
               {Array.from({ length: totalPages }).map((_, idx) => {
                 const page = idx + 1;
                 const isActive = page === currentPage;
+
                 return (
                   <button
                     key={page}
