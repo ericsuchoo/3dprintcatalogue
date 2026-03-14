@@ -52,7 +52,7 @@ export const Gallery: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (!displayEdition) {
+    if (!displayEdition && currentEdition) {
       setDisplayEdition(currentEdition);
     }
   }, [currentEdition, displayEdition]);
@@ -63,13 +63,12 @@ export const Gallery: React.FC<Props> = ({
 
   useEffect(() => {
     if (!currentEdition) return;
+    if (!displayEdition) return;
 
     const currentId = String(currentEdition?.id_edicion ?? currentEdition?.nombre_edicion ?? "");
-    const displayedId = String(
-      displayEdition?.id_edicion ?? displayEdition?.nombre_edicion ?? ""
-    );
+    const displayId = String(displayEdition?.id_edicion ?? displayEdition?.nombre_edicion ?? "");
 
-    if (currentId === displayedId) return;
+    if (currentId === displayId) return;
 
     const nextSlides = getSlidesFromEdition(currentEdition);
     const firstImageUrl = nextSlides[0]?.url;
@@ -77,9 +76,6 @@ export const Gallery: React.FC<Props> = ({
     if (!firstImageUrl) {
       setDisplayEdition(currentEdition);
       setActiveIndex(0);
-      if (mainSwiper) {
-        mainSwiper.slideTo(0, 0);
-      }
       return;
     }
 
@@ -92,14 +88,9 @@ export const Gallery: React.FC<Props> = ({
       setDisplayEdition(currentEdition);
       setActiveIndex(0);
 
-      if (mainSwiper) {
-        mainSwiper.slideTo(0, 0);
-        mainSwiper.update();
-      }
-
       window.setTimeout(() => {
         setIsSwitching(false);
-      }, 160);
+      }, 140);
     };
 
     if (img.complete) {
@@ -108,12 +99,16 @@ export const Gallery: React.FC<Props> = ({
       img.onload = finishSwitch;
       img.onerror = finishSwitch;
     }
-  }, [currentEdition, displayEdition, mainSwiper]);
+  }, [currentEdition, displayEdition, fallbackImage]);
 
   useEffect(() => {
     if (!mainSwiper) return;
     mainSwiper.update();
   }, [displaySlides, mainSwiper]);
+
+  const swiperKey = String(
+    displayEdition?.id_edicion ?? displayEdition?.nombre_edicion ?? "default"
+  );
 
   return (
     <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-0 px-0 bg-black">
@@ -149,7 +144,7 @@ export const Gallery: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
+      <div className="relative flex-1 group order-1 lg:order-2 bg-black rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -163,7 +158,7 @@ export const Gallery: React.FC<Props> = ({
                 z-index: 20;
               }
               .swiper-pagination-bullet-active { background: #ef4444 !important; }
-              .product-swiper { width: 100% !important; background: white !important; }
+              .product-swiper { width: 100% !important; background: #000 !important; }
               @media (min-width: 1024px) { .product-swiper { height: 840px !important; } }
               .custom-scrollbar::-webkit-scrollbar { width: 3px; }
               .custom-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
@@ -173,11 +168,12 @@ export const Gallery: React.FC<Props> = ({
 
         <div
           className={classNames(
-            "transition-all duration-300",
-            isSwitching ? "opacity-90 blur-[1.5px]" : "opacity-100 blur-0"
+            "transition-all duration-200",
+            isSwitching ? "opacity-90 blur-[1px]" : "opacity-100 blur-0"
           )}
         >
           <Swiper
+            key={swiperKey}
             modules={[Navigation, Pagination, A11y]}
             onSwiper={setMainSwiper}
             onSlideChange={(swiper) => {
@@ -194,7 +190,7 @@ export const Gallery: React.FC<Props> = ({
               displaySlides.map((item: EditionImage, index: number) => (
                 <SwiperSlide
                   key={`${item.url}-${index}`}
-                  className="bg-black flex items-center justify-center"
+                  className="bg-black flex items-center justify-center h-auto lg:h-[840px]"
                 >
                   <img
                     src={item.url}
@@ -205,15 +201,15 @@ export const Gallery: React.FC<Props> = ({
                 </SwiperSlide>
               ))
             ) : (
-              <SwiperSlide className="bg-black flex items-center justify-center">
-                <div className="w-full min-h-[420px] bg-zinc-900" />
+              <SwiperSlide className="bg-black flex items-center justify-center min-h-[320px] lg:h-[840px]">
+                <div className="w-full h-full bg-zinc-900" />
               </SwiperSlide>
             )}
           </Swiper>
         </div>
 
         {isSwitching && (
-          <div className="absolute inset-0 z-30 pointer-events-none bg-black/8 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 z-30 pointer-events-none bg-black/10 backdrop-blur-[1px]" />
         )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 via-black/10 to-transparent z-10" />
