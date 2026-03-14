@@ -507,48 +507,54 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   );
 
   return (
-<div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-24 sm:pt-24 md:pt-24 pb-8">
-      <div className="mb-4 xl:hidden">
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
-        >
-          Abrir filtros
-        </button>
+  <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
+
+    <div className="mt-3 mb-4 xl:hidden">
+      <button
+        type="button"
+        onClick={() => setFiltersOpen(true)}
+        className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
+      >
+        Abrir filtros
+      </button>
+    </div>
+
+    {filtersOpen && (
+      <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
+        <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
+
+        <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
+
+          <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
+            <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
+              Filtros
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(false)}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
+              aria-label="Cerrar filtros"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {renderFiltersContent()}
+          </div>
+
+        </div>
+      </div>
+    )}
+
+    <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+
+      <div className="hidden xl:block xl:sticky xl:top-28 self-start">
+        {renderFiltersContent()}
       </div>
 
-      {filtersOpen && (
-        <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
-              <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
-                Filtros
-              </div>
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(false)}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
-                aria-label="Cerrar filtros"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4">
-              {renderFiltersContent()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
-        <div className="hidden xl:block xl:sticky xl:top-28 self-start">
-          {renderFiltersContent()}
-        </div>
-
-        <div className="min-w-0">
+      <div className="min-w-0">
           {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
             <div className="mb-5 flex flex-col gap-4">
               {selectedCharacterName && (
