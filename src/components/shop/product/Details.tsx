@@ -166,7 +166,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       )}
 
-      <div className="flex flex-col gap-2 mb-8 sm:mb-9 lg:mb-6">
+     <div className="flex flex-col gap-2 mb-5 sm:mb-6 lg:mb-6">
         <button
           onClick={() => toggleFavorite(favoriteId)}
           className={classNames(
