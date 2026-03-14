@@ -23,7 +23,7 @@ export const Main: React.FC<Props> = ({ data }) => {
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-  <div className="container bg-black px-4 md:px-6 pt-24 md:pt-28 lg:pt-32">
+  <div className="container bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_460px] gap-8 xl:gap-10 items-start">
         <Gallery
           gallery={editions}
