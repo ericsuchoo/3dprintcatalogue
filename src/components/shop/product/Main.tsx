@@ -23,8 +23,8 @@ export const Main: React.FC<Props> = ({ data }) => {
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
-    <div className="w-full max-w-[1600px] mx-auto bg-black px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-6 xl:gap-8 items-start">
+    <div className="w-full max-w-[1600px] mx-auto bg-black px-2 sm:px-4 md:px-6 pt-16 md:pt-20 lg:pt-20">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-5 xl:gap-8 items-start">
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
@@ -41,12 +41,12 @@ export const Main: React.FC<Props> = ({ data }) => {
       </div>
 
       {otherProducts.length > 0 && (
-        <div className="mt-16">
-          <div className="bg-red-500 text-white font-black italic text-xl px-4 py-2 uppercase tracking-tight">
+        <div className="mt-14 sm:mt-16">
+          <div className="bg-red-500 text-white font-black italic text-lg sm:text-xl px-4 py-2 uppercase tracking-tight">
             Otras opciones gloriosas
           </div>
 
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mt-6">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mt-5 sm:mt-6">
             {otherProducts.map((product: any, index: number) => (
               <ProductCard key={product.slug ?? index} card={product} />
             ))}

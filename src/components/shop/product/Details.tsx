@@ -51,12 +51,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
   return (
     <div
-      className="flex flex-col relative p-6 sm:p-7 lg:p-8 xl:p-9 mt-0 lg:mt-0 w-full max-w-none border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+      className="flex flex-col relative p-4 sm:p-6 lg:p-8 xl:p-9 mt-0 lg:mt-0 w-full max-w-none border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
       style={{ background: "rgba(255, 255, 255, 0.96)" }}
     >
       <div className="flex flex-col mb-5">
         <h1
-          className="text-[28px] sm:text-[30px] md:text-3xl font-bold tracking-tighter leading-tight text-black mb-4 uppercase
+          className="text-[26px] sm:text-[28px] md:text-3xl font-bold tracking-tighter leading-tight text-black mb-4 uppercase
           [text-shadow:_-2px_-2px_0_#fff,_2px_-2px_0_#fff,_-2px_2px_0_#fff]"
           style={{
             textAlign: "center",
@@ -65,7 +65,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           }}
         >
           <span
-            className="block w-full px-4 py-2.5 border-2 border-red-500 bg-white text-black
+            className="block w-full px-4 py-2 border-2 border-red-500 bg-white text-black
             shadow-[0_0_8px_rgba(239,68,68,0.35)]
             hover:shadow-[0_0_14px_rgba(239,68,68,0.55)]
             transition-all duration-300"
@@ -74,19 +74,19 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </span>
         </h1>
 
-        <div className="flex items-center justify-between border-b border-zinc-200 pb-5 gap-4">
-          <span className="text-[11px] md:text-[10px] font-medium text-black uppercase tracking-widest">
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-4 gap-3">
+          <span className="text-[10px] md:text-[10px] font-medium text-black uppercase tracking-widest">
             Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
           </span>
 
-          <span className="text-[22px] md:text-[20px] font-light text-black whitespace-nowrap">
+          <span className="text-[20px] md:text-[20px] font-light text-black whitespace-nowrap">
             {priceLabel ?? ""}
           </span>
         </div>
       </div>
 
-      <div className="mb-7">
-        <p className="text-[11px] md:text-[10px] font-black uppercase tracking-[2px] mb-4 text-black">
+      <div className="mb-6">
+        <p className="text-[10px] md:text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">
           Versión del modelo
         </p>
 
@@ -102,7 +102,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
                   onClick={() => editionChange(e)}
                   className={classNames(
-                    "relative flex items-center justify-between px-4 py-2.5 border text-[13px] md:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
+                    "relative flex items-center justify-between px-3.5 sm:px-4 py-2.5 border text-[12px] md:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
                     isActive
                       ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
                       : "border-black bg-black text-white hover:bg-zinc-900"
@@ -121,7 +121,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
               );
             })
           ) : (
-            <div className="text-[13px] md:text-[12px] text-zinc-500 italic">
+            <div className="text-[12px] md:text-[12px] text-zinc-500 italic">
               Sin ediciones registradas
             </div>
           )}
@@ -129,18 +129,18 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
       </div>
 
       {scales.length > 0 && (
-        <div className="mb-9">
-          <p className="text-[11px] md:text-[10px] font-black uppercase tracking-[2px] mb-4 text-black">
+        <div className="mb-8">
+          <p className="text-[10px] md:text-[10px] font-black uppercase tracking-[2px] mb-3 text-black">
             Escala disponible
           </p>
 
           {activeScaleDescription && (
-            <div className="text-[13px] md:text-[12px] italic text-zinc-700 leading-relaxed mb-5 whitespace-pre-line">
+            <div className="text-[12px] md:text-[12px] italic text-zinc-700 leading-relaxed mb-4 whitespace-pre-line">
               {activeScaleDescription}
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2">
             {scales.map((scale, index) => {
               const isActive =
                 String(activeScale?.id_escala ?? "") === String(scale?.id_escala ?? "");
@@ -150,7 +150,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
                   key={`${scale?.id_escala ?? scale?.nombre_escala ?? index}-${index}`}
                   onClick={() => setActiveScale(scale)}
                   className={classNames(
-                    "min-w-[50px] px-3.5 py-3 border text-[11px] md:text-[11px] font-bold uppercase leading-none transition-all duration-300",
+                    "min-w-[46px] px-3 py-3 border text-[10px] md:text-[11px] font-bold uppercase leading-none transition-all duration-300",
                     !scale?.disponible
                       ? "opacity-25 cursor-not-allowed border-zinc-300 bg-white text-zinc-400"
                       : isActive
@@ -167,11 +167,11 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       )}
 
-      <div className="flex flex-col gap-2 mb-9">
+      <div className="flex flex-col gap-2 mb-8">
         <button
           onClick={() => toggleFavorite(favoriteId)}
           className={classNames(
-            "w-full py-4 font-bold uppercase text-[11px] md:text-[10px] tracking-[2px] border transition-colors",
+            "w-full py-3.5 sm:py-4 font-bold uppercase text-[10px] md:text-[10px] tracking-[2px] border transition-colors",
             isFavorite
               ? "bg-red-500 border-red-500 text-white"
               : "border-black text-black hover:bg-black hover:text-white"
@@ -181,10 +181,10 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </button>
       </div>
 
-      <div className="border-t border-zinc-200 pt-6">
+      <div className="border-t border-zinc-200 pt-5">
         {meta?.aspectos_variables ? (
-          <div className="mb-6 rounded-sm border-l-4 border-red-500 bg-red-50 px-4 py-4 shadow-sm">
-            <div className="text-[14px] md:text-[16px] italic leading-relaxed tracking-tight text-black">
+          <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-3.5 sm:px-4 py-3.5 sm:py-4 shadow-sm">
+            <div className="text-[13px] md:text-[16px] italic leading-relaxed tracking-tight text-black">
               <span className="font-extrabold uppercase text-red-600 tracking-[0.04em]">
                 Piezas alternas:
               </span>{" "}
@@ -193,12 +193,12 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </div>
         ) : null}
 
-        <div className="text-black font-sans italic text-[14px] md:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
+        <div className="text-black font-sans italic text-[13px] md:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
           {meta?.description || meta?.descripcion || "Sin descripción por el momento."}
         </div>
 
         {meta?.disclaimer ? (
-          <div className="text-black/60 font-sans italic text-[11px] md:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-5">
+          <div className="text-black/60 font-sans italic text-[10px] md:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-4">
             {meta.disclaimer}
           </div>
         ) : null}
