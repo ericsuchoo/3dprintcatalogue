@@ -51,7 +51,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
 
   return (
     <div
-      className="flex flex-col relative p-3 sm:p-4 lg:p-6 xl:p-8 mt-0 w-full max-w-none min-h-[560px] sm:min-h-[620px] lg:min-h-0 border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+      className="flex flex-col relative p-3 sm:p-4 lg:p-6 xl:p-8 mt-0 w-full max-w-none min-h-[620px] sm:min-h-[680px] lg:min-h-0 border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
       style={{ background: "rgba(255, 255, 255, 0.96)" }}
     >
       <div className="flex flex-col mb-6 sm:mb-7 lg:mb-5">
