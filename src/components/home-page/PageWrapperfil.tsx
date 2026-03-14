@@ -159,7 +159,29 @@ const NewPageWrapper: React.FC<Props> = ({
                 )}
               </div>
             </div>
+<div className="sticky top-[72px] z-40 bg-[#0a0a0a] py-3 border-y border-white/5 backdrop-blur">
 
+  <div className="container">
+
+    <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+
+      {universes.map((u) => (
+
+        <a
+          key={u.id}
+          href={`/explorar?universo=${u.id}`}
+          className="flex-shrink-0 px-4 py-2 rounded-full border border-[#00eeff]/40 text-[#00eeff] text-[11px] uppercase tracking-[0.18em] font-black bg-[#00eeff]/10 hover:bg-[#00eeff]/20 transition"
+        >
+          {u.title}
+        </a>
+
+      ))}
+
+    </div>
+
+  </div>
+
+</div>
             <UniverseRail
               items={universes}
               activeUniversoId={activeUniversoId}
