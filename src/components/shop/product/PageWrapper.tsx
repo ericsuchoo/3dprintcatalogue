@@ -14,9 +14,7 @@ const ProductPageWrapper: React.FC<Props> = ({ data }) => {
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-        <div className="container bg-black pb-14 md:pb-20 lg:pb-[136px]">
-          {data?.meta ? <Main data={data} /> : null}
-        </div>
+        {data?.meta ? <Main data={data} /> : null}
       </InnerPageWrapper>
     </ContextWrapper>
   );
