@@ -57,6 +57,7 @@ const NewPageWrapper: React.FC<Props> = ({
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);
     setCurrentPage(safe);
+
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -79,11 +80,11 @@ const NewPageWrapper: React.FC<Props> = ({
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-        <div className="pt-24 bg-[#0a0a0a] min-h-screen">
+        <div className="pt-40 sm:pt-36 lg:pt-24 bg-[#0a0a0a] min-h-screen">
           <div className="container pb-5">
-            <div className="mb-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+            <div className="mt-4 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="pr-0 lg:pr-6">
+                <h1 className="text-[30px] sm:text-4xl lg:text-4xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
                   {origenNombre ? (
                     <>
                       Explora:{" "}
@@ -108,7 +109,7 @@ const NewPageWrapper: React.FC<Props> = ({
                   )}
                 </h1>
 
-                <p className="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-2 font-bold">
+                <p className="text-[11px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
                   {origenNombre ? (
                     productMode === "cosplay"
                       ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
@@ -131,17 +132,17 @@ const NewPageWrapper: React.FC<Props> = ({
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-3">
+              <div className="w-full mt-5 sm:mt-6 lg:mt-0 flex flex-wrap items-center justify-start lg:w-auto lg:justify-end gap-3">
                 {productModeToggleHref && (
                   <a
                     href={productModeToggleHref}
                     title={currentModeBadge}
-                    className={`inline-flex items-center justify-center px-4 py-2 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
+                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
                       productMode === "cosplay"
-                        ? "border-[#00eeff]/60 text-[#00eeff] bg-[#00eeff]/10 shadow-[0_0_18px_rgba(0,238,255,0.16)] hover:bg-red-500/10 hover:border-red-400/40 hover:text-white"
+                        ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/14 shadow-[0_0_22px_rgba(0,238,255,0.22)] hover:bg-[#00eeff]/22 hover:text-white"
                         : productMode === "figura"
-                          ? "border-red-500/50 text-red-400 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-white/10 hover:border-white/30 hover:text-white"
-                          : "border-white/10 text-white/80 hover:text-white hover:border-[#00eeff]/40 bg-white/5 hover:bg-[#00eeff]/10"
+                          ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
+                          : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
                     }`}
                   >
                     {productModeLabel}
@@ -151,7 +152,7 @@ const NewPageWrapper: React.FC<Props> = ({
                 {clearFilterHref && (
                   <a
                     href={clearFilterHref}
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
                   >
                     Quitar filtro
                   </a>
@@ -176,7 +177,7 @@ const NewPageWrapper: React.FC<Props> = ({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-10 pb-10">
+            <div className="flex justify-center items-center gap-2 mt-10 pb-10 flex-wrap">
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage === 1}
