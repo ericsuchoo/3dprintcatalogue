@@ -182,9 +182,10 @@ const NewPageWrapper: React.FC<Props> = ({
               activeId={activeOrigenId}
               basePath="/explorar"
               paramName="origenId"
-              autoScroll={false}
+              autoScroll
               sticky
               stickyTopClassName="top-[72px]"
+              speedPxPerFrame={0.55}
             />
           )}
 
@@ -213,6 +214,7 @@ const NewPageWrapper: React.FC<Props> = ({
               {Array.from({ length: totalPages }).map((_, idx) => {
                 const page = idx + 1;
                 const isActive = page === currentPage;
+
                 return (
                   <button
                     key={page}
