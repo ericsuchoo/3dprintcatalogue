@@ -175,19 +175,18 @@ const NewPageWrapper: React.FC<Props> = ({
               activeUniversoId={activeUniversoId}
             />
           </div>
-
-          {origins.length > 0 && (
-            <OriginsBar
-              items={origins}
-              activeId={activeOrigenId}
-              basePath="/explorar"
-              paramName="origenId"
-              autoScroll
-              sticky
-              stickyTopClassName="top-[72px]"
-              speedPxPerFrame={0.55}
-            />
-          )}
+{origins.length > 0 && (
+  <OriginsBar
+    items={origins}
+    activeId={activeOrigenId}
+    basePath="/explorar"
+    paramName="origenId"
+    autoScroll
+    sticky
+    stickyTopClassName="top-[72px]"
+    speedPxPerFrame={0.55}
+  />
+)}
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (

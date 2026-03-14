@@ -1,4 +1,4 @@
-import "../../styles/carrusel.css";
+import "../../styles/origins-bar.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type OriginItem = {
@@ -29,9 +29,8 @@ export const OriginsBar: React.FC<Props> = ({
 }) => {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const startTimeoutRef = useRef<number | null>(null);
+  const resumeTimeoutRef = useRef<number | null>(null);
   const [paused, setPaused] = useState(false);
-  const [readyToScroll, setReadyToScroll] = useState(false);
 
   const loopItems = useMemo(() => {
     if (!items?.length) return [];
@@ -50,81 +49,65 @@ export const OriginsBar: React.FC<Props> = ({
 
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el) return;
-
-    if (startTimeoutRef.current) {
-      window.clearTimeout(startTimeoutRef.current);
-    }
-
-    if (!activeId) {
-      setReadyToScroll(true);
-      return;
-    }
+    if (!el || !activeId) return;
 
     const activeNodes = Array.from(
       el.querySelectorAll(`[data-origin-id="${activeId}"]`)
     ) as HTMLElement[];
 
-    if (!activeNodes.length) {
-      setReadyToScroll(true);
-      return;
-    }
+    if (!activeNodes.length) return;
 
     const targetEl =
       activeNodes.length > 1 ? activeNodes[Math.floor(activeNodes.length / 2)] : activeNodes[0];
 
-    const containerWidth = el.clientWidth;
-    const elementLeft = targetEl.offsetLeft;
-    const elementWidth = targetEl.offsetWidth;
+    const left = Math.max(
+      0,
+      targetEl.offsetLeft - el.clientWidth / 2 + targetEl.offsetWidth / 2
+    );
 
-    setReadyToScroll(false);
+    setPaused(true);
+    el.scrollTo({ left, behavior: "smooth" });
 
-    el.scrollTo({
-      left: Math.max(0, elementLeft - containerWidth / 2 + elementWidth / 2),
-      behavior: "smooth",
-    });
+    if (resumeTimeoutRef.current) {
+      window.clearTimeout(resumeTimeoutRef.current);
+    }
 
-    startTimeoutRef.current = window.setTimeout(() => {
-      setReadyToScroll(true);
-    }, 700);
+    resumeTimeoutRef.current = window.setTimeout(() => {
+      setPaused(false);
+    }, 800);
 
     return () => {
-      if (startTimeoutRef.current) {
-        window.clearTimeout(startTimeoutRef.current);
+      if (resumeTimeoutRef.current) {
+        window.clearTimeout(resumeTimeoutRef.current);
       }
     };
-  }, [activeId, items, autoScroll]);
+  }, [activeId, items]);
 
   useEffect(() => {
-    if (!autoScroll || !readyToScroll) return;
+    if (!autoScroll) return;
 
     const el = scrollerRef.current;
     if (!el) return;
 
-    const hasOverflow = el.scrollWidth > el.clientWidth + 5;
-    if (!hasOverflow) return;
-
-    const step = () => {
+    const tick = () => {
       if (!paused) {
+        const half = el.scrollWidth / 2;
         el.scrollLeft += speedPxPerFrame;
 
-        const half = el.scrollWidth / 2;
         if (el.scrollLeft >= half) {
           el.scrollLeft = 0;
         }
       }
 
-      rafRef.current = requestAnimationFrame(step);
+      rafRef.current = requestAnimationFrame(tick);
     };
 
-    rafRef.current = requestAnimationFrame(step);
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [paused, autoScroll, readyToScroll, speedPxPerFrame, loopItems]);
+  }, [autoScroll, paused, speedPxPerFrame, loopItems.length]);
 
   if (!items?.length) return null;
 
