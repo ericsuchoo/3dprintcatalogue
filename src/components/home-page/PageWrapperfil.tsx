@@ -76,94 +76,94 @@ const NewPageWrapper: React.FC<Props> = ({
         ? "Modo actual: cosplay"
         : "Modo actual: figuras";
 
-  return (
-    <ContextWrapper>
-      <InnerPageWrapper>
-        <div className="pt-32 sm:pt-28 md:pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-5">
-            <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="pr-0 md:pr-6">
-                <h1 className="text-[30px] leading-[0.95] sm:text-4xl md:text-4xl font-black uppercase italic text-white tracking-tight">
-                  {origenNombre ? (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        {origenNombre}
-                      </span>
-                    </>
-                  ) : activeUniversoId ? (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        {meta.title?.replace("Explorar: ", "")}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Explora por{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        universos
-                      </span>
-                    </>
-                  )}
-                </h1>
-
-                <p className="text-[11px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
-                  {origenNombre ? (
-                    productMode === "cosplay"
-                      ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
-                      : productMode === "figura"
-                        ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
-                        : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
-                  ) : activeUniversoId ? (
-                    productMode === "cosplay"
-                      ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos cosplay`
-                      : productMode === "figura"
-                        ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
-                        : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
-                  ) : productMode === "cosplay" ? (
-                    `Mostrando ${categories?.length ?? 0} personajes con productos cosplay`
-                  ) : productMode === "figura" ? (
-                    `Mostrando ${categories?.length ?? 0} personajes con productos figura`
-                  ) : (
-                    "Desliza y filtra personajes por universo"
-                  )}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                {productModeToggleHref && (
-                  <a
-                    href={productModeToggleHref}
-                    title={currentModeBadge}
-                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
-                      productMode === "cosplay"
-                        ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/14 shadow-[0_0_22px_rgba(0,238,255,0.22)] hover:bg-[#00eeff]/22 hover:text-white"
-                        : productMode === "figura"
-                          ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
-                          : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
-                    }`}
-                  >
-                    {productModeLabel}
-                  </a>
+return (
+  <ContextWrapper>
+    <InnerPageWrapper>
+      <div className="pt-36 sm:pt-32 md:pt-24 bg-[#0a0a0a] min-h-screen">
+        <div className="container pb-5">
+          <div className="mt-3 mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="pr-0 md:pr-6">
+              <h1 className="text-[30px] leading-[0.95] sm:text-4xl md:text-4xl font-black uppercase italic text-white tracking-tight">
+                {origenNombre ? (
+                  <>
+                    Explora:{" "}
+                    <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      {origenNombre}
+                    </span>
+                  </>
+                ) : activeUniversoId ? (
+                  <>
+                    Explora:{" "}
+                    <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      {meta.title?.replace("Explorar: ", "")}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    Explora por{" "}
+                    <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      universos
+                    </span>
+                  </>
                 )}
+              </h1>
 
-                {clearFilterHref && (
-                  <a
-                    href={clearFilterHref}
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
-                  >
-                    Quitar filtro
-                  </a>
+              <p className="text-[11px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
+                {origenNombre ? (
+                  productMode === "cosplay"
+                    ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
+                    : productMode === "figura"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
+                      : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
+                ) : activeUniversoId ? (
+                  productMode === "cosplay"
+                    ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos cosplay`
+                    : productMode === "figura"
+                      ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
+                      : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                ) : productMode === "cosplay" ? (
+                  `Mostrando ${categories?.length ?? 0} personajes con productos cosplay`
+                ) : productMode === "figura" ? (
+                  `Mostrando ${categories?.length ?? 0} personajes con productos figura`
+                ) : (
+                  "Desliza y filtra personajes por universo"
                 )}
-              </div>
+              </p>
             </div>
 
-            <UniverseRail
-              items={universes}
-              activeUniversoId={activeUniversoId}
-            />
+            <div className="flex flex-wrap items-center gap-3 md:justify-end">
+              {productModeToggleHref && (
+                <a
+                  href={productModeToggleHref}
+                  title={currentModeBadge}
+                  className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
+                    productMode === "cosplay"
+                      ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/14 shadow-[0_0_22px_rgba(0,238,255,0.22)] hover:bg-[#00eeff]/22 hover:text-white"
+                      : productMode === "figura"
+                        ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
+                        : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
+                  }`}
+                >
+                  {productModeLabel}
+                </a>
+              )}
+
+              {clearFilterHref && (
+                <a
+                  href={clearFilterHref}
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                >
+                  Quitar filtro
+                </a>
+              )}
+            </div>
           </div>
+
+          <UniverseRail
+            items={universes}
+            activeUniversoId={activeUniversoId}
+          />
+        </div>
 
           <div className="flex flex-col gap-8">
             {pageCategories.length > 0 ? (
