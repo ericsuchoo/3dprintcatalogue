@@ -14,9 +14,7 @@ const ProductPageWrapper: React.FC<Props> = ({ data }) => {
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-   <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_620px] gap-10 mt-2 md:mt-3">
-          {data?.meta ? <Main data={data} /> : null}
-        </div>
+        {data?.meta ? <Main data={data} /> : null}
       </InnerPageWrapper>
     </ContextWrapper>
   );
