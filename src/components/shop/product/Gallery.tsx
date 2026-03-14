@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import { Swiper, SwiperSlide } from "swiper/react";
 import type { Swiper as SwiperClass } from "swiper";
@@ -32,15 +32,8 @@ export const Gallery: React.FC<Props> = ({
 }) => {
   const [mainSwiper, setMainSwiper] = useState<SwiperClass | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-
   const [displayEdition, setDisplayEdition] = useState<EditionItem | null>(null);
-  const [previousEdition, setPreviousEdition] = useState<EditionItem | null>(null);
-
   const [isSwitching, setIsSwitching] = useState(false);
-  const [showTransitionLayer, setShowTransitionLayer] = useState(false);
-
-  const switchTimeoutRef = useRef<number | null>(null);
-  const finalTimeoutRef = useRef<number | null>(null);
 
   const editions = useMemo<EditionItem[]>(() => {
     return Array.isArray(gallery) ? gallery : [];
@@ -58,22 +51,19 @@ export const Gallery: React.FC<Props> = ({
     return [];
   };
 
-  const displaySlides = useMemo<EditionImage[]>(() => {
-    return getSlidesFromEdition(displayEdition);
-  }, [displayEdition, fallbackImage]);
-
-  const previousSlides = useMemo<EditionImage[]>(() => {
-    return getSlidesFromEdition(previousEdition);
-  }, [previousEdition, fallbackImage]);
-
   useEffect(() => {
-    if (!displayEdition) {
+    if (!displayEdition && currentEdition) {
       setDisplayEdition(currentEdition);
     }
   }, [currentEdition, displayEdition]);
 
+  const displaySlides = useMemo<EditionImage[]>(() => {
+    return getSlidesFromEdition(displayEdition);
+  }, [displayEdition, fallbackImage]);
+
   useEffect(() => {
     if (!currentEdition) return;
+    if (!displayEdition) return;
 
     const currentId = String(currentEdition?.id_edicion ?? currentEdition?.nombre_edicion ?? "");
     const displayId = String(displayEdition?.id_edicion ?? displayEdition?.nombre_edicion ?? "");
@@ -81,73 +71,44 @@ export const Gallery: React.FC<Props> = ({
     if (currentId === displayId) return;
 
     const nextSlides = getSlidesFromEdition(currentEdition);
-    if (!nextSlides.length) {
+    const firstImageUrl = nextSlides[0]?.url;
+
+    if (!firstImageUrl) {
       setDisplayEdition(currentEdition);
       setActiveIndex(0);
-      if (mainSwiper) {
-        mainSwiper.slideTo(0, 0);
-      }
       return;
     }
 
     setIsSwitching(true);
-    setPreviousEdition(displayEdition);
 
-    const preloadAll = async () => {
-      await Promise.all(
-        nextSlides.map(
-          (slide) =>
-            new Promise<void>((resolve) => {
-              const img = new Image();
-              img.src = slide.url;
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-              if (img.complete) resolve();
-            })
-        )
-      );
+    const img = new Image();
+    img.src = firstImageUrl;
+
+    const finishSwitch = () => {
+      setDisplayEdition(currentEdition);
+      setActiveIndex(0);
+
+      window.setTimeout(() => {
+        setIsSwitching(false);
+      }, 140);
     };
 
-    preloadAll().then(() => {
-      setShowTransitionLayer(true);
-
-      if (switchTimeoutRef.current) {
-        window.clearTimeout(switchTimeoutRef.current);
-      }
-      if (finalTimeoutRef.current) {
-        window.clearTimeout(finalTimeoutRef.current);
-      }
-
-      switchTimeoutRef.current = window.setTimeout(() => {
-        setDisplayEdition(currentEdition);
-        setActiveIndex(0);
-
-        if (mainSwiper) {
-          mainSwiper.slideTo(0, 0);
-          mainSwiper.update();
-        }
-
-        finalTimeoutRef.current = window.setTimeout(() => {
-          setShowTransitionLayer(false);
-          setIsSwitching(false);
-          setPreviousEdition(null);
-        }, 260);
-      }, 180);
-    });
-
-    return () => {
-      if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
-      if (finalTimeoutRef.current) window.clearTimeout(finalTimeoutRef.current);
-    };
-  }, [currentEdition, displayEdition, mainSwiper]);
+    if (img.complete) {
+      finishSwitch();
+    } else {
+      img.onload = finishSwitch;
+      img.onerror = finishSwitch;
+    }
+  }, [currentEdition, displayEdition, fallbackImage]);
 
   useEffect(() => {
     if (!mainSwiper) return;
     mainSwiper.update();
   }, [displaySlides, mainSwiper]);
 
-  const previousHero = previousSlides[0]?.url || "";
-  const currentHero = displaySlides[activeIndex]?.url || displaySlides[0]?.url || "";
+  const swiperKey = String(
+    displayEdition?.id_edicion ?? displayEdition?.nombre_edicion ?? "default"
+  );
 
   return (
     <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-0 px-0 bg-black">
@@ -183,7 +144,7 @@ export const Gallery: React.FC<Props> = ({
         </div>
       )}
 
-      <div className="relative flex-1 group order-1 lg:order-2 bg-white rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0 min-h-[420px] sm:min-h-[520px] lg:min-h-[840px]">
+      <div className="relative flex-1 group order-1 lg:order-2 bg-black rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -194,10 +155,10 @@ export const Gallery: React.FC<Props> = ({
                 height: 35px !important;
                 border-radius: 999px;
                 transform: scale(0.6);
-                z-index: 25;
+                z-index: 20;
               }
               .swiper-pagination-bullet-active { background: #ef4444 !important; }
-              .product-swiper { width: 100% !important; height: 100% !important; background: white !important; }
+              .product-swiper { width: 100% !important; background: #000 !important; }
               @media (min-width: 1024px) { .product-swiper { height: 840px !important; } }
               .custom-scrollbar::-webkit-scrollbar { width: 3px; }
               .custom-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
@@ -205,28 +166,14 @@ export const Gallery: React.FC<Props> = ({
           }}
         />
 
-        {previousHero && (
-          <div
-            className={classNames(
-              "absolute inset-0 z-10 transition-all duration-500",
-              showTransitionLayer ? "opacity-100 blur-0 scale-100" : "opacity-0 blur-[4px] scale-[1.02]"
-            )}
-          >
-            <img
-              src={previousHero}
-              alt="Imagen anterior"
-              className="w-full h-full object-cover block"
-            />
-          </div>
-        )}
-
         <div
           className={classNames(
-            "absolute inset-0 z-20 transition-all duration-500",
-            showTransitionLayer ? "opacity-0 blur-[6px] scale-[1.03]" : "opacity-100 blur-0 scale-100"
+            "transition-all duration-200",
+            isSwitching ? "opacity-90 blur-[1px]" : "opacity-100 blur-0"
           )}
         >
           <Swiper
+            key={swiperKey}
             modules={[Navigation, Pagination, A11y]}
             onSwiper={setMainSwiper}
             onSlideChange={(swiper) => {
@@ -243,18 +190,18 @@ export const Gallery: React.FC<Props> = ({
               displaySlides.map((item: EditionImage, index: number) => (
                 <SwiperSlide
                   key={`${item.url}-${index}`}
-                  className="bg-black flex items-center justify-center"
+                  className="bg-black flex items-center justify-center h-auto lg:h-[840px]"
                 >
                   <img
                     src={item.url}
                     alt={displayEdition?.nombre_edicion || `Imagen ${index + 1}`}
-                    className="w-full h-full object-cover block"
+                    className="w-full h-auto max-h-[78vh] lg:h-full lg:max-h-none object-contain lg:object-cover block"
                     loading={index === 0 ? "eager" : "lazy"}
                   />
                 </SwiperSlide>
               ))
             ) : (
-              <SwiperSlide className="bg-black flex items-center justify-center">
+              <SwiperSlide className="bg-black flex items-center justify-center min-h-[320px] lg:h-[840px]">
                 <div className="w-full h-full bg-zinc-900" />
               </SwiperSlide>
             )}
@@ -262,20 +209,20 @@ export const Gallery: React.FC<Props> = ({
         </div>
 
         {isSwitching && (
-          <div className="absolute inset-0 z-30 pointer-events-none bg-black/8 backdrop-blur-[1.5px]" />
+          <div className="absolute inset-0 z-30 pointer-events-none bg-black/10 backdrop-blur-[1px]" />
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 via-black/10 to-transparent z-30" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/45 via-black/10 to-transparent z-10" />
 
         {displayEdition?.nombre_edicion && (
-          <div className="absolute bottom-5 left-5 z-40 pointer-events-none">
+          <div className="absolute bottom-5 left-5 z-20 pointer-events-none">
             <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45 shadow-[0_0_14px_rgba(239,68,68,0.28)]">
               {displayEdition.nombre_edicion}
             </span>
           </div>
         )}
 
-        <div className="absolute bottom-5 right-5 z-40 pointer-events-none">
+        <div className="absolute bottom-5 right-5 z-20 pointer-events-none">
           <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55 shadow-[0_0_16px_rgba(239,68,68,0.35)]">
             ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
           </span>
