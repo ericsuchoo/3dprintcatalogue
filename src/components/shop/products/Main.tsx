@@ -79,6 +79,11 @@ function getMatchLabel(matchType: CharacterSuggestionMatchType) {
   return "Coincidencia relacionada";
 }
 
+function resolvePriceMode(product: ProductLiteD1) {
+  if (product.priceMode) return product.priceMode;
+  return product.price && Number(product.price) > 0 ? "fixed" : "quote";
+}
+
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
@@ -213,6 +218,42 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       return true;
     });
   }, [data.products, favorites, favoritesOnly]);
+
+  const quotableVisibleProducts = useMemo(() => {
+    return filteredProducts.filter((product) => {
+      const mode = resolvePriceMode(product);
+      return mode === "quote" || mode === "from";
+    });
+  }, [filteredProducts]);
+
+  const whatsappQuoteHref = useMemo(() => {
+    if (quotableVisibleProducts.length === 0) return "";
+
+    const baseUrl =
+      typeof window !== "undefined" ? window.location.origin : "https://3dprintcatalogue.pages.dev";
+
+    const lines = quotableVisibleProducts.map((product, index) => {
+      const mode = resolvePriceMode(product);
+      const modeLabel = mode === "from" ? "Desde precio base" : "Cotizar";
+      return `${index + 1}. ${product.title} — ${modeLabel}\n${baseUrl}/shop/${product.slug}`;
+    });
+
+    const message = [
+      "Hola, quiero solicitar cotización de esta selección de favoritos:",
+      "",
+      ...lines,
+      "",
+      "¿Me ayudas con precio según escala, acabado y opciones disponibles?",
+    ].join("\n");
+
+    const phoneNumber = "5586928118";
+    return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  }, [quotableVisibleProducts]);
+
+  const shareableFavoritesHref = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return window.location.href;
+  }, []);
 
   const setProductFilter = (filter: ProductFilterD1) => {
     const currentPersonajeId = data.pagination?.personajeId ?? null;
@@ -386,6 +427,82 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         )}
       </div>
 
+      {favoritesOnly && (
+        <>
+          <div className="text-sm text-zinc-400 leading-relaxed">
+            Aquí puedes revisar tus productos guardados, filtrarlos y compartir tu lista con otra persona.
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+                Guardados
+              </div>
+              <div className="text-3xl font-black text-white leading-none">
+                {favoriteProducts.length}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+                Visibles
+              </div>
+              <div className="text-3xl font-black text-white leading-none">
+                {filteredProducts.length}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-[#00eeff]/20 bg-black px-4 py-3">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+              Por cotizar
+            </div>
+            <div className="text-3xl font-black text-[#00eeff] leading-none">
+              {quotableVisibleProducts.length}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <a
+              href={whatsappQuoteHref || "#"}
+              target="_blank"
+              rel="noreferrer"
+              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
+                quotableVisibleProducts.length > 0
+                  ? "border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
+                  : "pointer-events-none border-white/10 text-white/30 bg-white/5"
+              }`}
+            >
+              Solicitar cotización
+            </a>
+
+            <a
+              href={quotableVisibleProducts.length > 0 ? whatsappQuoteHref : "#"}
+              target="_blank"
+              rel="noreferrer"
+              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
+                quotableVisibleProducts.length > 0
+                  ? "border-green-500/40 text-green-400 hover:text-white hover:border-green-500 bg-green-500/10 hover:bg-green-500/20"
+                  : "pointer-events-none border-white/10 text-white/30 bg-white/5"
+              }`}
+            >
+              Enviar por WhatsApp
+            </a>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!shareableFavoritesHref) return;
+                navigator.clipboard.writeText(shareableFavoritesHref);
+              }}
+              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+            >
+              Copiar enlace
+            </button>
+          </div>
+        </>
+      )}
+
       {filters.some((f) => f.type === "universo") && (
         <div>
           <div className={filterTitleClass}>Universos</div>
@@ -506,55 +623,56 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     </div>
   );
 
+  const favoriteProducts = useMemo(() => {
+    const products = (data.products || []) as ProductLiteD1[];
+    return products.filter((p) => favorites.includes(String(p.slug)));
+  }, [data.products, favorites]);
+
   return (
-  <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
+    <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
+      <div className="mt-3 mb-4 xl:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
+        >
+          Abrir filtros
+        </button>
+      </div>
 
-    <div className="mt-3 mb-4 xl:hidden">
-      <button
-        type="button"
-        onClick={() => setFiltersOpen(true)}
-        className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
-      >
-        Abrir filtros
-      </button>
-    </div>
+      {filtersOpen && (
+        <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
 
-    {filtersOpen && (
-      <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
-        <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
+              <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
+                Filtros
+              </div>
 
-        <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
-
-          <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
-            <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
-              Filtros
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
+                aria-label="Cerrar filtros"
+              >
+                ✕
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(false)}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
-              aria-label="Cerrar filtros"
-            >
-              ✕
-            </button>
+            <div className="flex-1 overflow-y-auto p-4">
+              {renderFiltersContent()}
+            </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            {renderFiltersContent()}
-          </div>
-
         </div>
-      </div>
-    )}
+      )}
 
-    <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+        <div className="hidden xl:block xl:sticky xl:top-28 self-start">
+          {renderFiltersContent()}
+        </div>
 
-      <div className="hidden xl:block xl:sticky xl:top-28 self-start">
-        {renderFiltersContent()}
-      </div>
-
-      <div className="min-w-0">
+        <div className="min-w-0">
           {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
             <div className="mb-5 flex flex-col gap-4">
               {selectedCharacterName && (
@@ -610,9 +728,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                     <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
                       Buscar personaje
                     </div>
-                   <h3 className="text-white text-[15px] sm:text-[22px] md:text-[32px] leading-[1.05] font-black italic uppercase">
-  Salta directo al catálogo
-</h3>
+                    <h3 className="text-white text-[15px] sm:text-[22px] md:text-[32px] leading-[1.05] font-black italic uppercase">
+                      Salta directo al catálogo
+                    </h3>
                   </div>
 
                   <div className="w-full lg:max-w-[360px]">

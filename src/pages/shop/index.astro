@@ -38,9 +38,6 @@ type ProveedorRow = {
   nombre_proveedor: string;
 };
 
-// --------------------
-// Helpers
-// --------------------
 function slugify(s: string) {
   return s
     .toString()
@@ -77,21 +74,124 @@ const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
 const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
 const sort = normalizeSort(Astro.url.searchParams.get("sort"));
 
+const personajeQuery = Astro.url.searchParams.get("personaje")?.trim() || null;
+const personajeNombreParam = Astro.url.searchParams.get("characterName")?.trim() || null;
+
 const ITEMS_PER_PAGE = 30;
 
 let personajeNombre: string | null = null;
 let universoNombre: string | null = null;
 let proveedorNombre: string | null = null;
 
+if (!db) {
+  console.warn("[shop] DB binding no disponible. Revisa wrangler.toml/bindings.");
+}
+
+async function tableExists(name: string) {
+  if (!db) return false;
+  const row = await db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name = ?`)
+    .bind(name)
+    .first();
+  return !!row?.name;
+}
+
 // --------------------
-// WHERE dinámico
+// 0) Resolver personaje si viene por nombre
+// --------------------
+let resolvedPersonajeId = personajeId;
+
+if (db && !resolvedPersonajeId && personajeQuery && (await tableExists("personajes"))) {
+  const row = await db
+    .prepare(`
+      SELECT id_personaje, nombre_personaje
+      FROM personajes
+      WHERE LOWER(nombre_personaje) = LOWER(?)
+      LIMIT 1
+    `)
+    .bind(personajeQuery)
+    .first();
+
+  if (row) {
+    resolvedPersonajeId = Number((row as PersonajeRow).id_personaje);
+    personajeNombre = (row as PersonajeRow).nombre_personaje ?? null;
+  } else {
+    const likeRow = await db
+      .prepare(`
+        SELECT id_personaje, nombre_personaje
+        FROM personajes
+        WHERE LOWER(nombre_personaje) LIKE LOWER(?)
+        ORDER BY nombre_personaje ASC
+        LIMIT 1
+      `)
+      .bind(`%${personajeQuery}%`)
+      .first();
+
+    if (likeRow) {
+      resolvedPersonajeId = Number((likeRow as PersonajeRow).id_personaje);
+      personajeNombre = (likeRow as PersonajeRow).nombre_personaje ?? null;
+    }
+  }
+}
+
+if (!personajeNombre && personajeNombreParam) {
+  personajeNombre = personajeNombreParam;
+}
+
+// --------------------
+// 1) Resolver nombres activos
+// --------------------
+if (db && resolvedPersonajeId) {
+  const row = await db
+    .prepare(`
+      SELECT id_personaje, nombre_personaje
+      FROM personajes
+      WHERE id_personaje = ?
+      LIMIT 1
+    `)
+    .bind(resolvedPersonajeId)
+    .first();
+
+  personajeNombre = (row as PersonajeRow | null)?.nombre_personaje ?? personajeNombre;
+}
+
+if (db && universoId) {
+  const row = await db
+    .prepare(`
+      SELECT id_universo, nombre_universo
+      FROM universos
+      WHERE id_universo = ?
+      LIMIT 1
+    `)
+    .bind(universoId)
+    .first();
+
+  universoNombre = (row as UniversoRow | null)?.nombre_universo ?? null;
+}
+
+if (db && proveedorId && (await tableExists("proveedores"))) {
+  const row = await db
+    .prepare(`
+      SELECT id_proveedor, nombre_proveedor
+      FROM proveedores
+      WHERE id_proveedor = ?
+      LIMIT 1
+    `)
+    .bind(proveedorId)
+    .first();
+
+  proveedorNombre = (row as ProveedorRow | null)?.nombre_proveedor ?? null;
+}
+
+// --------------------
+// 2) WHERE dinámico
 // --------------------
 const whereClauses: string[] = [];
 const whereParams: any[] = [];
 
-if (personajeId) {
+if (resolvedPersonajeId) {
   whereClauses.push(`p.id_personaje = ?`);
-  whereParams.push(personajeId);
+  whereParams.push(resolvedPersonajeId);
 }
 
 if (universoId) {
@@ -107,18 +207,18 @@ if (proveedorId) {
 const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
 // --------------------
-// ORDER dinámico
+// 3) ORDER dinámico
 // --------------------
 let orderSql = `ORDER BY COALESCE(p.fecha_modifica, p.fecha_creacion) DESC, p.id_producto DESC`;
 
 if (sort === "price_asc") {
-  orderSql = `ORDER BY COALESCE(p.precio, 0) ASC`;
+  orderSql = `ORDER BY COALESCE(p.precio, 0) ASC, p.id_producto DESC`;
 } else if (sort === "price_desc") {
-  orderSql = `ORDER BY COALESCE(p.precio, 0) DESC`;
+  orderSql = `ORDER BY COALESCE(p.precio, 0) DESC, p.id_producto DESC`;
 }
 
 // --------------------
-// Conteo real
+// 4) Conteo real
 // --------------------
 let totalProducts = 0;
 
@@ -141,7 +241,7 @@ const currentPage = Math.min(requestedPage, totalPages);
 const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
 // --------------------
-// Productos paginados
+// 5) Productos paginados
 // --------------------
 let productos: ProductoRow[] = [];
 
@@ -161,7 +261,17 @@ if (db) {
       p.id_universo,
       p.id_personaje,
       p.fecha_creacion,
-      p.fecha_modifica
+      p.fecha_modifica,
+      (
+        SELECT e.nombre_etiqueta
+        FROM productos_etiquetas pe
+        INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+        WHERE pe.id_producto = p.id_producto
+        ORDER BY
+          CAST(COALESCE(pe.prioridad, e.prioridad, '9999') AS INTEGER) ASC,
+          e.nombre_etiqueta ASC
+        LIMIT 1
+      ) as nombre_etiqueta
     FROM productos p
     ${whereSql}
     ${orderSql}
@@ -174,7 +284,107 @@ if (db) {
 }
 
 // --------------------
-// Data para React
+// 6) Filtros D1
+// --------------------
+let personajes: PersonajeRow[] = [];
+let universos: UniversoRow[] = [];
+let proveedores: ProveedorRow[] = [];
+
+if (db) {
+  if (await tableExists("personajes")) {
+    const res = await db
+      .prepare(`
+        SELECT id_personaje, nombre_personaje
+        FROM personajes
+        ORDER BY nombre_personaje ASC
+      `)
+      .all();
+    personajes = (res?.results || []) as PersonajeRow[];
+  }
+
+  if (await tableExists("universos")) {
+    const res = await db
+      .prepare(`
+        SELECT id_universo, nombre_universo
+        FROM universos
+        ORDER BY nombre_universo ASC
+      `)
+      .all();
+    universos = (res?.results || []) as UniversoRow[];
+  }
+
+  if (await tableExists("proveedores")) {
+    const res = await db
+      .prepare(`
+        SELECT id_proveedor, nombre_proveedor
+        FROM proveedores
+        ORDER BY nombre_proveedor ASC
+      `)
+      .all();
+    proveedores = (res?.results || []) as ProveedorRow[];
+  }
+}
+
+const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(
+  (value): value is string => Boolean(value)
+);
+
+// --------------------
+// 7) Sugerencias para buscador superior
+// --------------------
+type QuickCharacterSuggestionRow = {
+  id_personaje: number | string;
+  nombre_personaje: string;
+  nombre_universo: string | null;
+  etiquetas_personaje: string | null;
+};
+
+let quickCharacterSuggestions: {
+  id: string;
+  title: string;
+  href: string;
+  universe?: string;
+  tags?: string[];
+}[] = [];
+
+if (db && (await tableExists("personajes"))) {
+  const quickRes = await db
+    .prepare(`
+      SELECT
+        p.id_personaje,
+        p.nombre_personaje,
+        u.nombre_universo,
+        (
+          SELECT GROUP_CONCAT(e.nombre_etiqueta, '||')
+          FROM personajes_etiquetas pe
+          INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+          WHERE pe.id_personaje = p.id_personaje
+        ) as etiquetas_personaje
+      FROM personajes p
+      LEFT JOIN universos u
+        ON u.id_universo = p.id_universo
+      ORDER BY p.nombre_personaje ASC
+    `)
+    .all();
+
+  const quickRows = (quickRes?.results || []) as QuickCharacterSuggestionRow[];
+
+  quickCharacterSuggestions = quickRows.map((row) => ({
+    id: String(row.id_personaje),
+    title: row.nombre_personaje,
+    href: `/shop?personajeId=${row.id_personaje}`,
+    universe: row.nombre_universo ?? "",
+    tags: row.etiquetas_personaje
+      ? row.etiquetas_personaje
+          .split("||")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [],
+  }));
+}
+
+// --------------------
+// 8) Data para React
 // --------------------
 const data = {
   products: productos.map((pr) => ({
@@ -194,16 +404,47 @@ const data = {
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
     date: pr.fecha_modifica ?? pr.fecha_creacion ?? null,
+    tagLabel: pr.nombre_etiqueta ?? "FIGURA 3D",
   })),
 
-  genders: [],
-  categories: [],
-  brands: [],
+  genders: personajes.map((p) => ({
+    title: p.nombre_personaje,
+    slug: String(p.id_personaje),
+  })),
 
-  initialPersonajeId: personajeId ? String(personajeId) : null,
+  categories: universos.map((u) => ({
+    title: u.nombre_universo,
+    slug: String(u.id_universo),
+  })),
+
+  brands: proveedores.map((pr) => ({
+    title: pr.nombre_proveedor,
+    slug: String(pr.id_proveedor),
+  })),
+
+  initialPersonajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
+  initialUniversoId: universoId ? String(universoId) : null,
+  initialProveedorId: proveedorId ? String(proveedorId) : null,
+  initialSort: sort,
+
   personajeNombre,
   universoNombre,
   proveedorNombre,
+  activeFilterLabels,
+
+  selectedCharacter: resolvedPersonajeId
+    ? {
+        id: String(resolvedPersonajeId),
+        name: personajeNombre ?? personajeQuery ?? personajeNombreParam ?? "",
+      }
+    : null,
+
+  quickCharacterSuggestions,
+
+  clearFilterHref:
+    resolvedPersonajeId || universoId || proveedorId || sort !== "newest"
+      ? "/shop"
+      : null,
 
   pagination: {
     currentPage,
@@ -212,7 +453,7 @@ const data = {
     itemsPerPage: ITEMS_PER_PAGE,
     pageCount: productos.length,
     basePath: "/shop",
-    personajeId: personajeId ? String(personajeId) : null,
+    personajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
     universoId: universoId ? String(universoId) : null,
     proveedorId: proveedorId ? String(proveedorId) : null,
     sort,
@@ -220,6 +461,12 @@ const data = {
 };
 ---
 
-<Layout title="Tienda | DCimpress 3D">
+<Layout
+  title={
+    activeFilterLabels.length
+      ? `Shop: ${activeFilterLabels.join(" / ")} | DCimpress 3D`
+      : "Tienda | DCimpress 3D"
+  }
+>
   <ProductsPageWrapper client:load data={data} />
 </Layout>
