@@ -10,6 +10,7 @@ type ProductoRow = {
   img_producto?: string | null;
   unidades?: number | null;
   precio?: number | null;
+  precio_modo?: string | null;
   descuento?: number | null;
   id_proveedor?: number | null;
   id_universo?: number | null;
@@ -60,6 +61,7 @@ if (db && shareId) {
           p.img_producto,
           p.unidades,
           p.precio,
+          p.precio_modo,
           p.descuento,
           p.id_proveedor,
           p.id_universo,
@@ -85,7 +87,10 @@ const cards = productos.map((p) => ({
   title: p.nombre_producto ?? `Producto ${p.id_producto}`,
   subtitle: p.subtitulo ?? "",
   description: p.descripcion ?? "",
-  price: p.precio ?? 0,
+  price: p.precio ?? null,
+  priceMode:
+    (p.precio_modo as "fixed" | "from" | "quote" | null) ??
+    (p.precio ? "fixed" : "quote"),
   discount: p.descuento ?? 0,
   units: p.unidades ?? null,
   coverUrl: p.img_producto ?? "",
@@ -119,13 +124,14 @@ const pageTitle = "Lista compartida | DCimpress 3D Store";
           </div>
 
           <div class="flex flex-wrap gap-3">
-           <button
-  type="button"
-  onclick="navigator.clipboard.writeText(window.location.href)"
-  class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
->
-  Copiar enlace
-</button>
+            <button
+              type="button"
+              onclick="navigator.clipboard.writeText(window.location.href)"
+              class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+            >
+              Copiar enlace
+            </button>
+
             <a
               href="/shop"
               class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[10px] bg-red-500/10 hover:bg-red-500/20"
@@ -190,13 +196,13 @@ const pageTitle = "Lista compartida | DCimpress 3D Store";
                   Ver catálogo completo
                 </a>
 
-               <button
-  type="button"
-  onclick="navigator.clipboard.writeText(window.location.href)"
-  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
->
-  Compartir esta lista
-</button>
+                <button
+                  type="button"
+                  onclick="navigator.clipboard.writeText(window.location.href)"
+                  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                >
+                  Compartir esta lista
+                </button>
               </div>
             </section>
           </>

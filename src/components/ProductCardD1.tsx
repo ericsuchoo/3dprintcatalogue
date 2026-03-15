@@ -8,7 +8,8 @@ export interface ProductLiteD1 {
   title: string;
   subtitle?: string;
   description?: string;
-  price: number;
+  price: number | null;
+  priceMode?: "fixed" | "from" | "quote" | null;
   discount?: number;
   units?: number | null;
   coverUrl: string;
@@ -34,13 +35,58 @@ function calcFinalPrice(price: number, discount?: number) {
   if (!discount) return { final: price, hasDiscount: false };
 
   const pct = Number(discount);
-  if (!Number.isFinite(pct) || pct <= 0) return { final: price, hasDiscount: false };
+  if (!Number.isFinite(pct) || pct <= 0) {
+    return { final: price, hasDiscount: false };
+  }
 
   const final = price - (price * pct) / 100;
 
   return {
     final: Math.max(0, final),
     hasDiscount: true,
+  };
+}
+
+function getPricePresentation(card: ProductLiteD1) {
+  const mode = card.priceMode ?? (card.price && Number(card.price) > 0 ? "fixed" : "quote");
+  const hasNumericPrice =
+    card.price !== null &&
+    card.price !== undefined &&
+    Number.isFinite(Number(card.price)) &&
+    Number(card.price) > 0;
+
+  if (mode === "quote" || !hasNumericPrice) {
+    return {
+      label: "Cotizar",
+      isQuote: true,
+      isFrom: false,
+      showDiscount: false,
+      originalPrice: null as number | null,
+      finalPrice: null as number | null,
+    };
+  }
+
+  if (mode === "from") {
+    return {
+      label: `Desde ${formatMoney(Number(card.price))}`,
+      isQuote: false,
+      isFrom: true,
+      showDiscount: false,
+      originalPrice: Number(card.price),
+      finalPrice: Number(card.price),
+    };
+  }
+
+  const numericPrice = Number(card.price);
+  const { final, hasDiscount } = calcFinalPrice(numericPrice, card.discount);
+
+  return {
+    label: formatMoney(hasDiscount ? final : numericPrice),
+    isQuote: false,
+    isFrom: false,
+    showDiscount: hasDiscount,
+    originalPrice: numericPrice,
+    finalPrice: hasDiscount ? final : numericPrice,
   };
 }
 
@@ -55,7 +101,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
   const productID = card.slug;
   const isFavorite = favorites.includes(productID);
 
-  const { final, hasDiscount } = calcFinalPrice(card.price, card.discount);
+  const priceInfo = getPricePresentation(card);
 
   return (
     <div
@@ -150,19 +196,28 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
             </div>
 
             <div className="text-right shrink-0">
-              {hasDiscount ? (
+              {priceInfo.showDiscount && priceInfo.originalPrice !== null ? (
                 <div className="flex flex-col items-end leading-none">
                   <span className="text-[11px] font-black text-white/50 line-through italic mb-1">
-                    {formatMoney(card.price)}
+                    {formatMoney(priceInfo.originalPrice)}
                   </span>
 
                   <span className="text-base font-black text-white italic">
-                    {formatMoney(final)}
+                    {priceInfo.label}
                   </span>
                 </div>
               ) : (
-                <p className="text-base font-black text-white italic">
-                  {formatMoney(card.price)}
+                <p
+                  className={classNames(
+                    "text-base font-black italic",
+                    priceInfo.isQuote
+                      ? "text-[#00eeff] drop-shadow-[0_0_8px_rgba(0,238,255,0.28)]"
+                      : priceInfo.isFrom
+                        ? "text-red-400"
+                        : "text-white"
+                  )}
+                >
+                  {priceInfo.label}
                 </p>
               )}
             </div>

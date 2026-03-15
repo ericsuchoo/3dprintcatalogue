@@ -13,6 +13,7 @@ type ProductoRow = {
   img_producto?: string | null;
   unidades?: number | null;
   precio?: number | null;
+  precio_modo?: string | null;
   descuento?: number | null;
   id_proveedor?: number | null;
   id_universo?: number | null;
@@ -57,7 +58,6 @@ if (!db) {
   console.warn("[shop-2] DB binding no disponible. Revisa wrangler.toml/bindings.");
 }
 
-// helper para saber si existe una tabla
 async function tableExists(name: string) {
   if (!db) return false;
   const row = await db
@@ -103,6 +103,7 @@ if (db) {
       img_producto,
       unidades,
       precio,
+      precio_modo,
       descuento,
       id_proveedor,
       id_universo,
@@ -180,7 +181,10 @@ const data = {
     title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
-    price: pr.precio ?? 0,
+    price: pr.precio ?? null,
+    priceMode:
+      (pr.precio_modo as "fixed" | "from" | "quote" | null) ??
+      (pr.precio ? "fixed" : "quote"),
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
     coverUrl: pr.img_producto ?? "",
