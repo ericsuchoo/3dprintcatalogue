@@ -18,7 +18,7 @@ type CharacterItem = {
   name: string;
   image?: string;
   universe?: string;
-  href?: string;
+  href?: string; // si se pasa desde servidor, lo respetamos
 };
 
 interface Props {
@@ -61,6 +61,12 @@ function useDebouncedValue<T>(value: T, delay = 250) {
   return debounced;
 }
 
+/**
+ * Componente mini-card del personaje.
+ * Cambio importante: si `item.href` no viene definido, construimos
+ * un href que apunta a `/shop?personajeId=<slug|id>` — así la página /shop
+ * puede leer `personajeId` y aplicar el filtro.
+ */
 function CharacterMiniCard({
   item,
   isFavorite,
@@ -70,7 +76,11 @@ function CharacterMiniCard({
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
 }) {
-  const href = item.href || "#";
+  // preferimos slug si está disponible, si no usamos id
+  const slugOrId = item.slug ? String(item.slug) : String(item.id);
+  const href = item.href && item.href.length > 0
+    ? item.href
+    : `/shop?personajeId=${encodeURIComponent(slugOrId)}`;
 
   return (
     <article className="min-w-[220px] max-w-[220px] rounded-2xl overflow-hidden border border-white/10 bg-white/10 backdrop-blur-md shadow-lg snap-start">
@@ -104,9 +114,7 @@ function CharacterMiniCard({
             </a>
 
             {item.universe ? (
-              <p className="text-white/70 text-sm mt-1 truncate">
-                {item.universe}
-              </p>
+              <p className="text-white/70 text-sm mt-1 truncate">{item.universe}</p>
             ) : null}
           </div>
 
@@ -247,17 +255,13 @@ export const HomeCta: React.FC<Props> = ({
     if (!favoriteIds.length) return [];
 
     return favoriteIds
-      .map((favId) =>
-        characters.find((item) => String(item.id) === String(favId))
-      )
+      .map((favId) => characters.find((item) => String(item.id) === String(favId)))
       .filter(Boolean) as CharacterItem[];
   }, [characters, favoriteIds]);
 
   const toggleFavorite = useCallback(
     (id: string) => {
-      const selected = characters.find(
-        (item) => String(item.id) === String(id)
-      );
+      const selected = characters.find((item) => String(item.id) === String(id));
 
       setFavoriteIds((prev) => {
         const exists = prev.includes(id);
@@ -319,20 +323,16 @@ export const HomeCta: React.FC<Props> = ({
             </div>
 
             <p className="text-white/60 text-sm mt-3">
-              Al pulsar sobre un personaje irás al catálogo filtrado por esa
-              selección.
+              Al pulsar sobre un personaje irás al catálogo filtrado por esa selección.
             </p>
           </div>
 
           {hasQuery && (
             <div className="mb-10">
               <div className="flex items-center justify-between gap-4 mb-4 pr-[92px]">
-                <h3 className="text-white text-xl md:text-2xl font-bold">
-                  Coincidencias
-                </h3>
+                <h3 className="text-white text-xl md:text-2xl font-bold">Coincidencias</h3>
                 <span className="text-white/70 text-sm">
-                  {filteredCharacters.length} resultado
-                  {filteredCharacters.length === 1 ? "" : "s"}
+                  {filteredCharacters.length} resultado{filteredCharacters.length === 1 ? "" : "s"}
                 </span>
               </div>
 
@@ -352,12 +352,9 @@ export const HomeCta: React.FC<Props> = ({
 
           <div className="mb-10">
             <div className="flex items-center justify-between gap-4 mb-4 pr-[92px]">
-              <h3 className="text-white text-xl md:text-2xl font-bold">
-                Mis personajes favoritos
-              </h3>
+              <h3 className="text-white text-xl md:text-2xl font-bold">Mis personajes favoritos</h3>
               <span className="text-white/70 text-sm">
-                {favoriteCharacters.length} guardado
-                {favoriteCharacters.length === 1 ? "" : "s"}
+                {favoriteCharacters.length} guardado{favoriteCharacters.length === 1 ? "" : "s"}
               </span>
             </div>
 
@@ -369,8 +366,7 @@ export const HomeCta: React.FC<Props> = ({
               />
             ) : (
               <div className="rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white/80 backdrop-blur-md">
-                Todavía no has añadido favoritos. Busca un personaje y pulsa el
-                corazón.
+                Todavía no has añadido favoritos. Busca un personaje y pulsa el corazón.
               </div>
             )}
           </div>
