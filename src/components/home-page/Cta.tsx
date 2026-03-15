@@ -70,7 +70,11 @@ function CharacterMiniCard({
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
 }) {
-  const href = item.href || "#";
+  // ESTE ES EL CAMBIO IMPORTANTE:
+  // siempre mandamos al catálogo filtrado por personajeId
+  const href = `/shop?personajeId=${encodeURIComponent(
+    String(item.id)
+  )}&characterName=${encodeURIComponent(String(item.name || ""))}`;
 
   return (
     <article className="min-w-[220px] max-w-[220px] rounded-2xl overflow-hidden border border-white/10 bg-white/10 backdrop-blur-md shadow-lg snap-start">

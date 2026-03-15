@@ -26,6 +26,17 @@ interface Props {
       proveedorId?: string | null;
       sort?: "newest" | "price_asc" | "price_desc";
     };
+    selectedCharacter?: {
+      id: string;
+      name: string;
+    } | null;
+    quickCharacterSuggestions?: {
+      id: string;
+      title: string;
+      href: string;
+      universe?: string;
+      tags?: string[];
+    }[];
   };
 }
 
@@ -33,7 +44,7 @@ const ProductsPageWrapper: React.FC<Props> = ({ data }) => {
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-        <Main data={data} favoritesOnly />
+        <Main data={data} favoritesOnly={true} />
       </InnerPageWrapper>
     </ContextWrapper>
   );

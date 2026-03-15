@@ -13,6 +13,7 @@ type ProductoRow = {
   img_producto?: string | null;
   unidades?: number | null;
   precio?: number | null;
+  precio_modo?: string | null;
   descuento?: number | null;
   id_proveedor?: number | null;
   id_universo?: number | null;
@@ -35,13 +36,6 @@ type UniversoRow = {
 type ProveedorRow = {
   id_proveedor: number | string;
   nombre_proveedor: string;
-};
-
-type CharacterSuggestionRow = {
-  id_personaje: number | string;
-  nombre_personaje: string;
-  nombre_universo?: string | null;
-  tags?: string | null;
 };
 
 function slugify(s: string) {
@@ -261,6 +255,7 @@ if (db) {
       p.img_producto,
       p.unidades,
       p.precio,
+      p.precio_modo,
       p.descuento,
       p.id_proveedor,
       p.id_universo,
@@ -387,6 +382,7 @@ if (db && (await tableExists("personajes"))) {
       : [],
   }));
 }
+
 // --------------------
 // 8) Data para React
 // --------------------
@@ -397,7 +393,10 @@ const data = {
     title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
-    price: pr.precio ?? 0,
+    price: pr.precio ?? null,
+    priceMode:
+      (pr.precio_modo as "fixed" | "from" | "quote" | null) ??
+      (pr.precio ? "fixed" : "quote"),
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
     coverUrl: pr.img_producto ?? "",

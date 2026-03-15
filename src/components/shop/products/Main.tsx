@@ -79,12 +79,28 @@ function getMatchLabel(matchType: CharacterSuggestionMatchType) {
   return "Coincidencia relacionada";
 }
 
+function resolvePriceMode(product: ProductLiteD1) {
+  if (product.priceMode) return product.priceMode;
+  return product.price && Number(product.price) > 0 ? "fixed" : "quote";
+}
+
+function formatCompactMoney(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "";
+  }
+
+  return `$${Number(value).toFixed(0)}`;
+}
+
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
   const [characterSearch, setCharacterSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sidebarCharacterSearch, setSidebarCharacterSearch] = useState("");
+  const [instagramCopied, setInstagramCopied] = useState(false);
+  const [shareListCopied, setShareListCopied] = useState(false);
+  const [shareListLoading, setShareListLoading] = useState(false);
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -205,6 +221,11 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     window.location.href = data.clearFilterHref || "/shop";
   };
 
+  const favoriteProducts = useMemo(() => {
+    const products = (data.products || []) as ProductLiteD1[];
+    return products.filter((p) => favorites.includes(String(p.slug)));
+  }, [data.products, favorites]);
+
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
 
@@ -213,6 +234,111 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       return true;
     });
   }, [data.products, favorites, favoritesOnly]);
+
+  const quotableVisibleProducts = useMemo(() => {
+    return filteredProducts.filter((product) => {
+      const mode = resolvePriceMode(product);
+      return mode === "quote" || mode === "from";
+    });
+  }, [filteredProducts]);
+
+  const instagramQuoteUrl = "https://www.instagram.com/dinocat3d/";
+  const paintingStudioUrl = "https://www.instagram.com/dcpanitingstudio/";
+
+  const instagramQuoteMessage = useMemo(() => {
+    if (quotableVisibleProducts.length === 0) return "";
+
+    const baseUrl =
+      typeof window !== "undefined" ? window.location.origin : "https://3dprintcatalogue.pages.dev";
+
+    const lines = quotableVisibleProducts.map((product, index) => {
+      const mode = resolvePriceMode(product);
+
+      let modeLabel = "Cotizar";
+      if (mode === "from" && product.price && Number(product.price) > 0) {
+        modeLabel = `Desde ${formatCompactMoney(product.price)}`;
+      }
+
+      return `${index + 1}. ${product.title} — ${modeLabel}\n${baseUrl}/shop/${product.slug}`;
+    });
+
+    return [
+      "Hola, quiero solicitar cotización de esta selección de favoritos:",
+      "",
+      ...lines,
+      "",
+      "¿Me ayudas con precio según escala, acabado y opciones disponibles?",
+    ].join("\n");
+  }, [quotableVisibleProducts]);
+
+  const handleInstagramQuote = async () => {
+    if (!instagramQuoteMessage || quotableVisibleProducts.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(instagramQuoteMessage);
+      setInstagramCopied(true);
+      window.open(instagramQuoteUrl, "_blank", "noopener,noreferrer");
+
+      window.setTimeout(() => {
+        setInstagramCopied(false);
+      }, 2200);
+    } catch {
+      window.open(instagramQuoteUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleShareList = async () => {
+    if (filteredProducts.length === 0) return;
+
+    try {
+      setShareListLoading(true);
+
+      const response = await fetch("/api/favoritos/compartir", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productIds: filteredProducts.map((product) => product.id),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.ok || !result?.url) {
+        throw new Error(result?.error || "No se pudo compartir la lista");
+      }
+
+      const publicUrl =
+        typeof window !== "undefined"
+          ? new URL(result.url, window.location.origin).toString()
+          : result.url;
+
+      await navigator.clipboard.writeText(publicUrl);
+      setShareListCopied(true);
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({
+            title: "Mis favoritos | DCimpress 3D",
+            text: "Te comparto mi lista de favoritos.",
+            url: publicUrl,
+          });
+        } catch {
+          // usuario canceló, no hacemos nada
+        }
+      }
+
+      window.setTimeout(() => {
+        setShareListCopied(false);
+      }, 2200);
+    } catch (error) {
+      console.error("[share-list]", error);
+      alert("No se pudo generar la lista compartida.");
+    } finally {
+      setShareListLoading(false);
+    }
+  };
 
   const setProductFilter = (filter: ProductFilterD1) => {
     const currentPersonajeId = data.pagination?.personajeId ?? null;
@@ -386,7 +512,90 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         )}
       </div>
 
-      {filters.some((f) => f.type === "universo") && (
+      {favoritesOnly && (
+        <>
+          <div className="text-sm text-zinc-400 leading-relaxed">
+            Aquí puedes revisar tus productos guardados, buscar dentro de tu selección y enviarnos solo lo que quieras cotizar.
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+                Guardados
+              </div>
+              <div className="text-3xl font-black text-white leading-none">
+                {favoriteProducts.length}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black px-4 py-3">
+              <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+                Visibles
+              </div>
+              <div className="text-3xl font-black text-white leading-none">
+                {filteredProducts.length}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-[#00eeff]/20 bg-black px-4 py-3">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-black mb-2">
+              Por cotizar
+            </div>
+            <div className="text-3xl font-black text-[#00eeff] leading-none">
+              {quotableVisibleProducts.length}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              type="button"
+              onClick={handleInstagramQuote}
+              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
+                quotableVisibleProducts.length > 0
+                  ? "border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
+                  : "pointer-events-none border-white/10 text-white/30 bg-white/5"
+              }`}
+            >
+              {instagramCopied
+                ? "Mensaje copiado"
+                : "Compártenos tus favoritos para cotizar"}
+            </button>
+
+            <div className="text-[11px] leading-relaxed text-zinc-500 text-center -mt-1">
+              Copiamos tu selección visible y abrimos Instagram para que nos la pegues en DM.
+            </div>
+
+            <a
+              href={paintingStudioUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-fuchsia-500/30 text-fuchsia-300 hover:text-white hover:border-fuchsia-400 transition uppercase tracking-[0.18em] font-black text-[10px] bg-fuchsia-500/10 hover:bg-fuchsia-500/20"
+            >
+              Ver estudio de pintura
+            </a>
+
+            <button
+              type="button"
+              onClick={handleShareList}
+              disabled={shareListLoading || filteredProducts.length === 0}
+              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
+                shareListLoading || filteredProducts.length === 0
+                  ? "pointer-events-none border-white/10 text-white/30 bg-white/5"
+                  : "border-white/15 text-white/85 hover:text-white hover:border-white/35 bg-white/5 hover:bg-white/10"
+              }`}
+            >
+              {shareListLoading
+                ? "Generando lista..."
+                : shareListCopied
+                  ? "Lista copiada"
+                  : "Compartir lista con amigos"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {!favoritesOnly && filters.some((f) => f.type === "universo") && (
         <div>
           <div className={filterTitleClass}>Universos</div>
           <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
@@ -406,45 +615,51 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </div>
       )}
 
-      <div>
-        <div className={filterTitleClass}>Precio / orden</div>
-        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-          {filters
-            .filter((e) => e.type === "price")
-            .map((filter, index) => (
-              <FormCheck
-                key={index}
-                value={filter.label}
-                label={filter.label}
-                onCheck={() => setProductFilter(filter)}
-                checked={filter.active}
-                size="sm"
-              />
-            ))}
+      {!favoritesOnly && (
+        <div>
+          <div className={filterTitleClass}>Precio / orden</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "price")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div>
-        <div className={filterTitleClass}>Novedad</div>
-        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-          {filters
-            .filter((e) => e.type === "popularity")
-            .map((filter, index) => (
-              <FormCheck
-                key={index}
-                value={filter.label}
-                label={filter.label}
-                onCheck={() => setProductFilter(filter)}
-                checked={filter.active}
-                size="sm"
-              />
-            ))}
+      {!favoritesOnly && (
+        <div>
+          <div className={filterTitleClass}>Novedad</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "popularity")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <div className="flex items-center justify-between gap-3">
-          <div className={filterTitleClass}>Personajes</div>
+          <div className={filterTitleClass}>
+            {favoritesOnly ? "Personajes guardados" : "Personajes"}
+          </div>
           <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-black">
             {sidebarCharacterFilters.length}
           </span>
@@ -484,7 +699,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </div>
       </div>
 
-      {filters.some((f) => f.type === "proveedor") && (
+      {!favoritesOnly && filters.some((f) => f.type === "proveedor") && (
         <div>
           <div className={filterTitleClass}>Creadores 3D</div>
           <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
@@ -507,54 +722,50 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   );
 
   return (
-  <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
+    <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
+      <div className="mt-3 mb-4 xl:hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
+        >
+          Abrir filtros
+        </button>
+      </div>
 
-    <div className="mt-3 mb-4 xl:hidden">
-      <button
-        type="button"
-        onClick={() => setFiltersOpen(true)}
-        className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10"
-      >
-        Abrir filtros
-      </button>
-    </div>
+      {filtersOpen && (
+        <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
 
-    {filtersOpen && (
-      <div className="xl:hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm">
-        <div className="absolute inset-0" onClick={() => setFiltersOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
+              <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
+                Filtros
+              </div>
 
-        <div className="absolute inset-y-0 left-0 w-full max-w-[92vw] bg-[#0a0a0a] border-r border-[#00eeff]/20 shadow-2xl flex flex-col">
-
-          <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-white/10 bg-[#0f0f0f]">
-            <div className="text-white text-sm font-black uppercase tracking-[0.18em]">
-              Filtros
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
+                aria-label="Cerrar filtros"
+              >
+                ✕
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(false)}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 text-white hover:border-red-500/40 hover:text-red-400 transition"
-              aria-label="Cerrar filtros"
-            >
-              ✕
-            </button>
+            <div className="flex-1 overflow-y-auto p-4">
+              {renderFiltersContent()}
+            </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-4">
-            {renderFiltersContent()}
-          </div>
-
         </div>
-      </div>
-    )}
+      )}
 
-    <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:gap-7 items-start xl:grid-cols-[280px,minmax(0,1fr)]">
+        <div className="hidden xl:block xl:sticky xl:top-28 self-start">
+          {renderFiltersContent()}
+        </div>
 
-      <div className="hidden xl:block xl:sticky xl:top-28 self-start">
-        {renderFiltersContent()}
-      </div>
-
-      <div className="min-w-0">
+        <div className="min-w-0">
           {(selectedCharacterName || data.activeFilterLabels?.length || data.clearFilterHref) && (
             <div className="mb-5 flex flex-col gap-4">
               {selectedCharacterName && (
@@ -610,9 +821,9 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                     <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
                       Buscar personaje
                     </div>
-                   <h3 className="text-white text-[15px] sm:text-[22px] md:text-[32px] leading-[1.05] font-black italic uppercase">
-  Salta directo al catálogo
-</h3>
+                    <h3 className="text-white text-[15px] sm:text-[22px] md:text-[32px] leading-[1.05] font-black italic uppercase">
+                      Salta directo al catálogo
+                    </h3>
                   </div>
 
                   <div className="w-full lg:max-w-[360px]">

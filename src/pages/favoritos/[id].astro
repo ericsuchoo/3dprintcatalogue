@@ -1,0 +1,328 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { ProductCardD1 as ProductCard } from "../../components/ProductCardD1";
+
+type ProductoRow = {
+  id_producto: number | string;
+  nombre_producto: string;
+  subtitulo?: string | null;
+  descripcion?: string | null;
+  img_producto?: string | null;
+  unidades?: number | null;
+  precio?: number | null;
+  precio_modo?: string | null;
+  descuento?: number | null;
+  id_proveedor?: number | null;
+  id_universo?: number | null;
+  id_personaje?: number | null;
+  fecha_creacion?: string | null;
+  fecha_modifica?: string | null;
+  nombre_etiqueta?: string | null;
+};
+
+function slugify(s: string) {
+  return s
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-");
+}
+
+function formatCompactMoney(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "";
+  }
+
+  return `$${Number(value).toFixed(0)}`;
+}
+
+function resolvePriceMode(product: {
+  price?: number | null;
+  priceMode?: string | null;
+}) {
+  if (product.priceMode === "fixed" || product.priceMode === "from" || product.priceMode === "quote") {
+    return product.priceMode;
+  }
+
+  return product.price && Number(product.price) > 0 ? "fixed" : "quote";
+}
+
+const db = Astro.locals.runtime.env.DB as any;
+const shareId = Astro.params.id;
+
+let productos: ProductoRow[] = [];
+let listaExiste = false;
+let nombreLista: string | null = null;
+let notasLista: string | null = null;
+
+if (db && shareId) {
+  const shareRow = await db
+    .prepare(`
+      SELECT id_compartido, nombre_lista, notas
+      FROM favoritos_compartidos
+      WHERE id_compartido = ?
+      LIMIT 1
+    `)
+    .bind(shareId)
+    .first();
+
+  listaExiste = Boolean(shareRow?.id_compartido);
+  nombreLista = (shareRow as any)?.nombre_lista ?? null;
+  notasLista = (shareRow as any)?.notas ?? null;
+
+  if (listaExiste) {
+    const res = await db
+      .prepare(`
+        SELECT
+          p.id_producto,
+          p.nombre_producto,
+          p.subtitulo,
+          p.descripcion,
+          p.img_producto,
+          p.unidades,
+          p.precio,
+          p.precio_modo,
+          p.descuento,
+          p.id_proveedor,
+          p.id_universo,
+          p.id_personaje,
+          p.fecha_creacion,
+          p.fecha_modifica,
+          (
+            SELECT e.nombre_etiqueta
+            FROM productos_etiquetas pe
+            INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+            WHERE pe.id_producto = p.id_producto
+            ORDER BY
+              CAST(COALESCE(pe.prioridad, e.prioridad, '9999') AS INTEGER) ASC,
+              e.nombre_etiqueta ASC
+            LIMIT 1
+          ) as nombre_etiqueta
+        FROM favoritos_compartidos_items f
+        JOIN productos p
+          ON p.id_producto = f.id_producto
+        WHERE f.id_compartido = ?
+        ORDER BY p.nombre_producto ASC
+      `)
+      .bind(shareId)
+      .all();
+
+    productos = (res?.results || []) as ProductoRow[];
+  }
+}
+
+const cards = productos.map((p) => ({
+  id: p.id_producto,
+  slug: slugify(String(p.nombre_producto ?? `p-${p.id_producto}`)),
+  title: p.nombre_producto ?? `Producto ${p.id_producto}`,
+  subtitle: p.subtitulo ?? "",
+  description: p.descripcion ?? "",
+  price: p.precio ?? null,
+  priceMode: (p.precio_modo as "fixed" | "from" | "quote" | null) ?? (p.precio ? "fixed" : "quote"),
+  discount: p.descuento ?? 0,
+  units: p.unidades ?? null,
+  coverUrl: p.img_producto ?? "",
+  personajeId: p.id_personaje ?? null,
+  universoId: p.id_universo ?? null,
+  proveedorId: p.id_proveedor ?? null,
+  date: p.fecha_modifica ?? p.fecha_creacion ?? null,
+  tagLabel: p.nombre_etiqueta ?? "FIGURA 3D",
+}));
+
+const quotableCards = cards.filter((product) => {
+  const mode = resolvePriceMode(product);
+  return mode === "quote" || mode === "from";
+});
+
+const quoteMessage = [
+  "Hola, quiero solicitar cotización de esta selección compartida:",
+  "",
+  ...quotableCards.map((product, index) => {
+    const mode = resolvePriceMode(product);
+    let modeLabel = "Cotizar";
+
+    if (mode === "from" && product.price && Number(product.price) > 0) {
+      modeLabel = `Desde ${formatCompactMoney(product.price)}`;
+    }
+
+    return `${index + 1}. ${product.title} — ${modeLabel}\n${Astro.url.origin}/shop/${product.slug}`;
+  }),
+  "",
+  "¿Me ayudas con precio según escala, acabado y opciones disponibles?",
+].join("\n");
+
+const pageTitle = nombreLista
+  ? `${nombreLista} | DCimpress 3D Store`
+  : "Lista compartida | DCimpress 3D Store";
+---
+
+<Layout title={pageTitle}>
+  <main class="bg-[#0a0a0a] min-h-screen px-4 md:px-6 pt-24 md:pt-28 pb-10">
+    <div class="max-w-7xl mx-auto">
+      <section class="mb-10 border border-[#00eeff] bg-[#0f0f0f] rounded-2xl p-6 md:p-8 backdrop-blur-sm shadow-[0_0_24px_rgba(0,238,255,0.06)]">
+        <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div class="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-3">
+              Colección compartida
+            </div>
+
+            <h1 class="text-3xl md:text-5xl font-black uppercase italic text-white tracking-tight">
+              <span class="text-white">{nombreLista || "Lista"}</span>
+              <span class="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.45)]">
+                {nombreLista ? "" : " compartida"}
+              </span>
+            </h1>
+
+            <p class="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
+              {cards.length} producto{cards.length === 1 ? "" : "s"}
+            </p>
+
+            {notasLista ? (
+              <p class="text-sm text-zinc-400 mt-4 max-w-3xl leading-relaxed">
+                {notasLista}
+              </p>
+            ) : null}
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              data-copy-link
+              class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+            >
+              Copiar enlace
+            </button>
+
+            <a
+              href="/shop"
+              class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[10px] bg-red-500/10 hover:bg-red-500/20"
+            >
+              Ir al catálogo
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {
+        !listaExiste ? (
+          <section class="rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-12 text-center">
+            <div class="text-xl md:text-2xl font-black uppercase italic text-white">
+              Lista no encontrada
+            </div>
+            <p class="text-zinc-400 mt-3 max-w-2xl mx-auto">
+              El enlace compartido no existe o ya no está disponible.
+            </p>
+          </section>
+        ) : cards.length === 0 ? (
+          <section class="rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-12 text-center">
+            <div class="text-xl md:text-2xl font-black uppercase italic text-white">
+              Lista vacía
+            </div>
+            <p class="text-zinc-400 mt-3 max-w-2xl mx-auto">
+              Esta lista compartida no contiene productos.
+            </p>
+          </section>
+        ) : (
+          <>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div class="text-sm uppercase tracking-[0.18em] text-zinc-400 font-bold">
+                {cards.length} Producto{cards.length === 1 ? "" : "s"}
+              </div>
+
+              <div class="text-xs uppercase tracking-[0.16em] text-zinc-500 font-bold">
+                Selección compartida
+              </div>
+            </div>
+
+            <section class="grid grid-cols-2 gap-4 sm:gap-5 lg:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {cards.map((product) => (
+                <ProductCard card={product} />
+              ))}
+            </section>
+
+            <section class="mt-10 rounded-2xl border border-white/10 bg-[#0f0f0f] px-6 py-8 text-center">
+              <div class="text-lg md:text-2xl font-black uppercase italic text-white">
+                ¿Te gustó esta selección?
+              </div>
+
+              <p class="text-zinc-400 mt-3 max-w-2xl mx-auto">
+                Explora más piezas en el catálogo completo o solicita cotización de esta misma selección.
+              </p>
+
+              <div class="mt-6 flex flex-wrap justify-center gap-3">
+                {
+                  quotableCards.length > 0 && (
+                    <button
+                      type="button"
+                      data-instagram-quote
+                      data-message={quoteMessage}
+                      class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
+                    >
+                      Solicitar cotización de esta selección
+                    </button>
+                  )
+                }
+
+                <a
+                  href="/shop"
+                  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[10px] bg-red-500/10 hover:bg-red-500/20"
+                >
+                  Ver catálogo completo
+                </a>
+              </div>
+
+              {
+                quotableCards.length > 0 && (
+                  <p class="text-[11px] text-zinc-500 mt-4 max-w-xl mx-auto leading-relaxed">
+                    Copiamos la selección cotizable y abrimos Instagram para que nos la pegues en DM.
+                  </p>
+                )
+              }
+            </section>
+          </>
+        )
+      }
+    </div>
+  </main>
+
+  <script is:inline>
+    const copyBtn = document.querySelector("[data-copy-link]");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          copyBtn.textContent = "Enlace copiado";
+          setTimeout(() => {
+            copyBtn.textContent = "Copiar enlace";
+          }, 1800);
+        } catch {
+          // no-op
+        }
+      });
+    }
+
+    const quoteBtn = document.querySelector("[data-instagram-quote]");
+    if (quoteBtn) {
+      quoteBtn.addEventListener("click", async () => {
+        const message = quoteBtn.getAttribute("data-message") || "";
+        if (!message) return;
+
+        try {
+          await navigator.clipboard.writeText(message);
+          window.open("https://www.instagram.com/dinocat3d/", "_blank", "noopener,noreferrer");
+          const oldText = quoteBtn.textContent;
+          quoteBtn.textContent = "Mensaje copiado";
+          setTimeout(() => {
+            quoteBtn.textContent = oldText;
+          }, 1800);
+        } catch {
+          window.open("https://www.instagram.com/dinocat3d/", "_blank", "noopener,noreferrer");
+        }
+      });
+    }
+  </script>
+</Layout>

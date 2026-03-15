@@ -3,13 +3,16 @@ export type D1SelectItem = {
   slug: string;
 };
 
+export type PriceModeD1 = "fixed" | "from" | "quote";
+
 export type ProductLiteD1 = {
   id: string | number;
   slug: string;
   title: string;
   subtitle: string;
   description: string;
-  price: number;
+  price: number | null;
+  priceMode?: PriceModeD1 | null;
   discount: number;
   units: number | null;
   coverUrl: string;
@@ -17,6 +20,9 @@ export type ProductLiteD1 = {
   personajeId: string | number | null;
   universoId: string | number | null;
   proveedorId: string | number | null;
+
+  tagLabel?: string | null;
+  date?: string | null;
 };
 
 export type ShopPageDataD1 = {
@@ -26,6 +32,7 @@ export type ShopPageDataD1 = {
   brands: D1SelectItem[];
   initialPersonajeId?: string | null;
 };
+
 export type ProductEditionImageD1 = {
   url: string;
 };
@@ -50,7 +57,8 @@ export type ProductDetailMetaD1 = {
   slug: string;
   model_id: string;
   subtitle?: string;
-  price: number;
+  price: number | null;
+  priceMode?: PriceModeD1 | null;
   descuento?: number | null;
   descripcion?: string;
   description?: string;
