@@ -1,7 +1,7 @@
 import React from "react";
 import ContextWrapper from "../../ContextWrapper";
 import InnerPageWrapper from "../../InnnerPageWrapper";
-import { Main } from "./Main";
+import { Main } from "../../shop/products/Main";
 import type { ShopPageDataD1 } from "../../../types/shop-d1";
 
 interface Props {
@@ -26,6 +26,17 @@ interface Props {
       proveedorId?: string | null;
       sort?: "newest" | "price_asc" | "price_desc";
     };
+    selectedCharacter?: {
+      id: string;
+      name: string;
+    } | null;
+    quickCharacterSuggestions?: {
+      id: string;
+      title: string;
+      href: string;
+      universe?: string;
+      tags?: string[];
+    }[];
   };
 }
 
@@ -33,7 +44,7 @@ const ProductsPageWrapper: React.FC<Props> = ({ data }) => {
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-        <Main data={data} />
+        <Main data={data} favoritesOnly={true} />
       </InnerPageWrapper>
     </ContextWrapper>
   );

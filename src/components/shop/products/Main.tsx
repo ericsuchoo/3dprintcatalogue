@@ -90,6 +90,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const [characterSearch, setCharacterSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sidebarCharacterSearch, setSidebarCharacterSearch] = useState("");
+  const [instagramCopied, setInstagramCopied] = useState(false);
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -210,6 +211,11 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     window.location.href = data.clearFilterHref || "/shop";
   };
 
+  const favoriteProducts = useMemo(() => {
+    const products = (data.products || []) as ProductLiteD1[];
+    return products.filter((p) => favorites.includes(String(p.slug)));
+  }, [data.products, favorites]);
+
   const filteredProducts = useMemo(() => {
     const products = (data.products || []) as ProductLiteD1[];
 
@@ -226,7 +232,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     });
   }, [filteredProducts]);
 
-  const whatsappQuoteHref = useMemo(() => {
+  const instagramQuoteUrl = "https://www.instagram.com/dinocat3d/";
+  const paintingStudioUrl = "https://www.instagram.com/dcpanitingstudio/";
+
+  const instagramQuoteMessage = useMemo(() => {
     if (quotableVisibleProducts.length === 0) return "";
 
     const baseUrl =
@@ -238,22 +247,35 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       return `${index + 1}. ${product.title} — ${modeLabel}\n${baseUrl}/shop/${product.slug}`;
     });
 
-    const message = [
+    return [
       "Hola, quiero solicitar cotización de esta selección de favoritos:",
       "",
       ...lines,
       "",
       "¿Me ayudas con precio según escala, acabado y opciones disponibles?",
     ].join("\n");
-
-    const phoneNumber = "5586928118";
-    return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
   }, [quotableVisibleProducts]);
 
   const shareableFavoritesHref = useMemo(() => {
     if (typeof window === "undefined") return "";
     return window.location.href;
   }, []);
+
+  const handleInstagramQuote = async () => {
+    if (!instagramQuoteMessage || quotableVisibleProducts.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(instagramQuoteMessage);
+      setInstagramCopied(true);
+      window.open(instagramQuoteUrl, "_blank", "noopener,noreferrer");
+
+      window.setTimeout(() => {
+        setInstagramCopied(false);
+      }, 2200);
+    } catch {
+      window.open(instagramQuoteUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
   const setProductFilter = (filter: ProductFilterD1) => {
     const currentPersonajeId = data.pagination?.personajeId ?? null;
@@ -430,7 +452,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       {favoritesOnly && (
         <>
           <div className="text-sm text-zinc-400 leading-relaxed">
-            Aquí puedes revisar tus productos guardados, filtrarlos y compartir tu lista con otra persona.
+            Aquí puedes revisar tus productos guardados, buscar dentro de tu selección y enviar por DM solo lo que quieras cotizar.
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -463,30 +485,29 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <a
-              href={whatsappQuoteHref || "#"}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={handleInstagramQuote}
               className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
                 quotableVisibleProducts.length > 0
                   ? "border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
                   : "pointer-events-none border-white/10 text-white/30 bg-white/5"
               }`}
             >
-              Solicitar cotización
-            </a>
+              {instagramCopied ? "Mensaje copiado" : "Cotizar por Instagram"}
+            </button>
+
+            <div className="text-[11px] leading-relaxed text-zinc-500 text-center -mt-1">
+              Se copiará tu selección visible para pegarla en DM.
+            </div>
 
             <a
-              href={quotableVisibleProducts.length > 0 ? whatsappQuoteHref : "#"}
+              href={paintingStudioUrl}
               target="_blank"
               rel="noreferrer"
-              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
-                quotableVisibleProducts.length > 0
-                  ? "border-green-500/40 text-green-400 hover:text-white hover:border-green-500 bg-green-500/10 hover:bg-green-500/20"
-                  : "pointer-events-none border-white/10 text-white/30 bg-white/5"
-              }`}
+              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-fuchsia-500/30 text-fuchsia-300 hover:text-white hover:border-fuchsia-400 transition uppercase tracking-[0.18em] font-black text-[10px] bg-fuchsia-500/10 hover:bg-fuchsia-500/20"
             >
-              Enviar por WhatsApp
+              Ver estudio de pintura
             </a>
 
             <button
@@ -503,7 +524,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </>
       )}
 
-      {filters.some((f) => f.type === "universo") && (
+      {!favoritesOnly && filters.some((f) => f.type === "universo") && (
         <div>
           <div className={filterTitleClass}>Universos</div>
           <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
@@ -523,45 +544,51 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </div>
       )}
 
-      <div>
-        <div className={filterTitleClass}>Precio / orden</div>
-        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-          {filters
-            .filter((e) => e.type === "price")
-            .map((filter, index) => (
-              <FormCheck
-                key={index}
-                value={filter.label}
-                label={filter.label}
-                onCheck={() => setProductFilter(filter)}
-                checked={filter.active}
-                size="sm"
-              />
-            ))}
+      {!favoritesOnly && (
+        <div>
+          <div className={filterTitleClass}>Precio / orden</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "price")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div>
-        <div className={filterTitleClass}>Novedad</div>
-        <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
-          {filters
-            .filter((e) => e.type === "popularity")
-            .map((filter, index) => (
-              <FormCheck
-                key={index}
-                value={filter.label}
-                label={filter.label}
-                onCheck={() => setProductFilter(filter)}
-                checked={filter.active}
-                size="sm"
-              />
-            ))}
+      {!favoritesOnly && (
+        <div>
+          <div className={filterTitleClass}>Novedad</div>
+          <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
+            {filters
+              .filter((e) => e.type === "popularity")
+              .map((filter, index) => (
+                <FormCheck
+                  key={index}
+                  value={filter.label}
+                  label={filter.label}
+                  onCheck={() => setProductFilter(filter)}
+                  checked={filter.active}
+                  size="sm"
+                />
+              ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <div className="flex items-center justify-between gap-3">
-          <div className={filterTitleClass}>Personajes</div>
+          <div className={filterTitleClass}>
+            {favoritesOnly ? "Personajes guardados" : "Personajes"}
+          </div>
           <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-black">
             {sidebarCharacterFilters.length}
           </span>
@@ -601,7 +628,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
         </div>
       </div>
 
-      {filters.some((f) => f.type === "proveedor") && (
+      {!favoritesOnly && filters.some((f) => f.type === "proveedor") && (
         <div>
           <div className={filterTitleClass}>Creadores 3D</div>
           <div className="grid grid-cols-1 gap-3 mt-4 text-[#fdfdfd]">
@@ -622,11 +649,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       )}
     </div>
   );
-
-  const favoriteProducts = useMemo(() => {
-    const products = (data.products || []) as ProductLiteD1[];
-    return products.filter((p) => favorites.includes(String(p.slug)));
-  }, [data.products, favorites]);
 
   return (
     <div className="bg-[#0a0a0a] min-h-screen px-3 sm:px-4 md:px-6 pt-32 sm:pt-24 md:pt-24 pb-8">
