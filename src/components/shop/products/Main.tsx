@@ -48,7 +48,6 @@ interface Props {
       name: string;
     } | null;
     quickCharacterSuggestions?: CharacterSuggestion[];
-    sharedFavoritesUrl?: string | null;
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -101,7 +100,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const [sidebarCharacterSearch, setSidebarCharacterSearch] = useState("");
   const [instagramCopied, setInstagramCopied] = useState(false);
   const [shareListCopied, setShareListCopied] = useState(false);
-  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
+  const [shareListLoading, setShareListLoading] = useState(false);
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -272,12 +271,6 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     ].join("\n");
   }, [quotableVisibleProducts]);
 
-  const shareableFavoritesHref = useMemo(() => {
-    if (data.sharedFavoritesUrl) return data.sharedFavoritesUrl;
-    if (typeof window === "undefined") return "";
-    return window.location.href;
-  }, [data.sharedFavoritesUrl]);
-
   const handleInstagramQuote = async () => {
     if (!instagramQuoteMessage || quotableVisibleProducts.length === 0) return;
 
@@ -295,32 +288,55 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   };
 
   const handleShareList = async () => {
-    if (!shareableFavoritesHref) return;
+    if (filteredProducts.length === 0) return;
 
     try {
-      await navigator.clipboard.writeText(shareableFavoritesHref);
+      setShareListLoading(true);
+
+      const response = await fetch("/api/favoritos/compartir", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productIds: filteredProducts.map((product) => product.id),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.ok || !result?.url) {
+        throw new Error(result?.error || "No se pudo compartir la lista");
+      }
+
+      const publicUrl =
+        typeof window !== "undefined"
+          ? new URL(result.url, window.location.origin).toString()
+          : result.url;
+
+      await navigator.clipboard.writeText(publicUrl);
       setShareListCopied(true);
+
+      if (typeof navigator !== "undefined" && navigator.share) {
+        try {
+          await navigator.share({
+            title: "Mis favoritos | DCimpress 3D",
+            text: "Te comparto mi lista de favoritos.",
+            url: publicUrl,
+          });
+        } catch {
+          // usuario canceló, no hacemos nada
+        }
+      }
 
       window.setTimeout(() => {
         setShareListCopied(false);
       }, 2200);
-    } catch {
-      // no-op
-    }
-  };
-
-  const handleCopyPublicLink = async () => {
-    if (!shareableFavoritesHref) return;
-
-    try {
-      await navigator.clipboard.writeText(shareableFavoritesHref);
-      setPublicLinkCopied(true);
-
-      window.setTimeout(() => {
-        setPublicLinkCopied(false);
-      }, 2200);
-    } catch {
-      // no-op
+    } catch (error) {
+      console.error("[share-list]", error);
+      alert("No se pudo generar la lista compartida.");
+    } finally {
+      setShareListLoading(false);
     }
   };
 
@@ -562,21 +578,18 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
             <button
               type="button"
               onClick={handleShareList}
-              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+              disabled={shareListLoading || filteredProducts.length === 0}
+              className={`inline-flex items-center justify-center px-4 py-3 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
+                shareListLoading || filteredProducts.length === 0
+                  ? "pointer-events-none border-white/10 text-white/30 bg-white/5"
+                  : "border-white/15 text-white/85 hover:text-white hover:border-white/35 bg-white/5 hover:bg-white/10"
+              }`}
             >
-              {shareListCopied
-                ? "Lista copiada"
-                : "Compartir lista con amigos"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyPublicLink}
-              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/10 text-white/75 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
-            >
-              {publicLinkCopied
-                ? "Enlace copiado"
-                : "Copiar enlace de mi lista"}
+              {shareListLoading
+                ? "Generando lista..."
+                : shareListCopied
+                  ? "Lista copiada"
+                  : "Compartir lista con amigos"}
             </button>
           </div>
         </>
