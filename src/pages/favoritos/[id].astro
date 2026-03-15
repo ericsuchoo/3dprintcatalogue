@@ -17,6 +17,7 @@ type ProductoRow = {
   id_personaje?: number | null;
   fecha_creacion?: string | null;
   fecha_modifica?: string | null;
+  nombre_etiqueta?: string | null;
 };
 
 function slugify(s: string) {
@@ -31,16 +32,37 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
+function formatCompactMoney(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "";
+  }
+
+  return `$${Number(value).toFixed(0)}`;
+}
+
+function resolvePriceMode(product: {
+  price?: number | null;
+  priceMode?: string | null;
+}) {
+  if (product.priceMode === "fixed" || product.priceMode === "from" || product.priceMode === "quote") {
+    return product.priceMode;
+  }
+
+  return product.price && Number(product.price) > 0 ? "fixed" : "quote";
+}
+
 const db = Astro.locals.runtime.env.DB as any;
 const shareId = Astro.params.id;
 
 let productos: ProductoRow[] = [];
 let listaExiste = false;
+let nombreLista: string | null = null;
+let notasLista: string | null = null;
 
 if (db && shareId) {
   const shareRow = await db
     .prepare(`
-      SELECT id_compartido
+      SELECT id_compartido, nombre_lista, notas
       FROM favoritos_compartidos
       WHERE id_compartido = ?
       LIMIT 1
@@ -49,6 +71,8 @@ if (db && shareId) {
     .first();
 
   listaExiste = Boolean(shareRow?.id_compartido);
+  nombreLista = (shareRow as any)?.nombre_lista ?? null;
+  notasLista = (shareRow as any)?.notas ?? null;
 
   if (listaExiste) {
     const res = await db
@@ -67,7 +91,17 @@ if (db && shareId) {
           p.id_universo,
           p.id_personaje,
           p.fecha_creacion,
-          p.fecha_modifica
+          p.fecha_modifica,
+          (
+            SELECT e.nombre_etiqueta
+            FROM productos_etiquetas pe
+            INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+            WHERE pe.id_producto = p.id_producto
+            ORDER BY
+              CAST(COALESCE(pe.prioridad, e.prioridad, '9999') AS INTEGER) ASC,
+              e.nombre_etiqueta ASC
+            LIMIT 1
+          ) as nombre_etiqueta
         FROM favoritos_compartidos_items f
         JOIN productos p
           ON p.id_producto = f.id_producto
@@ -88,9 +122,7 @@ const cards = productos.map((p) => ({
   subtitle: p.subtitulo ?? "",
   description: p.descripcion ?? "",
   price: p.precio ?? null,
-  priceMode:
-    (p.precio_modo as "fixed" | "from" | "quote" | null) ??
-    (p.precio ? "fixed" : "quote"),
+  priceMode: (p.precio_modo as "fixed" | "from" | "quote" | null) ?? (p.precio ? "fixed" : "quote"),
   discount: p.descuento ?? 0,
   units: p.unidades ?? null,
   coverUrl: p.img_producto ?? "",
@@ -98,9 +130,34 @@ const cards = productos.map((p) => ({
   universoId: p.id_universo ?? null,
   proveedorId: p.id_proveedor ?? null,
   date: p.fecha_modifica ?? p.fecha_creacion ?? null,
+  tagLabel: p.nombre_etiqueta ?? "FIGURA 3D",
 }));
 
-const pageTitle = "Lista compartida | DCimpress 3D Store";
+const quotableCards = cards.filter((product) => {
+  const mode = resolvePriceMode(product);
+  return mode === "quote" || mode === "from";
+});
+
+const quoteMessage = [
+  "Hola, quiero solicitar cotización de esta selección compartida:",
+  "",
+  ...quotableCards.map((product, index) => {
+    const mode = resolvePriceMode(product);
+    let modeLabel = "Cotizar";
+
+    if (mode === "from" && product.price && Number(product.price) > 0) {
+      modeLabel = `Desde ${formatCompactMoney(product.price)}`;
+    }
+
+    return `${index + 1}. ${product.title} — ${modeLabel}\n${Astro.url.origin}/shop/${product.slug}`;
+  }),
+  "",
+  "¿Me ayudas con precio según escala, acabado y opciones disponibles?",
+].join("\n");
+
+const pageTitle = nombreLista
+  ? `${nombreLista} | DCimpress 3D Store`
+  : "Lista compartida | DCimpress 3D Store";
 ---
 
 <Layout title={pageTitle}>
@@ -114,19 +171,27 @@ const pageTitle = "Lista compartida | DCimpress 3D Store";
             </div>
 
             <h1 class="text-3xl md:text-5xl font-black uppercase italic text-white tracking-tight">
-              <span class="text-white">Lista</span>
-              <span class="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.45)]"> compartida</span>
+              <span class="text-white">{nombreLista || "Lista"}</span>
+              <span class="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.45)]">
+                {nombreLista ? "" : " compartida"}
+              </span>
             </h1>
 
             <p class="text-xs md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
               {cards.length} producto{cards.length === 1 ? "" : "s"}
             </p>
+
+            {notasLista ? (
+              <p class="text-sm text-zinc-400 mt-4 max-w-3xl leading-relaxed">
+                {notasLista}
+              </p>
+            ) : null}
           </div>
 
           <div class="flex flex-wrap gap-3">
             <button
               type="button"
-              onclick="navigator.clipboard.writeText(window.location.href)"
+              data-copy-link
               class="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
             >
               Copiar enlace
@@ -185,29 +250,79 @@ const pageTitle = "Lista compartida | DCimpress 3D Store";
               </div>
 
               <p class="text-zinc-400 mt-3 max-w-2xl mx-auto">
-                Explora más piezas en el catálogo completo y guarda tus propias favoritas.
+                Explora más piezas en el catálogo completo o solicita cotización de esta misma selección.
               </p>
 
               <div class="mt-6 flex flex-wrap justify-center gap-3">
+                {
+                  quotableCards.length > 0 && (
+                    <button
+                      type="button"
+                      data-instagram-quote
+                      data-message={quoteMessage}
+                      class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
+                    >
+                      Solicitar cotización de esta selección
+                    </button>
+                  )
+                }
+
                 <a
                   href="/shop"
-                  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-[#00eeff]/40 text-[#00eeff] hover:text-white hover:border-[#00eeff] transition uppercase tracking-[0.18em] font-black text-[10px] bg-[#00eeff]/10 hover:bg-[#00eeff]/20"
+                  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[10px] bg-red-500/10 hover:bg-red-500/20"
                 >
                   Ver catálogo completo
                 </a>
-
-                <button
-                  type="button"
-                  onclick="navigator.clipboard.writeText(window.location.href)"
-                  class="inline-flex items-center justify-center px-5 py-3 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
-                >
-                  Compartir esta lista
-                </button>
               </div>
+
+              {
+                quotableCards.length > 0 && (
+                  <p class="text-[11px] text-zinc-500 mt-4 max-w-xl mx-auto leading-relaxed">
+                    Copiamos la selección cotizable y abrimos Instagram para que nos la pegues en DM.
+                  </p>
+                )
+              }
             </section>
           </>
         )
       }
     </div>
   </main>
+
+  <script is:inline>
+    const copyBtn = document.querySelector("[data-copy-link]");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          copyBtn.textContent = "Enlace copiado";
+          setTimeout(() => {
+            copyBtn.textContent = "Copiar enlace";
+          }, 1800);
+        } catch {
+          // no-op
+        }
+      });
+    }
+
+    const quoteBtn = document.querySelector("[data-instagram-quote]");
+    if (quoteBtn) {
+      quoteBtn.addEventListener("click", async () => {
+        const message = quoteBtn.getAttribute("data-message") || "";
+        if (!message) return;
+
+        try {
+          await navigator.clipboard.writeText(message);
+          window.open("https://www.instagram.com/dinocat3d/", "_blank", "noopener,noreferrer");
+          const oldText = quoteBtn.textContent;
+          quoteBtn.textContent = "Mensaje copiado";
+          setTimeout(() => {
+            quoteBtn.textContent = oldText;
+          }, 1800);
+        } catch {
+          window.open("https://www.instagram.com/dinocat3d/", "_blank", "noopener,noreferrer");
+        }
+      });
+    }
+  </script>
 </Layout>

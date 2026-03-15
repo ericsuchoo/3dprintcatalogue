@@ -5,110 +5,141 @@ function generateShareId(length = 12) {
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
   let result = "";
 
-  for (let i = 0; i < length; i += 1) {
+  for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
 
   return result;
 }
 
+function buildListSignature(productIds: number[]) {
+  const normalized = [...new Set(productIds)].sort((a, b) => a - b);
+  return normalized.join(",");
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const db = locals.runtime.env.DB as any;
 
-    if (!db) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "DB no disponible" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
     const body = await request.json();
 
-    const productIdsRaw: unknown[] = Array.isArray(body?.productIds) ? body.productIds : [];
+    const rawIds: unknown[] = Array.isArray(body?.productIds)
+      ? body.productIds
+      : [];
 
-    const productIds = productIdsRaw
-      .map((value: unknown) => Number(value))
-      .filter((value: number) => Number.isInteger(value) && value > 0);
+    const productIds = rawIds
+      .map((v: unknown) => Number(v))
+      .filter((v: number) => Number.isInteger(v) && v > 0);
 
     if (productIds.length === 0) {
       return new Response(
-        JSON.stringify({ ok: false, error: "No hay productos para compartir" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
+        JSON.stringify({ ok: false, error: "Lista vacía" }),
+        { status: 400 }
       );
     }
 
+    const nombreLista =
+      typeof body?.nombre_lista === "string" ? body.nombre_lista.trim() : null;
+
+    const notas =
+      typeof body?.notas === "string" ? body.notas.trim() : null;
+
+    const uniqueIds = [...new Set(productIds)];
+
+    const firmaLista = buildListSignature(uniqueIds);
+
+    // buscar lista existente
+    const existing = await db
+      .prepare(
+        `
+        SELECT id_compartido
+        FROM favoritos_compartidos
+        WHERE firma_lista = ?
+        AND activo = 1
+        LIMIT 1
+        `
+      )
+      .bind(firmaLista)
+      .first();
+
+    if (existing?.id_compartido) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          reused: true,
+          id: existing.id_compartido,
+          url: `/favoritos/${existing.id_compartido}`,
+        }),
+        { status: 200 }
+      );
+    }
+
+    // generar nuevo id
     let shareId = "";
     let exists = true;
 
     while (exists) {
-      shareId = generateShareId(12);
+      shareId = generateShareId();
 
-      const existing = await db
+      const check = await db
         .prepare(
-          `
-          SELECT id_compartido
-          FROM favoritos_compartidos
-          WHERE id_compartido = ?
-          LIMIT 1
-        `
+          `SELECT id_compartido FROM favoritos_compartidos WHERE id_compartido = ?`
         )
         .bind(shareId)
         .first();
 
-      exists = Boolean(existing?.id_compartido);
+      exists = Boolean(check);
     }
 
+    // crear lista
     await db
       .prepare(
         `
-        INSERT INTO favoritos_compartidos (id_compartido)
-        VALUES (?)
-      `
+        INSERT INTO favoritos_compartidos (
+          id_compartido,
+          firma_lista,
+          nombre_lista,
+          notas,
+          activo
+        )
+        VALUES (?, ?, ?, ?, 1)
+        `
       )
-      .bind(shareId)
+      .bind(shareId, firmaLista, nombreLista, notas)
       .run();
 
-    const uniqueIds = [...new Set(productIds)];
-
-    for (const productId of uniqueIds) {
+    // insertar productos
+    for (const id of uniqueIds) {
       await db
         .prepare(
           `
-          INSERT INTO favoritos_compartidos_items (id_compartido, id_producto)
+          INSERT INTO favoritos_compartidos_items
+          (id_compartido, id_producto)
           VALUES (?, ?)
-        `
+          `
         )
-        .bind(shareId, productId)
+        .bind(shareId, id)
         .run();
     }
 
     return new Response(
       JSON.stringify({
         ok: true,
+        reused: false,
         id: shareId,
         url: `/favoritos/${shareId}`,
       }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 200 }
     );
   } catch (error) {
-    console.error("[api/favoritos/compartir] error", error);
+    console.error("Error crear lista compartida:", error);
 
     return new Response(
-      JSON.stringify({ ok: false, error: "No se pudo generar la lista compartida" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+      JSON.stringify({
+        ok: false,
+        error: "No se pudo generar la lista",
+      }),
+      { status: 500 }
     );
   }
 };
