@@ -48,6 +48,7 @@ interface Props {
       name: string;
     } | null;
     quickCharacterSuggestions?: CharacterSuggestion[];
+    sharedFavoritesUrl?: string | null;
     pagination?: {
       currentPage: number;
       totalPages: number;
@@ -84,6 +85,14 @@ function resolvePriceMode(product: ProductLiteD1) {
   return product.price && Number(product.price) > 0 ? "fixed" : "quote";
 }
 
+function formatCompactMoney(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return "";
+  }
+
+  return `$${Number(value).toFixed(0)}`;
+}
+
 export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const { favorites } = useFavorites();
 
@@ -91,6 +100,8 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sidebarCharacterSearch, setSidebarCharacterSearch] = useState("");
   const [instagramCopied, setInstagramCopied] = useState(false);
+  const [shareListCopied, setShareListCopied] = useState(false);
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
 
   const [filters, setFilters] = useState<ProductFilterD1[]>([
     { active: false, type: "price", label: "Lowest", value: "price_asc" },
@@ -243,7 +254,12 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
     const lines = quotableVisibleProducts.map((product, index) => {
       const mode = resolvePriceMode(product);
-      const modeLabel = mode === "from" ? "Desde precio base" : "Cotizar";
+
+      let modeLabel = "Cotizar";
+      if (mode === "from" && product.price && Number(product.price) > 0) {
+        modeLabel = `Desde ${formatCompactMoney(product.price)}`;
+      }
+
       return `${index + 1}. ${product.title} — ${modeLabel}\n${baseUrl}/shop/${product.slug}`;
     });
 
@@ -257,9 +273,10 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
   }, [quotableVisibleProducts]);
 
   const shareableFavoritesHref = useMemo(() => {
+    if (data.sharedFavoritesUrl) return data.sharedFavoritesUrl;
     if (typeof window === "undefined") return "";
     return window.location.href;
-  }, []);
+  }, [data.sharedFavoritesUrl]);
 
   const handleInstagramQuote = async () => {
     if (!instagramQuoteMessage || quotableVisibleProducts.length === 0) return;
@@ -274,6 +291,36 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       }, 2200);
     } catch {
       window.open(instagramQuoteUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const handleShareList = async () => {
+    if (!shareableFavoritesHref) return;
+
+    try {
+      await navigator.clipboard.writeText(shareableFavoritesHref);
+      setShareListCopied(true);
+
+      window.setTimeout(() => {
+        setShareListCopied(false);
+      }, 2200);
+    } catch {
+      // no-op
+    }
+  };
+
+  const handleCopyPublicLink = async () => {
+    if (!shareableFavoritesHref) return;
+
+    try {
+      await navigator.clipboard.writeText(shareableFavoritesHref);
+      setPublicLinkCopied(true);
+
+      window.setTimeout(() => {
+        setPublicLinkCopied(false);
+      }, 2200);
+    } catch {
+      // no-op
     }
   };
 
@@ -452,7 +499,7 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
       {favoritesOnly && (
         <>
           <div className="text-sm text-zinc-400 leading-relaxed">
-            Aquí puedes revisar tus productos guardados, buscar dentro de tu selección y enviar por DM solo lo que quieras cotizar.
+            Aquí puedes revisar tus productos guardados, buscar dentro de tu selección y enviarnos solo lo que quieras cotizar.
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -494,11 +541,13 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
                   : "pointer-events-none border-white/10 text-white/30 bg-white/5"
               }`}
             >
-              {instagramCopied ? "Mensaje copiado" : "Cotizar por Instagram"}
+              {instagramCopied
+                ? "Mensaje copiado"
+                : "Compártenos tus favoritos para cotizar"}
             </button>
 
             <div className="text-[11px] leading-relaxed text-zinc-500 text-center -mt-1">
-              Se copiará tu selección visible para pegarla en DM.
+              Copiamos tu selección visible y abrimos Instagram para que nos la pegues en DM.
             </div>
 
             <a
@@ -512,13 +561,22 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
 
             <button
               type="button"
-              onClick={() => {
-                if (!shareableFavoritesHref) return;
-                navigator.clipboard.writeText(shareableFavoritesHref);
-              }}
-              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/10 text-white/80 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+              onClick={handleShareList}
+              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/15 text-white/85 hover:text-white hover:border-white/35 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
             >
-              Copiar enlace
+              {shareListCopied
+                ? "Lista copiada"
+                : "Compartir lista con amigos"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopyPublicLink}
+              className="inline-flex items-center justify-center px-4 py-3 rounded-full border border-white/10 text-white/75 hover:text-white hover:border-white/30 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+            >
+              {publicLinkCopied
+                ? "Enlace copiado"
+                : "Copiar enlace de mi lista"}
             </button>
           </div>
         </>
