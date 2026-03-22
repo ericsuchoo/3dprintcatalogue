@@ -7,7 +7,7 @@ type PersonajeRow = {
   nombre_personaje: string;
   id_universo?: number | null;
   productsCount?: number;
-  gallery?: string; // 🔥 viene como string JSON desde D1
+  gallery?: string;
 };
 
 type UniversoRow = {
@@ -195,12 +195,15 @@ if (!db) {
         SELECT json_group_array(
           json_object(
             'url',
-            pi.url
+            url
           )
         )
-        FROM personajes_imagenes pi
-        WHERE pi.id_personaje = p.id_personaje
-        ORDER BY pi.orden
+        FROM (
+          SELECT url
+          FROM personajes_imagenes
+          WHERE id_personaje = p.id_personaje
+          ORDER BY orden ASC
+        )
       ) AS gallery,
 
       COUNT(DISTINCT pr.id_producto) AS productsCount
@@ -270,7 +273,6 @@ if (!db) {
       title: p.nombre_personaje,
       slug: slugify(p.nombre_personaje),
 
-      // 🔥 NUEVO: gallery dinámica
       gallery: (() => {
         try {
           return p.gallery ? JSON.parse(p.gallery as any) : [];
