@@ -5,9 +5,9 @@ import NewPageWrapper from "../components/home-page/PageWrapperfil";
 type PersonajeRow = {
   id_personaje: number | string;
   nombre_personaje: string;
-  img_personaje: string | null;
   id_universo?: number | null;
   productsCount?: number;
+  gallery?: string; // 🔥 viene como string JSON desde D1
 };
 
 type UniversoRow = {
@@ -189,9 +189,22 @@ if (!db) {
     SELECT
       p.id_personaje,
       p.nombre_personaje,
-      p.img_personaje,
       p.id_universo,
+
+      (
+        SELECT json_group_array(
+          json_object(
+            'url',
+            pi.url
+          )
+        )
+        FROM personajes_imagenes pi
+        WHERE pi.id_personaje = p.id_personaje
+        ORDER BY pi.orden
+      ) AS gallery,
+
       COUNT(DISTINCT pr.id_producto) AS productsCount
+
     FROM personajes p
     LEFT JOIN productos pr
       ON pr.id_personaje = p.id_personaje
@@ -256,7 +269,15 @@ if (!db) {
       id_personaje: p.id_personaje,
       title: p.nombre_personaje,
       slug: slugify(p.nombre_personaje),
-      gallery: p.img_personaje ? [{ url: p.img_personaje }] : [],
+
+      // 🔥 NUEVO: gallery dinámica
+      gallery: (() => {
+        try {
+          return p.gallery ? JSON.parse(p.gallery as any) : [];
+        } catch {
+          return [];
+        }
+      })(),
     },
     productsCount: Number((p as any).productsCount || 0),
   }));
