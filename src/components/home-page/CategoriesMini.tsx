@@ -17,7 +17,7 @@ interface Props {
 export const CategoriesMini: React.FC<Props> = ({ data }) => {
   return (
     <section className="px-4 sm:px-5">
-     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-5">
         {data.map((item, index) => {
           const personajeId = item.meta?.id_personaje;
 
@@ -26,15 +26,30 @@ export const CategoriesMini: React.FC<Props> = ({ data }) => {
               ? `/shop?personajeId=${encodeURIComponent(String(personajeId))}`
               : "/shop";
 
+          const images = item.meta.gallery || [];
+
+          // 🔥 estado por card
+          const [current, setCurrent] = React.useState(0);
+
+          React.useEffect(() => {
+            if (images.length <= 1) return;
+
+            const interval = setInterval(() => {
+              setCurrent((prev) => (prev + 1) % images.length);
+            }, 2000);
+
+            return () => clearInterval(interval);
+          }, [images]);
+
           return (
             <a
               key={index}
               href={href}
               className="group relative aspect-[3/4] flex items-end p-3 sm:p-4 overflow-hidden bg-zinc-900 rounded-xl border border-white/5 hover:border-red-500/60 hover:-translate-y-1 transition-all duration-500 shadow-xl"
             >
-              {item.meta.gallery?.[0]?.url && (
+              {images?.[0]?.url && (
                 <img
-                  src={item.meta.gallery[0].url}
+                  src={images[current]?.url}
                   alt={item.meta.title}
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-60 opacity-80"
                 />
