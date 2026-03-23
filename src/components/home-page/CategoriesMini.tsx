@@ -65,7 +65,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
       )}
 
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+      <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
 
       <div className="relative z-20 w-full transition-all duration-500 group-hover:translate-y-[-6px]">
         <div className="text-[12px] sm:text-[14px] md:text-[15px] font-black uppercase italic tracking-tight text-white leading-tight">
