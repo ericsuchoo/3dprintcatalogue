@@ -14,7 +14,7 @@ interface Props {
   data: CategoryItem[];
 };
 
-/* 🔥 COMPONENTE CARD (NUEVO) */
+/* 🔥 CARD PRO */
 const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
   const personajeId = item.meta?.id_personaje;
 
@@ -26,28 +26,42 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
   const images = item.meta.gallery || [];
 
   const [current, setCurrent] = React.useState(0);
+  const [prev, setPrev] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
 
   React.useEffect(() => {
-    if (images.length <= 1) return;
+    if (images.length <= 1 || paused) return;
 
     const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % images.length);
-    }, 2000);
+      setPrev(current);
+      setCurrent((prevIndex) => (prevIndex + 1) % images.length);
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [images]);
+  }, [images, paused, current]);
 
   return (
     <a
       href={href}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
       className="group relative aspect-[3/4] flex items-end p-3 sm:p-4 overflow-hidden bg-zinc-900 rounded-xl border border-white/5 hover:border-red-500/60 hover:-translate-y-1 transition-all duration-500 shadow-xl"
     >
       {images?.[0]?.url && (
-        <img
-          src={images[current]?.url}
-          alt={item.meta.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:opacity-60 opacity-80"
-        />
+        <>
+          {/* 🔻 imagen anterior */}
+          <img
+            src={images[prev]?.url}
+            className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700"
+          />
+
+          {/* 🔥 imagen activa */}
+          <img
+            src={images[current]?.url}
+            alt={item.meta.title}
+            className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700 group-hover:scale-110 group-hover:opacity-60"
+          />
+        </>
       )}
 
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent pointer-events-none" />
@@ -73,7 +87,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
   );
 };
 
-/* 🔥 COMPONENTE PRINCIPAL */
+/* 🔥 LISTADO */
 export const CategoriesMini: React.FC<Props> = ({ data }) => {
   return (
     <section className="px-4 sm:px-5">
