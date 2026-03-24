@@ -21,24 +21,6 @@ type ProductoRow = {
   tipo_cosplay?: string | null;
 };
 
-type EdicionRow = {
-  id_edicion_producto: number;
-  id_producto: number;
-  id_edicion: number;
-  nombre_edicion: string;
-  img_edicion_producto?: string | null;
-  img_edicion_pr1?: string | null;
-  img_edicion_pr2?: string | null;
-  img_edicion_pr3?: string | null;
-  img_edicion_pr4?: string | null;
-  img_edicion_pr5?: string | null;
-  img_edicion_pr6?: string | null;
-  img_edicion_pr7?: string | null;
-  img_edicion_pr8?: string | null;
-  img_edicion_pr9?: string | null;
-  img_edicion_pr10?: string | null;
-};
-
 type EscalaRow = {
   id_producto: number;
   disponible: number | null;
@@ -106,7 +88,7 @@ const product = (await db
 
 if (!product) return Astro.redirect("/404");
 
-// 3) Ediciones + todas las imágenes
+// 3) Ediciones + imágenes (NUEVO MODELO)
 const edRes = await db
   .prepare(`
     SELECT
@@ -114,51 +96,48 @@ const edRes = await db
       ep.id_producto,
       ep.id_edicion,
       e.nombre_edicion,
-      ep.img_edicion_producto,
-      ep.img_edicion_pr1,
-      ep.img_edicion_pr2,
-      ep.img_edicion_pr3,
-      ep.img_edicion_pr4,
-      ep.img_edicion_pr5,
-      ep.img_edicion_pr6,
-      ep.img_edicion_pr7,
-      ep.img_edicion_pr8,
-      ep.img_edicion_pr9,
-      ep.img_edicion_pr10
+      ei.img_url,
+      ei.orden,
+      ei.nivel_contenido
     FROM edicion_producto ep
-    INNER JOIN ediciones e ON e.id_edicion = ep.id_edicion
+    INNER JOIN ediciones e 
+      ON e.id_edicion = ep.id_edicion
+    LEFT JOIN edicion_imagenes ei 
+      ON ei.id_edicion_producto = ep.id_edicion_producto
     WHERE ep.id_producto = ?
-    ORDER BY ep.id_edicion_producto ASC
+    ORDER BY ep.id_edicion_producto ASC, ei.orden ASC
   `)
   .bind(product.id_producto)
   .all();
 
-const edicionesRows = (edRes?.results || []) as EdicionRow[];
+const rows = (edRes?.results || []) as any[];
 
-const editions = edicionesRows.map((row) => {
-  const rawImages = [
-    row.img_edicion_producto,
-    row.img_edicion_pr1,
-    row.img_edicion_pr2,
-    row.img_edicion_pr3,
-    row.img_edicion_pr4,
-    row.img_edicion_pr5,
-    row.img_edicion_pr6,
-    row.img_edicion_pr7,
-    row.img_edicion_pr8,
-    row.img_edicion_pr9,
-    row.img_edicion_pr10,
-  ];
+const map = new Map<number, any>();
 
-  const uniqueImages = Array.from(
-    new Set(rawImages.filter((img): img is string => !!img && img.trim().length > 0))
-  );
+for (const row of rows) {
+  if (!map.has(row.id_edicion_producto)) {
+    map.set(row.id_edicion_producto, {
+      id_edicion: row.id_edicion,
+      nombre_edicion: row.nombre_edicion,
+      img: null,
+      images: [],
+    });
+  }
+
+  // 👉 puedes activar filtro NSFW aquí si quieres
+  if (row.img_url /* && row.nivel_contenido !== "nsfw" */) {
+    map.get(row.id_edicion_producto).images.push({
+      url: row.img_url,
+    });
+  }
+}
+
+const editions = Array.from(map.values()).map((ed) => {
+  const firstImage = ed.images[0]?.url || null;
 
   return {
-    id_edicion: row.id_edicion,
-    nombre_edicion: row.nombre_edicion,
-    img: row.img_edicion_producto || uniqueImages[0] || product.img_producto || null,
-    images: uniqueImages.map((url) => ({ url })),
+    ...ed,
+    img: firstImage || product.img_producto || null,
   };
 });
 
@@ -188,7 +167,7 @@ const scales = scalesRows.map((row) => ({
   disponible: Number(row.disponible || 0) === 1,
 }));
 
-// 5) Relacionados
+// 5) Relacionados (SIN CAMBIOS)
 let relatedRows: ProductoRow[] = [];
 
 if (product.id_personaje) {
@@ -252,6 +231,7 @@ if (relatedRows.length < 8 && product.id_universo) {
   relatedRows = [...relatedRows, ...((relByUniverse?.results || []) as ProductoRow[])];
 }
 
+// DATA FINAL (sin cambios)
 const data = {
   meta: {
     id_producto: product.id_producto,
