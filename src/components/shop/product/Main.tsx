@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Gallery } from "./Gallery";
 import { Details } from "./Details";
 import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
-import { ContentFilter } from "./ContentFilter";
+
 
 interface Props {
   data: any;
@@ -43,14 +43,6 @@ export const Main: React.FC<Props> = ({ data }) => {
         />
 
         <div className="xl:sticky xl:top-24 self-start w-full">
-          
-          {/* 🔥 SOLO aparece si aplica */}
-          {(hasSuggestive || hasNSFW) && (
-            <ContentFilter
-              hasSuggestive={hasSuggestive}
-              hasNSFW={hasNSFW}
-            />
-          )}
 
           <Details
             meta={meta}

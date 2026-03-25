@@ -97,22 +97,21 @@ for (const row of rows) {
     });
   }
 
-  // 🔥 FILTRO NSFW (controlado)
-  if (row.img_url && (mostrarNSFW || row.nivel_contenido !== "nsfw")) {
+  if (row.img_url) {
     map.get(row.id_edicion_producto).images.push({
       url: row.img_url,
       nivel: row.nivel_contenido || "safe",
-      orden: row.orden || 0,
+      orden: row.orden || 0, // 🔥 necesario para ordenar
     });
   }
 }
 
-// 🔥 FORMATO FINAL (portada inteligente)
+// 🔥 FORMATO FINAL (FUERA DEL FOR)
 const editions = Array.from(map.values()).map((ed) => {
   // ordenar por orden
   ed.images.sort((a: any, b: any) => a.orden - b.orden);
 
-  // buscar imagen segura primero
+  // portada inteligente
   const safeImage = ed.images.find((img: any) => img.nivel !== "nsfw")?.url;
   const firstImage = ed.images[0]?.url || null;
 
@@ -120,7 +119,12 @@ const editions = Array.from(map.values()).map((ed) => {
     id_edicion: ed.id_edicion,
     nombre_edicion: ed.nombre_edicion,
     img: safeImage || firstImage || product.img_producto || null,
-    images: ed.images.map((img: any) => ({ url: img.url })),
+
+    // 🔥 AQUÍ ESTÁ LA CLAVE (NO BORRAR nivel)
+    images: ed.images.map((img: any) => ({
+      url: img.url,
+      nivel: img.nivel, // 🔥 ESTA LÍNEA ES LA QUE TE FALTABA
+    })),
   };
 });
 
