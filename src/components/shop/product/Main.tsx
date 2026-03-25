@@ -42,22 +42,7 @@ export const Main: React.FC<Props> = ({ data }) => {
           fallbackImage={meta?.cover?.url || null}
         />
 
-        <div className="xl:sticky xl:top-24 self-start w-full">
-          
-          {/* 🔥 SOLO aparece si aplica */}
-          {(hasSuggestive || hasNSFW) && (
-            <ContentFilter
-              hasSuggestive={hasSuggestive}
-              hasNSFW={hasNSFW}
-            />
-          )}
-
-          <Details
-            meta={meta}
-            activeEdition={activeEdition}
-            editionChange={setActiveEdition}
-          />
-        </div>
+     
       </div>
 
       {otherProducts.length > 0 && (
