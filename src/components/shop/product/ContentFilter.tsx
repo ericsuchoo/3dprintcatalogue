@@ -30,7 +30,7 @@ export const ContentFilter: React.FC<Props> = ({
       <button
         onClick={() => changeNivel("safe")}
         className={classNames(
-          "px-3 py-1 text-[10px] font-black tracking-wider rounded-full border",
+          "px-3 py-1 text-[10px] font-black rounded-full border",
           nivel === "safe"
             ? "bg-white text-black border-white"
             : "bg-black text-white border-white/20"
@@ -43,9 +43,9 @@ export const ContentFilter: React.FC<Props> = ({
         <button
           onClick={() => changeNivel("suggestive")}
           className={classNames(
-            "px-3 py-1 text-[10px] font-black tracking-wider rounded-full border",
+            "px-3 py-1 text-[10px] font-black rounded-full border",
             nivel === "suggestive"
-              ? "bg-red-500 text-white border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]"
+              ? "bg-red-500 text-white border-red-500"
               : "bg-black text-white border-red-500/40"
           )}
         >
@@ -57,9 +57,9 @@ export const ContentFilter: React.FC<Props> = ({
         <button
           onClick={() => changeNivel("nsfw")}
           className={classNames(
-            "px-3 py-1 text-[10px] font-black tracking-wider rounded-full border",
+            "px-3 py-1 text-[10px] font-black rounded-full border",
             nivel === "nsfw"
-              ? "bg-red-600 text-white border-red-600 shadow-[0_0_14px_rgba(239,68,68,0.8)]"
+              ? "bg-red-600 text-white border-red-600"
               : "bg-black text-white border-red-500/40"
           )}
         >
