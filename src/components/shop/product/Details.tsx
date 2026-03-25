@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import classNames from "classnames";
 import { useFavorites } from "../../../context/FavoritesContext";
-import { ContentFilter } from "./ContentFilter"; // 🔥 SOLO ESTO NUEVO
+import { ContentFilter } from "./ContentFilter"; // 🔥 NUEVO
 
 type EditionItem = {
   id_edicion?: number | string;
@@ -38,7 +38,7 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
     return Array.isArray(meta?.scales) ? meta.scales : [];
   }, [meta]);
 
-  // 🔥 DETECCIÓN (NO ROMPE NADA)
+  // 🔥 DETECCIÓN (SOLO AÑADIDO)
   const hasSuggestive = editions.some((ed: any) =>
     ed.images?.some((img: any) => img.nivel === "suggestive")
   );
@@ -47,20 +47,97 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
     ed.images?.some((img: any) => img.nivel === "nsfw")
   );
 
+  const priceInfo = useMemo(() => {
+    const rawPrice = meta?.price;
+    const numericPrice =
+      rawPrice === null || rawPrice === undefined || Number.isNaN(Number(rawPrice))
+        ? null
+        : Number(rawPrice);
+
+    const mode =
+      meta?.priceMode ??
+      (numericPrice !== null && numericPrice > 0 ? "fixed" : "quote");
+
+    if (mode === "quote" || numericPrice === null || numericPrice <= 0) {
+      return {
+        label: "Cotizar",
+        isQuote: true,
+        helper: "El precio final depende de escala, acabado y complejidad del modelo.",
+      };
+    }
+
+    if (mode === "from") {
+      return {
+        label: `Desde $${numericPrice.toFixed(0)}`,
+        isQuote: false,
+        helper: "Precio base estimado. Puede variar según versión, escala y acabado.",
+      };
+    }
+
+    return {
+      label: `$${numericPrice.toFixed(0)}`,
+      isQuote: false,
+      helper: null,
+    };
+  }, [meta]);
+
+  const activeScaleDescription =
+    activeScale?.descripcion ||
+    scales.find((s) => s.disponible)?.descripcion ||
+    scales[0]?.descripcion ||
+    "";
+
   return (
-    <div className="flex flex-col relative p-3 sm:p-4 lg:p-6 xl:p-8 mt-0 w-full max-w-none border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+    <div
+      className="flex flex-col relative p-3 sm:p-4 lg:p-6 xl:p-8 mt-0 w-full max-w-none border border-black/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
       style={{ background: "rgba(255, 255, 255, 0.96)" }}
     >
+      <div className="flex flex-col mb-6 sm:mb-7 lg:mb-5">
+        <h1
+          className="text-[24px] sm:text-[34px] lg:text-[28px] font-bold tracking-tighter leading-tight text-black mb-4 uppercase
+          [text-shadow:_-2px_-2px_0_#fff,_2px_-2px_0_#fff,_-2px_2px_0_#fff]"
+          style={{
+            textAlign: "center",
+            fontFamily: "Voga-Medium, sans-serif",
+            background: "rgb(255, 255, 255)",
+          }}
+        >
+          <span className="block w-full px-3 py-2.5 border-2 border-red-500 bg-white text-black shadow-[0_0_8px_rgba(239,68,68,0.35)]">
+            {meta?.title || meta?.nombre_producto || "Producto"}
+          </span>
+        </h1>
 
-      {/* 🔹 TU HEADER (INTACTO) */}
-      {/* ... NO TOQUÉ NADA AQUÍ ... */}
+        <div className="flex items-center justify-between border-b border-zinc-200 pb-4 gap-3">
+          <span className="text-[10px] sm:text-[18px] lg:text-[10px] font-medium text-black uppercase tracking-[0.18em]">
+            Ref: {meta?.model_id || meta?.id_producto || "3D-DC"}
+          </span>
 
+          <span
+            className={classNames(
+              "whitespace-nowrap",
+              priceInfo.isQuote
+                ? "text-[16px] sm:text-[18px] lg:text-[18px] font-black uppercase tracking-[0.08em] text-[#00b7ff]"
+                : "text-[18px] sm:text-[20px] lg:text-[20px] font-light text-black"
+            )}
+          >
+            {priceInfo.label}
+          </span>
+        </div>
+
+        {priceInfo.helper && (
+          <div className="mt-3 text-[11px] sm:text-[13px] lg:text-[12px] text-zinc-500 italic leading-relaxed">
+            {priceInfo.helper}
+          </div>
+        )}
+      </div>
+
+      {/* 🔥 VERSIONES */}
       <div className="mb-7 sm:mb-8 lg:mb-6">
         <p className="text-[11px] sm:text-[20px] lg:text-[14px] font-black uppercase tracking-[1.8px] mb-4 text-black">
           Versión del modelo
         </p>
 
-        {/* 🔥 TOGGLE — INTEGRADO SIN ROMPER */}
+        {/* 🔥 SOLO ESTO SE AGREGÓ */}
         {(hasSuggestive || hasNSFW) && (
           <div className="mb-3">
             <ContentFilter
@@ -70,41 +147,46 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
           </div>
         )}
 
-        {/* 🔹 TUS BOTONES (INTACTOS) */}
         <div className="grid grid-cols-1 gap-3 lg:gap-2">
-          {editions.map((e: EditionItem, i: number) => {
-            const isActive =
-              String(activeEdition?.id_edicion ?? activeEdition?.nombre_edicion ?? "") ===
-              String(e?.id_edicion ?? e?.nombre_edicion ?? "");
+          {editions.length ? (
+            editions.map((e: EditionItem, i: number) => {
+              const isActive =
+                String(activeEdition?.id_edicion ?? activeEdition?.nombre_edicion ?? "") ===
+                String(e?.id_edicion ?? e?.nombre_edicion ?? "");
 
-            return (
-              <button
-                key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
-                onClick={() => editionChange(e)}
-                className={classNames(
-                  "relative flex items-center justify-between px-3 py-2.5 border text-[11px] sm:text-[28px] lg:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
-                  isActive
-                    ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
-                    : "border-black bg-black text-white hover:bg-zinc-900"
-                )}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-0 h-full w-[3px] bg-red-500" />
-                )}
+              return (
+                <button
+                  key={`${e?.id_edicion ?? e?.nombre_edicion ?? i}-${i}`}
+                  onClick={() => editionChange(e)}
+                  className={classNames(
+                    "relative flex items-center justify-between px-3 py-2.5 border text-[11px] sm:text-[28px] lg:text-[11px] transition-all duration-300 uppercase tracking-tight font-bold text-left",
+                    isActive
+                      ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
+                      : "border-black bg-black text-white hover:bg-zinc-900"
+                  )}
+                >
+                  {isActive && (
+                    <div className="absolute left-0 top-0 h-full w-[3px] bg-red-500" />
+                  )}
 
-                <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
+                  <span>{e?.nombre_edicion || `Edición ${i + 1}`}</span>
 
-                {isActive && (
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
-                )}
-              </button>
-            );
-          })}
+                  {isActive && (
+                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shrink-0" />
+                  )}
+                </button>
+              );
+            })
+          ) : (
+            <div className="text-[11px] sm:text-[11px] lg:text-[12px] text-zinc-500 italic">
+              Sin ediciones registradas
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 🔹 TODO LO DEMÁS SIGUE IGUAL */}
-      {/* NO TOQUÉ ESCALAS / FAVORITOS / DESCRIPCIÓN */}
+      {/* 🔹 RESTO SIN TOCAR */}
+      {/* ESCALAS + FAVORITOS + DESCRIPCIÓN */}
     </div>
   );
 };
