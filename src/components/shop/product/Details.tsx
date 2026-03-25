@@ -185,8 +185,81 @@ export const Details: React.FC<Props> = ({ meta, activeEdition, editionChange })
         </div>
       </div>
 
-      {/* 🔹 RESTO SIN TOCAR */}
-      {/* ESCALAS + FAVORITOS + DESCRIPCIÓN */}
+      {scales.length > 0 && (
+        <div className="mb-8 sm:mb-9 lg:mb-7">
+          <p className="text-[11px] sm:text-[28px] lg:text-[10px] font-black uppercase tracking-[1.8px] mb-4 text-black">
+            Escala disponible
+          </p>
+
+          {activeScaleDescription && (
+            <div className="text-[12px] sm:text-[24px] lg:text-[12px] italic text-zinc-700 leading-relaxed mb-5 whitespace-pre-line">
+              {activeScaleDescription}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2.5 lg:gap-2">
+            {scales.map((scale: ScaleItem, index: number) => {
+              const isActive =
+                String(activeScale?.id_escala ?? "") === String(scale?.id_escala ?? "");
+
+              return (
+                <button
+                  key={`${scale?.id_escala ?? scale?.nombre_escala ?? index}-${index}`}
+                  onClick={() => setActiveScale(scale)}
+                  className={classNames(
+                    "min-w-[44px] sm:min-w-[42px] lg:min-w-[46px] px-2.5 py-2.5 border text-[10px] sm:text-[28px] lg:text-[10px] font-bold uppercase leading-none transition-all duration-300",
+                    !scale?.disponible
+                      ? "opacity-25 cursor-not-allowed border-zinc-300 bg-white text-zinc-400"
+                      : isActive
+                        ? "bg-white text-black border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.55)] scale-[1.02]"
+                        : "bg-black text-white border-black hover:bg-zinc-900"
+                  )}
+                  disabled={!scale?.disponible}
+                >
+                  {scale?.nombre_escala || "N/A"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 mb-5 sm:mb-6 lg:mb-6">
+        <button
+          onClick={() => toggleFavorite(favoriteId)}
+          className={classNames(
+            "w-full py-3.5 lg:py-3 font-bold uppercase text-[10px] sm:text-[28px] lg:text-[10px] tracking-[2px] border transition-colors",
+            isFavorite
+              ? "bg-red-500 border-red-500 text-white"
+              : "border-black text-black hover:bg-black hover:text-white"
+          )}
+        >
+          {isFavorite ? "En Favoritos" : "Añadir a Favoritos"}
+        </button>
+      </div>
+
+      <div className="border-t border-zinc-200 mt-4 pt-3">
+        {meta?.aspectos_variables ? (
+          <div className="mb-5 rounded-sm border-l-4 border-red-500 bg-red-50 px-3 py-3.5 shadow-sm">
+            <div className="text-[12px] sm:text-[24px] lg:text-[14px] italic leading-relaxed tracking-tight text-black">
+              <span className="font-extrabold uppercase text-red-600 tracking-[0.04em]">
+                Piezas alternas:
+              </span>{" "}
+              <span className="font-semibold">{meta.aspectos_variables}</span>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="text-black font-sans italic text-[12px] sm:text-[28px] lg:text-[13px] leading-relaxed tracking-tight whitespace-pre-line">
+          {meta?.description || meta?.descripcion || "Sin descripción por el momento."}
+        </div>
+
+        {meta?.disclaimer ? (
+          <div className="text-black/60 font-sans italic text-[10px] sm:text-[16px] lg:text-[10px] leading-relaxed tracking-tight whitespace-pre-line mt-5">
+            {meta.disclaimer}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
