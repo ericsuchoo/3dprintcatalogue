@@ -10,7 +10,7 @@ import "swiper/css/pagination";
 
 type EditionImage = {
   url: string;
-  nivel?: string; // 👈 NUEVO (opcional, no rompe nada)
+  nivel?: string; // 🔥 NUEVO
 };
 
 type EditionItem = {
@@ -36,15 +36,28 @@ export const Gallery: React.FC<Props> = ({
   const [displayEdition, setDisplayEdition] = useState<EditionItem | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
 
-  // 🔥 NSFW MODE (sin UI visible, solo lógica)
-  const [modoNSFW, setModoNSFW] = useState(false);
+  // 🔥 NIVEL GLOBAL
+  const [nivelContenido, setNivelContenido] = useState<"safe" | "suggestive" | "nsfw">("safe");
 
   useEffect(() => {
-    const stored = localStorage.getItem("modo_nsfw");
-    setModoNSFW(stored === "true");
+    const update = () => {
+      const stored = localStorage.getItem("contenido_nivel") as any;
+      if (stored) setNivelContenido(stored);
+    };
+
+    update();
+    window.addEventListener("contenido-change", update);
+
+    return () => window.removeEventListener("contenido-change", update);
   }, []);
 
-  const isNSFW = (img?: EditionImage) => img?.nivel === "nsfw";
+  const puedeVer = (img?: EditionImage) => {
+    if (!img?.nivel) return true;
+
+    if (nivelContenido === "nsfw") return true;
+    if (nivelContenido === "suggestive") return img.nivel !== "nsfw";
+    return img.nivel === "safe";
+  };
 
   const editions = useMemo<EditionItem[]>(() => {
     return Array.isArray(gallery) ? gallery : [];
@@ -124,7 +137,7 @@ export const Gallery: React.FC<Props> = ({
   return (
     <div className="w-full lg:max-w-full mx-auto flex flex-col lg:flex-row gap-4 mt-0 px-0 bg-black">
       
-      {/* 🔹 THUMBNAILS (SIN CAMBIAR DISEÑO) */}
+      {/* THUMBNAILS */}
       {displaySlides.length > 1 && (
         <div className="order-2 lg:order-1 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 h-auto lg:max-h-[840px] pb-4 lg:pb-0 px-4 lg:px-0 custom-scrollbar flex-shrink-0 bg-black">
           {displaySlides.map((item: EditionImage, index: number) => {
@@ -150,14 +163,14 @@ export const Gallery: React.FC<Props> = ({
                   alt={displayEdition?.nombre_edicion || `Imagen ${index + 1}`}
                   className={classNames(
                     "w-full h-full object-cover block pointer-events-none",
-                    isNSFW(item) && !modoNSFW && "blur-md"
+                    !puedeVer(item) && "blur-md"
                   )}
                   loading="lazy"
                 />
 
-                {isNSFW(item) && !modoNSFW && (
+                {!puedeVer(item) && (
                   <div className="absolute inset-0 flex items-center justify-center text-white text-[10px] bg-black/50">
-                    +18
+                    {item.nivel === "nsfw" ? "🔞" : "⚠️"}
                   </div>
                 )}
               </button>
@@ -166,7 +179,7 @@ export const Gallery: React.FC<Props> = ({
         </div>
       )}
 
-      {/* 🔹 MAIN SWIPER (INTACTO) */}
+      {/* MAIN */}
       <div className="relative flex-1 group order-1 lg:order-2 bg-black rounded-[28px] overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.18)] mt-2 lg:mt-0">
         
         <div
@@ -201,14 +214,16 @@ export const Gallery: React.FC<Props> = ({
                       alt={displayEdition?.nombre_edicion || `Imagen ${index + 1}`}
                       className={classNames(
                         "w-full h-auto max-h-[78vh] lg:h-full lg:max-h-none object-contain lg:object-cover block",
-                        isNSFW(item) && !modoNSFW && "blur-md"
+                        !puedeVer(item) && "blur-md"
                       )}
                       loading={index === 0 ? "eager" : "lazy"}
                     />
 
-                    {isNSFW(item) && !modoNSFW && (
+                    {!puedeVer(item) && (
                       <div className="absolute inset-0 flex items-center justify-center text-white text-sm bg-black/40">
-                        🔞 Contenido +18
+                        {item.nivel === "nsfw"
+                          ? "🔞 Contenido +18"
+                          : "⚠️ Contenido sugestivo"}
                       </div>
                     )}
                   </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Gallery } from "./Gallery";
 import { Details } from "./Details";
 import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
+import { ContentFilter } from "./ContentFilter";
 
 interface Props {
   data: any;
@@ -20,11 +21,21 @@ export const Main: React.FC<Props> = ({ data }) => {
     setActiveEdition(editions[0] || null);
   }, [editions]);
 
+  // 🔥 detectar niveles
+  const hasSuggestive = editions.some((ed: any) =>
+    ed.images?.some((img: any) => img.nivel === "suggestive")
+  );
+
+  const hasNSFW = editions.some((ed: any) =>
+    ed.images?.some((img: any) => img.nivel === "nsfw")
+  );
+
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
     <div className="w-full max-w-[1600px] mx-auto bg-black px-0 sm:px-0 md:px-6 pt-16 md:pt-20 lg:pt-20">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-4 sm:gap-5 xl:gap-8 items-start">
+        
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
@@ -32,6 +43,15 @@ export const Main: React.FC<Props> = ({ data }) => {
         />
 
         <div className="xl:sticky xl:top-24 self-start w-full">
+          
+          {/* 🔥 SOLO aparece si aplica */}
+          {(hasSuggestive || hasNSFW) && (
+            <ContentFilter
+              hasSuggestive={hasSuggestive}
+              hasNSFW={hasNSFW}
+            />
+          )}
+
           <Details
             meta={meta}
             activeEdition={activeEdition}
@@ -48,10 +68,7 @@ export const Main: React.FC<Props> = ({ data }) => {
 
           <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 mt-5 sm:mt-6">
             {otherProducts.map((product: any, index: number) => (
-              <ProductCard
-                key={product.slug ?? index}
-                card={product}
-              />
+              <ProductCard key={product.slug ?? index} card={product} />
             ))}
           </div>
         </div>
