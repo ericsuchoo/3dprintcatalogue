@@ -57,7 +57,7 @@ function getPricePresentation(card: ProductLiteD1) {
 
   if (mode === "quote" || !hasNumericPrice) {
     return {
-      label: "Cotizar",
+      label: "",
       isQuote: true,
       isFrom: false,
       showDiscount: false,

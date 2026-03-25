@@ -21,24 +21,6 @@ type ProductoRow = {
   tipo_cosplay?: string | null;
 };
 
-type EdicionRow = {
-  id_edicion_producto: number;
-  id_producto: number;
-  id_edicion: number;
-  nombre_edicion: string;
-  img_edicion_producto?: string | null;
-  img_edicion_pr1?: string | null;
-  img_edicion_pr2?: string | null;
-  img_edicion_pr3?: string | null;
-  img_edicion_pr4?: string | null;
-  img_edicion_pr5?: string | null;
-  img_edicion_pr6?: string | null;
-  img_edicion_pr7?: string | null;
-  img_edicion_pr8?: string | null;
-  img_edicion_pr9?: string | null;
-  img_edicion_pr10?: string | null;
-};
-
 type EscalaRow = {
   id_producto: number;
   disponible: number | null;
@@ -60,105 +42,85 @@ function slugify(s: string) {
 }
 
 const { slug } = Astro.params;
-
 const db = Astro.locals.runtime.env.DB as any;
+
 if (!db) return Astro.redirect("/404");
 
-// 1) Resolver slug -> producto
-const listRes = await db
-  .prepare(`SELECT id_producto, nombre_producto FROM productos`)
-  .all();
+// 🔥 CONTROL NSFW (luego lo puedes hacer dinámico)
+const mostrarNSFW = false;
 
-const list = (listRes?.results || []) as Array<{
-  id_producto: number;
-  nombre_producto: string;
-}>;
+// 1) Resolver slug
+const listRes = await db.prepare(`SELECT id_producto, nombre_producto FROM productos`).all();
+const list = (listRes?.results || []) as any[];
 
 const found = list.find((p) => slugify(p.nombre_producto) === slug);
 if (!found) return Astro.redirect("/404");
 
-// 2) Producto base
-const product = (await db
-  .prepare(`
-    SELECT
-      id_producto,
-      nombre_producto,
-      subtitulo,
-      descripcion,
-      img_producto,
-      unidades,
-      precio,
-      descuento,
-      id_proveedor,
-      id_universo,
-      id_personaje,
-      fecha_creacion,
-      fecha_modifica,
-      disclaimer,
-      aspectos_variables,
-      tipo_cosplay
-    FROM productos
-    WHERE id_producto = ?
-    LIMIT 1
-  `)
+// 2) Producto
+const product = await db
+  .prepare(`SELECT * FROM productos WHERE id_producto = ? LIMIT 1`)
   .bind(found.id_producto)
-  .first()) as ProductoRow | null;
+  .first();
 
 if (!product) return Astro.redirect("/404");
 
-// 3) Ediciones + todas las imágenes
+// 3) 🔥 EDICIONES + IMÁGENES (PRO)
 const edRes = await db
   .prepare(`
     SELECT
       ep.id_edicion_producto,
-      ep.id_producto,
       ep.id_edicion,
       e.nombre_edicion,
-      ep.img_edicion_producto,
-      ep.img_edicion_pr1,
-      ep.img_edicion_pr2,
-      ep.img_edicion_pr3,
-      ep.img_edicion_pr4,
-      ep.img_edicion_pr5,
-      ep.img_edicion_pr6,
-      ep.img_edicion_pr7,
-      ep.img_edicion_pr8,
-      ep.img_edicion_pr9,
-      ep.img_edicion_pr10
+      ei.img_url,
+      ei.orden,
+      ei.nivel_contenido
     FROM edicion_producto ep
     INNER JOIN ediciones e ON e.id_edicion = ep.id_edicion
+    LEFT JOIN edicion_imagenes ei 
+      ON ei.id_edicion_producto = ep.id_edicion_producto
     WHERE ep.id_producto = ?
-    ORDER BY ep.id_edicion_producto ASC
+    ORDER BY ep.id_edicion_producto ASC, ei.orden ASC
   `)
   .bind(product.id_producto)
   .all();
 
-const edicionesRows = (edRes?.results || []) as EdicionRow[];
+const rows = (edRes?.results || []) as any[];
 
-const editions = edicionesRows.map((row) => {
-  const rawImages = [
-    row.img_edicion_producto,
-    row.img_edicion_pr1,
-    row.img_edicion_pr2,
-    row.img_edicion_pr3,
-    row.img_edicion_pr4,
-    row.img_edicion_pr5,
-    row.img_edicion_pr6,
-    row.img_edicion_pr7,
-    row.img_edicion_pr8,
-    row.img_edicion_pr9,
-    row.img_edicion_pr10,
-  ];
+const map = new Map<number, any>();
 
-  const uniqueImages = Array.from(
-    new Set(rawImages.filter((img): img is string => !!img && img.trim().length > 0))
-  );
+for (const row of rows) {
+  if (!map.has(row.id_edicion_producto)) {
+    map.set(row.id_edicion_producto, {
+      id_edicion: row.id_edicion,
+      nombre_edicion: row.nombre_edicion,
+      images: [],
+    });
+  }
+
+  // 🔥 FILTRO NSFW (controlado)
+  if (row.img_url && (mostrarNSFW || row.nivel_contenido !== "nsfw")) {
+    map.get(row.id_edicion_producto).images.push({
+      url: row.img_url,
+      nivel: row.nivel_contenido || "safe",
+      orden: row.orden || 0,
+    });
+  }
+}
+
+// 🔥 FORMATO FINAL (portada inteligente)
+const editions = Array.from(map.values()).map((ed) => {
+  // ordenar por orden
+  ed.images.sort((a: any, b: any) => a.orden - b.orden);
+
+  // buscar imagen segura primero
+  const safeImage = ed.images.find((img: any) => img.nivel !== "nsfw")?.url;
+  const firstImage = ed.images[0]?.url || null;
 
   return {
-    id_edicion: row.id_edicion,
-    nombre_edicion: row.nombre_edicion,
-    img: row.img_edicion_producto || uniqueImages[0] || product.img_producto || null,
-    images: uniqueImages.map((url) => ({ url })),
+    id_edicion: ed.id_edicion,
+    nombre_edicion: ed.nombre_edicion,
+    img: safeImage || firstImage || product.img_producto || null,
+    images: ed.images.map((img: any) => ({ url: img.url })),
   };
 });
 
@@ -179,79 +141,31 @@ const scalesRes = await db
   .bind(product.id_producto)
   .all();
 
-const scalesRows = (scalesRes?.results || []) as EscalaRow[];
-
-const scales = scalesRows.map((row) => ({
+const scales = (scalesRes?.results || []).map((row: any) => ({
   id_escala: row.id_escala,
   nombre_escala: row.nombre_escala,
   descripcion: row.descripcion ?? "",
   disponible: Number(row.disponible || 0) === 1,
 }));
 
-// 5) Relacionados
-let relatedRows: ProductoRow[] = [];
+// 5) Relacionados (igual)
+let relatedRows: any[] = [];
 
 if (product.id_personaje) {
-  const relByCharacter = await db
+  const rel = await db
     .prepare(`
-      SELECT
-        id_producto,
-        nombre_producto,
-        subtitulo,
-        descripcion,
-        img_producto,
-        unidades,
-        precio,
-        descuento,
-        id_proveedor,
-        id_universo,
-        id_personaje,
-        fecha_creacion,
-        fecha_modifica
-      FROM productos
+      SELECT * FROM productos
       WHERE id_producto != ?
-        AND id_personaje = ?
-      ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
+      AND id_personaje = ?
       LIMIT 8
     `)
     .bind(product.id_producto, product.id_personaje)
     .all();
 
-  relatedRows = (relByCharacter?.results || []) as ProductoRow[];
+  relatedRows = rel?.results || [];
 }
 
-if (relatedRows.length < 8 && product.id_universo) {
-  const excludeIds = [product.id_producto, ...relatedRows.map((r) => r.id_producto)];
-  const placeholders = excludeIds.map(() => "?").join(",");
-
-  const relByUniverse = await db
-    .prepare(`
-      SELECT
-        id_producto,
-        nombre_producto,
-        subtitulo,
-        descripcion,
-        img_producto,
-        unidades,
-        precio,
-        descuento,
-        id_proveedor,
-        id_universo,
-        id_personaje,
-        fecha_creacion,
-        fecha_modifica
-      FROM productos
-      WHERE id_universo = ?
-        AND id_producto NOT IN (${placeholders})
-      ORDER BY COALESCE(fecha_modifica, fecha_creacion) DESC, id_producto DESC
-      LIMIT ?
-    `)
-    .bind(product.id_universo, ...excludeIds, 8 - relatedRows.length)
-    .all();
-
-  relatedRows = [...relatedRows, ...((relByUniverse?.results || []) as ProductoRow[])];
-}
-
+// FINAL
 const data = {
   meta: {
     id_producto: product.id_producto,
@@ -276,17 +190,14 @@ const data = {
 
   otherProducts: relatedRows.map((pr) => ({
     id: pr.id_producto,
-    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
-    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
+    slug: slugify(pr.nombre_producto),
+    title: pr.nombre_producto,
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
     price: pr.precio ?? 0,
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
     coverUrl: pr.img_producto ?? "",
-    personajeId: pr.id_personaje ?? null,
-    universoId: pr.id_universo ?? null,
-    proveedorId: pr.id_proveedor ?? null,
   })),
 };
 ---
