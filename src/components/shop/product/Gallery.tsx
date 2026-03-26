@@ -38,6 +38,7 @@ export const Gallery: React.FC<Props> = ({
   const [nivelContenido, setNivelContenido] =
     useState<"safe" | "suggestive" | "nsfw">("safe");
 
+  // 🔥 leer nivel
   useEffect(() => {
     const update = () => {
       const stored = localStorage.getItem("contenido_nivel") as any;
@@ -57,6 +58,7 @@ export const Gallery: React.FC<Props> = ({
   };
 
   const editions = useMemo(() => (Array.isArray(gallery) ? gallery : []), [gallery]);
+
   const currentEdition = activeEdition || editions[0] || null;
 
   const getSlidesFromEdition = (edition: EditionItem | null): EditionImage[] => {
@@ -69,11 +71,22 @@ export const Gallery: React.FC<Props> = ({
     return [];
   };
 
+  // 🔥 FIX IMPORTANTE: sincronizar edición correctamente
   useEffect(() => {
-    if (!displayEdition && currentEdition) {
-      setDisplayEdition(currentEdition);
+    if (!currentEdition) return;
+
+    const currentId = String(currentEdition?.id_edicion ?? "");
+    const displayId = String(displayEdition?.id_edicion ?? "");
+
+    if (currentId === displayId) return;
+
+    setDisplayEdition(currentEdition);
+    setActiveIndex(0);
+
+    if (mainSwiper) {
+      mainSwiper.slideTo(0);
     }
-  }, [currentEdition, displayEdition]);
+  }, [currentEdition, mainSwiper]);
 
   const displaySlides = useMemo(
     () => getSlidesFromEdition(displayEdition),
@@ -85,7 +98,9 @@ export const Gallery: React.FC<Props> = ({
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
 
-      {/* MAIN IMAGE */}
+      {/* ===================== */}
+      {/* MAIN VIEWER */}
+      {/* ===================== */}
       <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5] order-1">
 
         <Swiper
@@ -136,7 +151,9 @@ export const Gallery: React.FC<Props> = ({
 
       </div>
 
+      {/* ===================== */}
       {/* THUMBNAILS */}
+      {/* ===================== */}
       {displaySlides.length > 1 && (
         <div className="hidden xl:flex flex-col gap-2 w-20 max-h-[840px] overflow-y-auto scroll-invisible order-2">
 
