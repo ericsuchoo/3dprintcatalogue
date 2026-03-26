@@ -62,8 +62,10 @@ export const Gallery: React.FC<Props> = ({
   const getSlidesFromEdition = (edition: EditionItem | null): EditionImage[] => {
     const imgs = edition?.images || [];
     if (imgs.length) return imgs;
+
     if (edition?.img) return [{ url: edition.img }];
     if (fallbackImage) return [{ url: fallbackImage }];
+
     return [];
   };
 
@@ -81,10 +83,10 @@ export const Gallery: React.FC<Props> = ({
   const swiperKey = String(displayEdition?.id_edicion ?? "default");
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
+    <div className="relative w-full bg-black">
 
-      {/* MAIN */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
+      {/* MAIN VIEWER */}
+      <div className="relative bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
 
         <Swiper
           key={swiperKey}
@@ -119,7 +121,7 @@ export const Gallery: React.FC<Props> = ({
           ))}
         </Swiper>
 
-        {/* BADGES ARRIBA */}
+        {/* BADGES */}
         <div className="absolute top-4 left-4 z-20">
           <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
             {displayEdition?.nombre_edicion}
@@ -132,47 +134,47 @@ export const Gallery: React.FC<Props> = ({
           </span>
         </div>
 
-      </div>
+        {/* 🔥 MINI CARRUSEL FIJO DERECHA */}
+        {displaySlides.length > 1 && (
+          <div className="hidden xl:flex flex-col gap-2 absolute right-2 top-1/2 -translate-y-1/2 z-30 max-h-[80%] overflow-y-auto scroll-invisible">
 
-      {/* MINI CARRUSEL DERECHA */}
-      {displaySlides.length > 1 && (
-        <div className="order-2 lg:order-3 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 max-h-[500px] lg:max-h-[840px] px-4 lg:px-0 bg-black flex-shrink-0 custom-scrollbar">
-          {displaySlides.map((item, index) => {
-            const isActive = index === activeIndex;
+            {displaySlides.map((item, index) => {
+              const isActive = index === activeIndex;
 
-            return (
-              <button
-                key={index}
-                onClick={() => {
-                  setActiveIndex(index);
-                  mainSwiper?.slideTo(index);
-                }}
-                className={classNames(
-                  "relative w-16 lg:w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
-                  isActive
-                    ? "border-white scale-105"
-                    : "opacity-40 hover:opacity-100"
-                )}
-              >
-                <img
-                  src={item.url}
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setActiveIndex(index);
+                    mainSwiper?.slideTo(index);
+                  }}
                   className={classNames(
-                    "w-full h-full object-cover",
-                    !puedeVer(item) && "blur-md"
+                    "relative w-16 aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
+                    isActive
+                      ? "border-white scale-105"
+                      : "opacity-40 hover:opacity-100"
                   )}
-                />
+                >
+                  <img
+                    src={item.url}
+                    className={classNames(
+                      "w-full h-full object-cover",
+                      !puedeVer(item) && "blur-md"
+                    )}
+                  />
 
-                {!puedeVer(item) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
-                    {item.nivel === "nsfw" ? "🔞" : "⚠️"}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                  {!puedeVer(item) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
+                      {item.nivel === "nsfw" ? "🔞" : "⚠️"}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
+      </div>
     </div>
   );
 };
