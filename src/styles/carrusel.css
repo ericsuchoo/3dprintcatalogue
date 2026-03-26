@@ -470,3 +470,476 @@ html, body {
   transition: 0.7s;
   transition-delay: 0.45s;
 }
+
+/* ========================= */
+/* ORIGINS BAR – FULL BLEED  */
+/* ========================= */
+
+html, body {
+  overflow-x: hidden;
+}
+
+.originsBarWrap {
+  width: 100%;
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(6, 10, 18, 0.96) 0%,
+      rgba(8, 8, 8, 0.96) 100%
+    );
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.originsBarWrap.sticky {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 11, 19, 0.94) 0%,
+      rgba(8, 8, 8, 0.96) 100%
+    );
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+.originsBarInner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 14px 18px;
+  position: relative;
+}
+
+.originsBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.originsKicker {
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.originsHint {
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #ff3b30;
+}
+
+.originsScroller {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: auto;
+  padding: 12px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  scroll-snap-type: x proximity;
+}
+
+.originsScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.originsScroller:active {
+  cursor: grabbing;
+}
+
+.originsRow {
+  display: inline-flex;
+  gap: 14px;
+  padding: 6px 0;
+  overflow: visible;
+  min-width: max-content;
+}
+
+/* ========================= */
+/* PILLS – BLUE / RED THEME  */
+/* ========================= */
+
+.originPill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  min-height: 44px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(45, 56, 72, 0.95);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(18, 21, 28, 0.98) 0%,
+      rgba(11, 13, 18, 0.98) 100%
+    );
+
+  text-decoration: none;
+  user-select: none;
+  cursor: pointer;
+  overflow: hidden;
+
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease;
+
+  scroll-snap-align: start;
+}
+
+.originPill:hover {
+  z-index: 10;
+  transform: scale(1.08) translateY(-2px);
+  border-color: rgba(0, 170, 255, 0.72);
+  box-shadow:
+    0 0 12px rgba(0, 153, 255, 0.22),
+    0 0 28px rgba(0, 89, 255, 0.18),
+    0 0 44px rgba(255, 50, 50, 0.08);
+}
+
+.originPill:active {
+  transform: scale(1.03);
+}
+
+.originPillActive {
+  border-color: rgba(0, 226, 255, 0.92) !important;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(0, 113, 227, 0.18) 0%,
+      rgba(8, 12, 20, 0.96) 58%,
+      rgba(7, 8, 10, 0.98) 100%
+    ) !important;
+
+  box-shadow:
+    0 0 0 1px rgba(0, 226, 255, 0.16),
+    0 0 14px rgba(0, 140, 255, 0.24),
+    0 0 34px rgba(255, 45, 45, 0.14);
+
+  transform: scale(1.08);
+}
+
+/* ========================= */
+/* TEXT                      */
+/* ========================= */
+
+.originText {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+
+  color: rgba(233, 240, 255, 0.9);
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 0.08),
+    0 0 10px rgba(0, 153, 255, 0);
+  transition: color 220ms ease, text-shadow 220ms ease;
+}
+
+.originPill:hover .originText {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(0, 174, 255, 0.2),
+    0 0 18px rgba(255, 59, 48, 0.15);
+}
+
+.originPillActive .originText {
+  color: #ffffff;
+  text-shadow:
+    0 0 12px rgba(0, 226, 255, 0.26),
+    0 0 18px rgba(255, 59, 48, 0.26);
+}
+
+/* ========================= */
+/* ANIMATED BORDER LINES     */
+/* ========================= */
+
+.line {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.line.top {
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff3b30, #00cfff);
+}
+
+.originPill:hover .line.top,
+.originPillActive .line.top {
+  left: 100%;
+  transition: 0.7s;
+}
+
+.line.right {
+  top: -100%;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, #00cfff, #ff3b30);
+}
+
+.originPill:hover .line.right,
+.originPillActive .line.right {
+  top: 100%;
+  transition: 0.7s;
+  transition-delay: 0.15s;
+}
+
+.line.bottom {
+  bottom: 0;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00cfff, #ff3b30);
+}
+
+.originPill:hover .line.bottom,
+.originPillActive .line.bottom {
+  right: 100%;
+  transition: 0.7s;
+  transition-delay: 0.3s;
+}
+
+.line.left {
+  bottom: -100%;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(360deg, transparent, #ff3b30, #00cfff);
+}
+
+.originPill:hover .line.left,
+.originPillActive .line.left {
+  bottom: 100%;
+  transition: 0.7s;
+  transition-delay: 0.45s;
+}
+
+/* ========================= */
+/* LATERAL FADES             */
+/* ========================= */
+
+.fadeLeft,
+.fadeRight {
+  pointer-events: none;
+  position: absolute;
+  top: 56px;
+  bottom: 10px;
+  width: 84px;
+  z-index: 3;
+}
+
+.fadeLeft {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(7, 8, 10, 0.98),
+    rgba(7, 8, 10, 0)
+  );
+}
+
+.fadeRight {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(7, 8, 10, 0.98),
+    rgba(7, 8, 10, 0)
+  );
+}
+
+/* ========================= */
+/* MOBILE TUNING             */
+/* ========================= */
+
+@media (max-width: 768px) {
+  .originsBarInner {
+    padding: 12px 14px;
+  }
+
+  .originsRow {
+    gap: 10px;
+  }
+
+  .originPill {
+    padding: 9px 14px;
+    min-height: 40px;
+  }
+
+  .originText {
+    font-size: 11px;
+    letter-spacing: 0.13em;
+  }
+
+  .fadeLeft,
+  .fadeRight {
+    width: 46px;
+  }
+}
+
+.originsScroller {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: auto;
+  padding: 12px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+}
+
+.originsScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.originsRow {
+  display: inline-flex;
+  gap: 14px;
+  padding: 6px 0;
+  overflow: visible;
+  min-width: max-content;
+}
+
+.originPill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 56, 72, 0.95);
+  background: linear-gradient(180deg, rgba(18, 21, 28, 0.98) 0%, rgba(11, 13, 18, 0.98) 100%);
+  text-decoration: none;
+  user-select: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease, color 220ms ease;
+}
+
+.originPill:hover {
+  z-index: 10;
+  transform: scale(1.08) translateY(-2px);
+  border-color: rgba(0, 170, 255, 0.72);
+  box-shadow:
+    0 0 12px rgba(0, 153, 255, 0.22),
+    0 0 28px rgba(0, 89, 255, 0.18),
+    0 0 44px rgba(255, 50, 50, 0.08);
+}
+
+.originPillActive {
+  border-color: rgba(0, 226, 255, 0.92) !important;
+  background: radial-gradient(circle at center, rgba(0, 113, 227, 0.18) 0%, rgba(8, 12, 20, 0.96) 58%, rgba(7, 8, 10, 0.98) 100%) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 226, 255, 0.16),
+    0 0 14px rgba(0, 140, 255, 0.24),
+    0 0 34px rgba(255, 45, 45, 0.14);
+  transform: scale(1.08);
+}
+
+.originText {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(233, 240, 255, 0.9);
+  transition: color 220ms ease, text-shadow 220ms ease;
+}
+
+.originPill:hover .originText,
+.originPillActive .originText {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(0, 174, 255, 0.2),
+    0 0 18px rgba(255, 59, 48, 0.15);
+}
+
+.line {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.line.top {
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff3b30, #00cfff);
+}
+
+.originPill:hover .line.top,
+.originPillActive .line.top {
+  left: 100%;
+  transition: 0.7s;
+}
+
+.line.right {
+  top: -100%;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, #00cfff, #ff3b30);
+}
+
+.originPill:hover .line.right,
+.originPillActive .line.right {
+  top: 100%;
+  transition: 0.7s;
+  transition-delay: 0.15s;
+}
+
+.line.bottom {
+  bottom: 0;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00cfff, #ff3b30);
+}
+
+.originPill:hover .line.bottom,
+.originPillActive .line.bottom {
+  right: 100%;
+  transition: 0.7s;
+  transition-delay: 0.3s;
+}
+
+.line.left {
+  bottom: -100%;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(360deg, transparent, #ff3b30, #00cfff);
+}
+
+.originPill:hover .line.left,
+.originPillActive .line.left {
+  bottom: 100%;
+  transition: 0.7s;
+  transition-delay: 0.45s;
+}

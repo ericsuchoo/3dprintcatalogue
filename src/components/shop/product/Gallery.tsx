@@ -34,7 +34,6 @@ export const Gallery: React.FC<Props> = ({
   const [mainSwiper, setMainSwiper] = useState<SwiperClass | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [displayEdition, setDisplayEdition] = useState<EditionItem | null>(null);
-  const [isSwitching, setIsSwitching] = useState(false);
 
   const [nivelContenido, setNivelContenido] =
     useState<"safe" | "suggestive" | "nsfw">("safe");
@@ -44,6 +43,7 @@ export const Gallery: React.FC<Props> = ({
       const stored = localStorage.getItem("contenido_nivel") as any;
       if (stored) setNivelContenido(stored);
     };
+
     update();
     window.addEventListener("contenido-change", update);
     return () => window.removeEventListener("contenido-change", update);
@@ -56,16 +56,10 @@ export const Gallery: React.FC<Props> = ({
     return img.nivel === "safe";
   };
 
-  const editions = useMemo(
-    () => (Array.isArray(gallery) ? gallery : []),
-    [gallery]
-  );
-
+  const editions = useMemo(() => (Array.isArray(gallery) ? gallery : []), [gallery]);
   const currentEdition = activeEdition || editions[0] || null;
 
-  const getSlidesFromEdition = (
-    edition: EditionItem | null
-  ): EditionImage[] => {
+  const getSlidesFromEdition = (edition: EditionItem | null): EditionImage[] => {
     const imgs = edition?.images || [];
     if (imgs.length) return imgs;
     if (edition?.img) return [{ url: edition.img }];
@@ -84,54 +78,68 @@ export const Gallery: React.FC<Props> = ({
     [displayEdition, fallbackImage]
   );
 
-  useEffect(() => {
-    if (!currentEdition || !displayEdition) return;
-
-    const currentId = String(currentEdition?.id_edicion ?? "");
-    const displayId = String(displayEdition?.id_edicion ?? "");
-    if (currentId === displayId) return;
-
-    const nextSlides = getSlidesFromEdition(currentEdition);
-    const firstImageUrl = nextSlides[0]?.url;
-
-    if (!firstImageUrl) {
-      setDisplayEdition(currentEdition);
-      setActiveIndex(0);
-      return;
-    }
-
-    setIsSwitching(true);
-
-    const img = new Image();
-    img.src = firstImageUrl;
-
-    const finishSwitch = () => {
-      setDisplayEdition(currentEdition);
-      setActiveIndex(0);
-      setTimeout(() => setIsSwitching(false), 140);
-    };
-
-    if (img.complete) finishSwitch();
-    else {
-      img.onload = finishSwitch;
-      img.onerror = finishSwitch;
-    }
-  }, [currentEdition, displayEdition]);
-
-  useEffect(() => {
-    if (mainSwiper) mainSwiper.update();
-  }, [displaySlides, mainSwiper]);
-
   const swiperKey = String(displayEdition?.id_edicion ?? "default");
 
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
 
-      {/* THUMBNAILS */}
+      {/* MAIN */}
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
+
+        <Swiper
+          key={swiperKey}
+          modules={[Navigation, Pagination, A11y]}
+          onSwiper={setMainSwiper}
+          onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+          navigation
+          pagination={{ clickable: true }}
+          className="h-full"
+        >
+          {displaySlides.map((item, index) => (
+            <SwiperSlide key={index}>
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+
+                <img
+                  src={item.url}
+                  className={classNames(
+                    "w-auto h-auto max-w-full max-h-full object-contain",
+                    !puedeVer(item) && "blur-md"
+                  )}
+                />
+
+                {!puedeVer(item) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
+                    {item.nivel === "nsfw"
+                      ? "🔞 Contenido +18"
+                      : "⚠️ Contenido sugestivo"}
+                  </div>
+                )}
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+
+        {/* BADGES ARRIBA */}
+        <div className="absolute top-4 left-4 z-20">
+          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
+            {displayEdition?.nombre_edicion}
+          </span>
+        </div>
+
+        <div className="absolute top-4 right-4 z-20">
+          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
+            ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
+          </span>
+        </div>
+
+      </div>
+
+      {/* MINI CARRUSEL DERECHA */}
       {displaySlides.length > 1 && (
-        <div className="order-2 lg:order-1 flex justify-start lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 lg:max-h-[840px] px-4 lg:px-0 bg-black flex-shrink-0">
+        <div className="order-2 lg:order-3 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 max-h-[500px] lg:max-h-[840px] px-4 lg:px-0 bg-black flex-shrink-0 custom-scrollbar">
           {displaySlides.map((item, index) => {
             const isActive = index === activeIndex;
+
             return (
               <button
                 key={index}
@@ -153,6 +161,7 @@ export const Gallery: React.FC<Props> = ({
                     !puedeVer(item) && "blur-md"
                   )}
                 />
+
                 {!puedeVer(item) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
                     {item.nivel === "nsfw" ? "🔞" : "⚠️"}
@@ -164,55 +173,6 @@ export const Gallery: React.FC<Props> = ({
         </div>
       )}
 
-      {/* MAIN */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
-
-        <Swiper
-          key={swiperKey}
-          modules={[Navigation, Pagination, A11y]}
-          onSwiper={setMainSwiper}
-          onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
-          navigation
-          pagination={{ clickable: true }}
-          className="h-full"
-        >
-          {displaySlides.map((item, index) => (
-            <SwiperSlide key={index}>
-              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                <img
-                  src={item.url}
-                  className={classNames(
-                    "w-auto h-auto max-w-full max-h-full object-contain",
-                    !puedeVer(item) && "blur-md"
-                  )}
-                />
-
-                {!puedeVer(item) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
-                    {item.nivel === "nsfw"
-                      ? "🔞 Contenido +18"
-                      : "⚠️ Contenido sugestivo"}
-                  </div>
-                )}
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-
-        {/* BADGES */}
-       <div className="absolute top-4 left-4 z-20 pointer-events-none">
-  <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45">
-    {displayEdition?.nombre_edicion}
-  </span>
-</div>
-
-<div className="absolute top-4 right-4 z-20 pointer-events-none">
-  <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55">
-    ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
-  </span>
-</div>
-
-      </div>
     </div>
   );
 };
