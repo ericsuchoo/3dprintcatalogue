@@ -36,14 +36,14 @@ export const Gallery: React.FC<Props> = ({
   const [displayEdition, setDisplayEdition] = useState<EditionItem | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
 
-  const [nivelContenido, setNivelContenido] = useState<"safe" | "suggestive" | "nsfw">("safe");
+  const [nivelContenido, setNivelContenido] =
+    useState<"safe" | "suggestive" | "nsfw">("safe");
 
   useEffect(() => {
     const update = () => {
       const stored = localStorage.getItem("contenido_nivel") as any;
       if (stored) setNivelContenido(stored);
     };
-
     update();
     window.addEventListener("contenido-change", update);
     return () => window.removeEventListener("contenido-change", update);
@@ -56,17 +56,20 @@ export const Gallery: React.FC<Props> = ({
     return img.nivel === "safe";
   };
 
-  const editions = useMemo(() => (Array.isArray(gallery) ? gallery : []), [gallery]);
+  const editions = useMemo(
+    () => (Array.isArray(gallery) ? gallery : []),
+    [gallery]
+  );
 
   const currentEdition = activeEdition || editions[0] || null;
 
-  const getSlidesFromEdition = (edition: EditionItem | null): EditionImage[] => {
+  const getSlidesFromEdition = (
+    edition: EditionItem | null
+  ): EditionImage[] => {
     const imgs = edition?.images || [];
     if (imgs.length) return imgs;
-
     if (edition?.img) return [{ url: edition.img }];
     if (fallbackImage) return [{ url: fallbackImage }];
-
     return [];
   };
 
@@ -86,7 +89,6 @@ export const Gallery: React.FC<Props> = ({
 
     const currentId = String(currentEdition?.id_edicion ?? "");
     const displayId = String(displayEdition?.id_edicion ?? "");
-
     if (currentId === displayId) return;
 
     const nextSlides = getSlidesFromEdition(currentEdition);
@@ -127,10 +129,9 @@ export const Gallery: React.FC<Props> = ({
 
       {/* THUMBNAILS */}
       {displaySlides.length > 1 && (
-        <div className="order-2 lg:order-1 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 lg:max-h-[840px] px-4 lg:px-0 bg-black">
+        <div className="order-2 lg:order-1 flex justify-start lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 lg:max-h-[840px] px-4 lg:px-0 bg-black">
           {displaySlides.map((item, index) => {
             const isActive = index === activeIndex;
-
             return (
               <button
                 key={index}
@@ -140,7 +141,9 @@ export const Gallery: React.FC<Props> = ({
                 }}
                 className={classNames(
                   "relative w-16 lg:w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
-                  isActive ? "border-white scale-105" : "opacity-40 hover:opacity-100"
+                  isActive
+                    ? "border-white scale-105"
+                    : "opacity-40 hover:opacity-100"
                 )}
               >
                 <img
@@ -150,7 +153,6 @@ export const Gallery: React.FC<Props> = ({
                     !puedeVer(item) && "blur-md"
                   )}
                 />
-
                 {!puedeVer(item) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
                     {item.nivel === "nsfw" ? "🔞" : "⚠️"}
@@ -175,14 +177,12 @@ export const Gallery: React.FC<Props> = ({
           className="h-full"
         >
           {displaySlides.map((item, index) => (
-            <SwiperSlide key={index} className="h-full flex items-center justify-center">
-
-              <div className="relative w-full h-full flex items-center justify-center">
-
+            <SwiperSlide key={index}>
+              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
                 <img
                   src={item.url}
                   className={classNames(
-                    "max-w-full max-h-full object-contain",
+                    "w-auto h-auto max-w-full max-h-full object-contain",
                     !puedeVer(item) && "blur-md"
                   )}
                 />
@@ -195,7 +195,6 @@ export const Gallery: React.FC<Props> = ({
                   </div>
                 )}
               </div>
-
             </SwiperSlide>
           ))}
         </Swiper>
