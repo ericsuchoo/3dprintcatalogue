@@ -83,10 +83,10 @@ export const Gallery: React.FC<Props> = ({
   const swiperKey = String(displayEdition?.id_edicion ?? "default");
 
   return (
-    <div className="relative w-full bg-black">
+    <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
 
-      {/* MAIN VIEWER */}
-      <div className="relative bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
+      {/* 🔥 MAIN IMAGE */}
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
 
         <Swiper
           key={swiperKey}
@@ -134,47 +134,48 @@ export const Gallery: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* 🔥 MINI CARRUSEL FIJO DERECHA */}
-        {displaySlides.length > 1 && (
-          <div className="hidden xl:flex flex-col gap-2 absolute right-2 top-1/2 -translate-y-1/2 z-30 max-h-[80%] overflow-y-auto scroll-invisible">
-
-            {displaySlides.map((item, index) => {
-              const isActive = index === activeIndex;
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setActiveIndex(index);
-                    mainSwiper?.slideTo(index);
-                  }}
-                  className={classNames(
-                    "relative w-16 aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
-                    isActive
-                      ? "border-white scale-105"
-                      : "opacity-40 hover:opacity-100"
-                  )}
-                >
-                  <img
-                    src={item.url}
-                    className={classNames(
-                      "w-full h-full object-cover",
-                      !puedeVer(item) && "blur-md"
-                    )}
-                  />
-
-                  {!puedeVer(item) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
-                      {item.nivel === "nsfw" ? "🔞" : "⚠️"}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
       </div>
+
+      {/* 🔥 MINI CARRUSEL DERECHA (FIJO EN FLUJO, NO ABSOLUTO) */}
+      {displaySlides.length > 1 && (
+        <div className="hidden xl:flex flex-col gap-2 w-20 max-h-[840px] overflow-y-auto scroll-invisible">
+
+          {displaySlides.map((item, index) => {
+            const isActive = index === activeIndex;
+
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  setActiveIndex(index);
+                  mainSwiper?.slideTo(index);
+                }}
+                className={classNames(
+                  "relative w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
+                  isActive
+                    ? "border-white scale-105"
+                    : "opacity-40 hover:opacity-100"
+                )}
+              >
+                <img
+                  src={item.url}
+                  className={classNames(
+                    "w-full h-full object-cover",
+                    !puedeVer(item) && "blur-md"
+                  )}
+                />
+
+                {!puedeVer(item) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
+                    {item.nivel === "nsfw" ? "🔞" : "⚠️"}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
     </div>
   );
 };
