@@ -85,8 +85,8 @@ export const Gallery: React.FC<Props> = ({
   return (
     <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
 
-      {/* 🔥 MAIN IMAGE */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5]">
+      {/* MAIN IMAGE */}
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5] order-1">
 
         <Swiper
           key={swiperKey}
@@ -136,9 +136,9 @@ export const Gallery: React.FC<Props> = ({
 
       </div>
 
-      {/* 🔥 MINI CARRUSEL DERECHA (FIJO EN FLUJO, NO ABSOLUTO) */}
+      {/* THUMBNAILS */}
       {displaySlides.length > 1 && (
-        <div className="hidden xl:flex flex-col gap-2 w-20 max-h-[840px] overflow-y-auto scroll-invisible">
+        <div className="hidden xl:flex flex-col gap-2 w-20 max-h-[840px] overflow-y-auto scroll-invisible order-2">
 
           {displaySlides.map((item, index) => {
             const isActive = index === activeIndex;
