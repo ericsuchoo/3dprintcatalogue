@@ -41,15 +41,12 @@ export const Main: React.FC<Props> = ({ data }) => {
           activeEdition={activeEdition}
           fallbackImage={meta?.cover?.url || null}
         />
-
-        <div className="xl:sticky xl:top-24 self-start w-full">
-
           <Details
             meta={meta}
             activeEdition={activeEdition}
             editionChange={setActiveEdition}
           />
-        </div>
+      
       </div>
 
       {otherProducts.length > 0 && (
