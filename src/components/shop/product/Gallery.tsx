@@ -129,7 +129,7 @@ export const Gallery: React.FC<Props> = ({
 
       {/* THUMBNAILS */}
       {displaySlides.length > 1 && (
-        <div className="order-2 lg:order-1 flex justify-start lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 lg:max-h-[840px] px-4 lg:px-0 bg-black">
+        <div className="order-2 lg:order-1 flex justify-start lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto w-full lg:w-20 lg:max-h-[840px] px-4 lg:px-0 bg-black flex-shrink-0">
           {displaySlides.map((item, index) => {
             const isActive = index === activeIndex;
             return (
@@ -200,17 +200,17 @@ export const Gallery: React.FC<Props> = ({
         </Swiper>
 
         {/* BADGES */}
-        <div className="absolute bottom-5 left-5 z-20">
-          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
-            {displayEdition?.nombre_edicion}
-          </span>
-        </div>
+       <div className="absolute top-4 left-4 z-20 pointer-events-none">
+  <span className="bg-black/82 text-white text-[9px] md:text-[10px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/45">
+    {displayEdition?.nombre_edicion}
+  </span>
+</div>
 
-        <div className="absolute bottom-5 right-5 z-20">
-          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
-            ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
-          </span>
-        </div>
+<div className="absolute top-4 right-4 z-20 pointer-events-none">
+  <span className="bg-black/88 text-white text-[9px] font-black px-4 py-2 uppercase tracking-[0.24em] rounded-full backdrop-blur-md border border-red-500/55">
+    ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
+  </span>
+</div>
 
       </div>
     </div>
