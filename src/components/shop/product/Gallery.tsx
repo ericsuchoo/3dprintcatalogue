@@ -101,7 +101,7 @@ export const Gallery: React.FC<Props> = ({
       {/* ===================== */}
       {/* MAIN VIEWER */}
       {/* ===================== */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden aspect-[4/5] order-1">
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden min-h-[500px] flex items-center justify-center">
 
         <Swiper
           key={swiperKey}
@@ -119,7 +119,7 @@ export const Gallery: React.FC<Props> = ({
                 <img
                   src={item.url}
                   className={classNames(
-                    "w-auto h-auto max-w-full max-h-full object-contain",
+                    "max-h-[85vh] w-auto h-auto object-contain",
                     !puedeVer(item) && "blur-md"
                   )}
                 />
@@ -137,7 +137,7 @@ export const Gallery: React.FC<Props> = ({
         </Swiper>
 
         {/* BADGES */}
-        <div className="absolute top-4 left-4 z-20">
+        <div className="top-6 left-6 opacity-80 text-[8px]">
           <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
             {displayEdition?.nombre_edicion}
           </span>
