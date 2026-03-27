@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type {
     ProductColorEntry,
     ProductEntryMetaItem,
@@ -16,21 +16,36 @@ interface Props {
 }
 
 export const Main: React.FC<Props> = ({ meta, otherProducts, bcms }) => {
-    // Seguro para inicializar el estado sin errores
+
     const [activeColor, setActiveColor] = useState<ProductColorEntry>(() => {
         const firstItem = meta.gallery[0] as any;
         return firstItem?.version || firstItem?.color;
     });
 
+    // 🔥 ADAPTADOR (ESTO ES LO ÚNICO NUEVO)
+    const galleryAdapted = useMemo(() => {
+        return meta.gallery.map((item: any) => ({
+            id_edicion: item._id || item.id,
+            nombre_edicion: item.title || item.name || "Default",
+            images: (item.images || []).map((img: any) => ({
+                url: img.url,
+                nivel: img.nivel_contenido || "safe",
+            })),
+        }));
+    }, [meta.gallery]);
+
     return (
         <div>
             {activeColor && (
                 <div className="grid grid-cols-1 gap-8 mb-14 lg:grid-cols-2">
+                    
+                    {/* 🔥 SOLO CAMBIA ESTO */}
                     <Gallery
-                        gallery={meta.gallery}
-                        activeColor={activeColor}
-                        bcms={bcms} 
+                        gallery={galleryAdapted}
+                        activeEdition={galleryAdapted[0]}
+                        fallbackImage={null}
                     />
+
                     <Details
                         meta={meta}
                         activeColor={activeColor}
