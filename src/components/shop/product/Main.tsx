@@ -3,7 +3,6 @@ import { Gallery } from "./Gallery";
 import { Details } from "./Details";
 import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
 
-
 interface Props {
   data: any;
 }
@@ -21,35 +20,28 @@ export const Main: React.FC<Props> = ({ data }) => {
     setActiveEdition(editions[0] || null);
   }, [editions]);
 
-  // 🔥 detectar niveles
-  const hasSuggestive = editions.some((ed: any) =>
-    ed.images?.some((img: any) => img.nivel === "suggestive")
-  );
-
-  const hasNSFW = editions.some((ed: any) =>
-    ed.images?.some((img: any) => img.nivel === "nsfw")
-  );
-
   const otherProducts = Array.isArray(data?.otherProducts) ? data.otherProducts : [];
 
   return (
     <div className="w-full max-w-[1600px] mx-auto bg-black px-0 sm:px-0 md:px-6 pt-16 md:pt-20 lg:pt-20">
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-4 sm:gap-5 xl:gap-8 items-start">
-        
+
+      {/* 🔥 CLAVE: items-stretch */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_560px] gap-4 sm:gap-5 xl:gap-8 items-stretch">
+
         <Gallery
           gallery={editions}
           activeEdition={activeEdition}
           fallbackImage={meta?.cover?.url || null}
         />
 
-        <div className="xl:sticky xl:top-24 self-start w-full">
-
+        <div className="w-full">
           <Details
             meta={meta}
             activeEdition={activeEdition}
             editionChange={setActiveEdition}
           />
         </div>
+
       </div>
 
       {otherProducts.length > 0 && (
@@ -65,6 +57,7 @@ export const Main: React.FC<Props> = ({ data }) => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
