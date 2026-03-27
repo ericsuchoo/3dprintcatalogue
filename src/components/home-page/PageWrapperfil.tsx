@@ -100,6 +100,7 @@ const NewPageWrapper: React.FC<Props> = ({
   return (
     <ContextWrapper>
       <InnerPageWrapper>
+        <UniverseRail items={universes} activeUniversoId={activeUniversoId} />
         <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
           <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -180,7 +181,7 @@ const NewPageWrapper: React.FC<Props> = ({
               </div>
             </div>
 
-            <UniverseRail items={universes} activeUniversoId={activeUniversoId} />
+            
           </div>
 
           {origins.length > 0 && (
