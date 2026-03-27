@@ -191,7 +191,7 @@ const NewPageWrapper: React.FC<Props> = ({
               paramName="origenId"
               autoScroll
               sticky
-              stickyTopClassName="top-[72px]"
+              stickyTopClassName="top-[12px]"
               speedPxPerFrame={0.55}
             />
           )}
