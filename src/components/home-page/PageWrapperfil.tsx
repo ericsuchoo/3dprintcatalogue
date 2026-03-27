@@ -100,8 +100,8 @@ const NewPageWrapper: React.FC<Props> = ({
   return (
     <ContextWrapper>
       <InnerPageWrapper>
-        <div className="pt-1 sm:pt-36 lg:pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-10">
+        <div className="pt-20 sm:pt-36 lg:pt-24 bg-[#0a0a0a] min-h-screen">
+          <div className="container pb-1">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
                 <h1 className="text-[30px] sm:text-4xl lg:text-4xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
@@ -250,7 +250,7 @@ const NewPageWrapper: React.FC<Props> = ({
           )}
 
           {/* 🔥 SOLO ESTO ES NUEVO */}
-         <div className="mt-24 px-4 sm:px-6">
+        <div className="mt-24 mb-32 px-4 sm:px-6">
   <div className="max-w-6xl mx-auto rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.6)]">
     <CharacterExplorerLite items={explorerItems} />
   </div>
