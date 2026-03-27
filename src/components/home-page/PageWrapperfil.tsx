@@ -103,9 +103,7 @@ const NewPageWrapper: React.FC<Props> = ({
         
           
         <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
-        
-          <div className="container pb-4">
-              {origins.length > 0 && (
+          {origins.length > 0 && (
             <OriginsBar
               items={origins}
               activeId={activeOrigenId}
@@ -117,6 +115,7 @@ const NewPageWrapper: React.FC<Props> = ({
               speedPxPerFrame={0.55}
             />
           )}
+          <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
                 <h1 className="text-[30px] sm:text-4xl lg:text-4xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
