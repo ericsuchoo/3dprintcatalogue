@@ -96,9 +96,50 @@ export const Gallery: React.FC<Props> = ({
     <div className="w-full flex flex-col lg:flex-row gap-4 bg-black items-start">
 
       {/* ===================== */}
+      {/* THUMBNAILS (IZQUIERDA) */}
+      {/* ===================== */}
+      {displaySlides.length > 1 && (
+        <div className="hidden xl:flex flex-col gap-2 w-20 shrink-0 order-1 max-h-[840px] overflow-y-auto scroll-invisible">
+          {displaySlides.map((item, index) => {
+            const isActive = index === activeIndex;
+
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  setActiveIndex(index);
+                  mainSwiper?.slideTo(index);
+                }}
+                className={classNames(
+                  "relative w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
+                  isActive
+                    ? "border-white scale-105"
+                    : "opacity-40 hover:opacity-100"
+                )}
+              >
+                <img
+                  src={item.url}
+                  className={classNames(
+                    "w-full h-full object-cover",
+                    !puedeVer(item) && "blur-md"
+                  )}
+                />
+
+                {!puedeVer(item) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
+                    {item.nivel === "nsfw" ? "🔞" : "⚠️"}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ===================== */}
       {/* MAIN VIEWER */}
       {/* ===================== */}
-      <div className="relative w-full lg:max-w-[900px] bg-black rounded-[28px] overflow-hidden flex items-center justify-center">
+      <div className="relative w-full lg:max-w-[900px] bg-black rounded-[28px] overflow-hidden flex items-center justify-center order-2">
 
         <Swiper
           key={swiperKey}
@@ -112,7 +153,7 @@ export const Gallery: React.FC<Props> = ({
             <SwiperSlide key={index}>
               <div className="relative w-full flex items-center justify-center overflow-hidden">
 
-                {/* BADGES SOBRE LA IMAGEN */}
+                {/* BADGES */}
                 {index === 0 && (
                   <>
                     <div className="absolute top-4 left-4 z-20">
@@ -150,49 +191,6 @@ export const Gallery: React.FC<Props> = ({
         </Swiper>
 
       </div>
-
-      {/* ===================== */}
-      {/* THUMBNAILS */}
-      {/* ===================== */}
-      {displaySlides.length > 1 && (
-        <div className="hidden xl:flex flex-col gap-2 w-20 shrink-0 max-h-[840px] overflow-y-auto scroll-invisible">
-
-          {displaySlides.map((item, index) => {
-            const isActive = index === activeIndex;
-
-            return (
-              <button
-                key={index}
-                onClick={() => {
-                  setActiveIndex(index);
-                  mainSwiper?.slideTo(index);
-                }}
-                className={classNames(
-                  "relative w-full aspect-[3/4] rounded-xl overflow-hidden border-2 transition",
-                  isActive
-                    ? "border-white scale-105"
-                    : "opacity-40 hover:opacity-100"
-                )}
-              >
-                <img
-                  src={item.url}
-                  className={classNames(
-                    "w-full h-full object-cover",
-                    !puedeVer(item) && "blur-md"
-                  )}
-                />
-
-                {!puedeVer(item) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs">
-                    {item.nivel === "nsfw" ? "🔞" : "⚠️"}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
     </div>
   );
 };
