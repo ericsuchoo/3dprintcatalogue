@@ -99,7 +99,7 @@ export const Gallery: React.FC<Props> = ({
       {/* ===================== */}
       {/* MAIN VIEWER */}
       {/* ===================== */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden flex items-center justify-center min-h-[420px] lg:min-h-[600px]">
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden flex items-center justify-center">
 
         <Swiper
           key={swiperKey}
@@ -116,7 +116,7 @@ export const Gallery: React.FC<Props> = ({
                 <img
                   src={item.url}
                   className={classNames(
-                    "max-h-[80vh] w-auto h-auto object-contain",
+                    "max-h-[85vh] max-w-full object-contain",
                     !puedeVer(item) && "blur-md"
                   )}
                 />
