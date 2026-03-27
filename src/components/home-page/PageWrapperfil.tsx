@@ -101,6 +101,8 @@ const NewPageWrapper: React.FC<Props> = ({
     <ContextWrapper>
       <InnerPageWrapper>
         
+          
+        <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
           {origins.length > 0 && (
             <OriginsBar
               items={origins}
@@ -113,7 +115,6 @@ const NewPageWrapper: React.FC<Props> = ({
               speedPxPerFrame={0.55}
             />
           )}
-        <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
           <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
