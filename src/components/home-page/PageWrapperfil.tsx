@@ -188,7 +188,7 @@ const NewPageWrapper: React.FC<Props> = ({
   />
 )}
 
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-8 mt-16">
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
             ) : (
