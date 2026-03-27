@@ -23,8 +23,8 @@ export const CharacterExplorerLite: React.FC<Props> = ({ items }) => {
   }, [items, search]);
 
   return (
-    <section className="mt-16 mb-10">
-      <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 sm:p-6">
+   <section className="mb-0">
+      <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 sm:p-8">
         
         <div className="mb-4">
           <div className="text-[10px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
