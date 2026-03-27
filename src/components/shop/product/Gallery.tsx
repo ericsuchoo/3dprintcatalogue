@@ -57,7 +57,6 @@ export const Gallery: React.FC<Props> = ({
   };
 
   const editions = useMemo(() => (Array.isArray(gallery) ? gallery : []), [gallery]);
-
   const currentEdition = activeEdition || editions[0] || null;
 
   const getSlidesFromEdition = (edition: EditionItem | null): EditionImage[] => {
@@ -94,12 +93,12 @@ export const Gallery: React.FC<Props> = ({
   const swiperKey = String(displayEdition?.id_edicion ?? "default");
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-4 bg-black">
+    <div className="w-full flex flex-col lg:flex-row gap-4 bg-black items-start">
 
       {/* ===================== */}
       {/* MAIN VIEWER */}
       {/* ===================== */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden flex items-center justify-center">
+      <div className="relative w-full lg:max-w-[900px] bg-black rounded-[28px] overflow-hidden flex items-center justify-center">
 
         <Swiper
           key={swiperKey}
@@ -113,7 +112,7 @@ export const Gallery: React.FC<Props> = ({
             <SwiperSlide key={index}>
               <div className="relative w-full flex items-center justify-center overflow-hidden">
 
-                {/* 🔥 BADGES SOBRE LA IMAGEN */}
+                {/* BADGES SOBRE LA IMAGEN */}
                 {index === 0 && (
                   <>
                     <div className="absolute top-4 left-4 z-20">
@@ -156,7 +155,7 @@ export const Gallery: React.FC<Props> = ({
       {/* THUMBNAILS */}
       {/* ===================== */}
       {displaySlides.length > 1 && (
-        <div className="hidden xl:flex flex-col gap-2 w-20 max-h-[840px] overflow-y-auto scroll-invisible order-2">
+        <div className="hidden xl:flex flex-col gap-2 w-20 shrink-0 max-h-[840px] overflow-y-auto scroll-invisible">
 
           {displaySlides.map((item, index) => {
             const isActive = index === activeIndex;
