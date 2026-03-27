@@ -38,7 +38,6 @@ export const Gallery: React.FC<Props> = ({
   const [nivelContenido, setNivelContenido] =
     useState<"safe" | "suggestive" | "nsfw">("safe");
 
-  // 🔥 leer nivel
   useEffect(() => {
     const update = () => {
       const stored = localStorage.getItem("contenido_nivel") as any;
@@ -71,7 +70,6 @@ export const Gallery: React.FC<Props> = ({
     return [];
   };
 
-  // 🔥 FIX IMPORTANTE: sincronizar edición correctamente
   useEffect(() => {
     if (!currentEdition) return;
 
@@ -101,7 +99,7 @@ export const Gallery: React.FC<Props> = ({
       {/* ===================== */}
       {/* MAIN VIEWER */}
       {/* ===================== */}
-      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden min-h-[500px] flex items-center justify-center">
+      <div className="relative flex-1 bg-black rounded-[28px] overflow-hidden flex items-center justify-center min-h-[420px] lg:min-h-[600px]">
 
         <Swiper
           key={swiperKey}
@@ -110,16 +108,15 @@ export const Gallery: React.FC<Props> = ({
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           navigation
           pagination={{ clickable: true }}
-          className="h-full"
         >
           {displaySlides.map((item, index) => (
             <SwiperSlide key={index}>
-              <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+              <div className="relative w-full flex items-center justify-center overflow-hidden">
 
                 <img
                   src={item.url}
                   className={classNames(
-                    "max-h-[85vh] w-auto h-auto object-contain",
+                    "max-h-[80vh] w-auto h-auto object-contain",
                     !puedeVer(item) && "blur-md"
                   )}
                 />
@@ -136,14 +133,15 @@ export const Gallery: React.FC<Props> = ({
           ))}
         </Swiper>
 
-        {/* BADGES */}
-        <div className="top-6 left-6 opacity-80 text-[8px]">
+        {/* BADGE IZQUIERDA */}
+        <div className="absolute top-6 left-6 z-20 opacity-80">
           <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
             {displayEdition?.nombre_edicion}
           </span>
         </div>
 
-        <div className="absolute top-4 right-4 z-20">
+        {/* BADGE DERECHA */}
+        <div className="absolute top-6 right-6 z-20">
           <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
             ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
           </span>
