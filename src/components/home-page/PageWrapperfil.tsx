@@ -91,8 +91,8 @@ const NewPageWrapper: React.FC<Props> = ({
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-40 sm:pt-36 lg:pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-0">
-            <div className="mt-4 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="container pb-8">
+            <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
                 <h1 className="text-[30px] sm:text-4xl lg:text-4xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
                   {origenNombre ? (
@@ -119,7 +119,7 @@ const NewPageWrapper: React.FC<Props> = ({
                   )}
                 </h1>
 
-                <p className="text-[11px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
+                <p className="text-[20px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
                   {origenNombre ? (
                     productMode === "cosplay"
                       ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
