@@ -113,6 +113,23 @@ export const Gallery: React.FC<Props> = ({
             <SwiperSlide key={index}>
               <div className="relative w-full flex items-center justify-center overflow-hidden">
 
+                {/* 🔥 BADGES SOBRE LA IMAGEN */}
+                {index === 0 && (
+                  <>
+                    <div className="absolute top-4 left-4 z-20">
+                      <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
+                        {displayEdition?.nombre_edicion}
+                      </span>
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-20">
+                      <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
+                        ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
+                      </span>
+                    </div>
+                  </>
+                )}
+
                 <img
                   src={item.url}
                   className={classNames(
@@ -132,20 +149,6 @@ export const Gallery: React.FC<Props> = ({
             </SwiperSlide>
           ))}
         </Swiper>
-
-        {/* BADGE IZQUIERDA */}
-        <div className="absolute top-6 left-6 z-20 opacity-80">
-          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
-            {displayEdition?.nombre_edicion}
-          </span>
-        </div>
-
-        {/* BADGE DERECHA */}
-        <div className="absolute top-6 right-6 z-20">
-          <span className="bg-black/80 text-white text-[10px] px-4 py-2 uppercase rounded-full">
-            ⚡ {displaySlides.length} PERSPECTIVA{displaySlides.length === 1 ? "" : "S"}
-          </span>
-        </div>
 
       </div>
 
