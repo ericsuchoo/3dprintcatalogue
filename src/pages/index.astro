@@ -81,7 +81,7 @@ const categories = (universosAgg || []).map((u) => ({
 }));
 
 // --------------------
-// PERSONAJES PARA CTA
+// PERSONAJES PARA CTA (FIX SEGURO)
 // --------------------
 type PersonajeRow = {
   id_personaje: number | string;
@@ -99,7 +99,13 @@ const personajesRes = await db
     SELECT
       p.id_personaje,
       p.nombre_personaje,
-      p.img_personaje,
+      (
+        SELECT pi.url
+        FROM personajes_imagenes pi
+        WHERE pi.id_personaje = p.id_personaje
+        ORDER BY pi.es_principal DESC, pi.orden ASC
+        LIMIT 1
+      ) AS img_personaje,
       p.id_universo,
       u.nombre_universo
     FROM personajes p
@@ -123,7 +129,7 @@ const characters = personajesRows.map((p) => {
     id: String(p.id_personaje),
     slug,
     name: p.nombre_personaje,
-    image: p.img_personaje || "",
+    image: p.img_personaje ?? "", // ← seguro
     universe: p.nombre_universo || "",
     href: `${SHOP_BASE_URL}?${params.toString()}`,
   };
