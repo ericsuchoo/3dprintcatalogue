@@ -4,6 +4,7 @@ import InnerPageWrapper from "../InnnerPageWrapper";
 import { CategoriesMini } from "./CategoriesMini";
 import { UniverseRail } from "./UniverseRail";
 import { OriginsBar } from "../home-page/OriginsBar";
+import { CharacterExplorerLite } from "../home-page/CharacterExplorerLite"; // 👈 NUEVO
 
 type CategoryCard = {
   meta: {
@@ -64,6 +65,15 @@ const NewPageWrapper: React.FC<Props> = ({
     return (categories || []).slice(start, start + ITEMS_PER_PAGE);
   }, [categories, currentPage]);
 
+  // 👇 NUEVO (no afecta nada existente)
+  const explorerItems = useMemo(() => {
+    return (categories || []).map((c) => ({
+      id: String(c.meta.id_personaje),
+      title: c.meta.title,
+      href: `/shop?personajeId=${c.meta.id_personaje}`,
+    }));
+  }, [categories]);
+
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);
     setCurrentPage(safe);
@@ -77,21 +87,21 @@ const NewPageWrapper: React.FC<Props> = ({
     productMode === "all"
       ? "Filtrar: cosplay"
       : productMode === "cosplay"
-        ? "Filtrar: figuras"
-        : "Ver todos";
+      ? "Filtrar: figuras"
+      : "Ver todos";
 
   const currentModeBadge =
     productMode === "all"
       ? "Modo actual: todos"
       : productMode === "cosplay"
-        ? "Modo actual: cosplay"
-        : "Modo actual: figuras";
+      ? "Modo actual: cosplay"
+      : "Modo actual: figuras";
 
   return (
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-40 sm:pt-36 lg:pt-24 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-8">
+          <div className="container pb-20">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
                 <h1 className="text-[30px] sm:text-4xl lg:text-4xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
@@ -124,14 +134,14 @@ const NewPageWrapper: React.FC<Props> = ({
                     productMode === "cosplay"
                       ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos cosplay`
                       : productMode === "figura"
-                        ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
-                        : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
+                      ? `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado con productos figura`
+                      : `Mostrando ${categories?.length ?? 0} personajes del origen seleccionado`
                   ) : activeUniversoId ? (
                     productMode === "cosplay"
                       ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos cosplay`
                       : productMode === "figura"
-                        ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
-                        : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
+                      ? `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado con productos figura`
+                      : `Mostrando ${categories?.length ?? 0} personajes del universo seleccionado`
                   ) : productMode === "cosplay" ? (
                     `Mostrando ${categories?.length ?? 0} personajes con productos cosplay`
                   ) : productMode === "figura" ? (
@@ -151,8 +161,8 @@ const NewPageWrapper: React.FC<Props> = ({
                       productMode === "cosplay"
                         ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/14 shadow-[0_0_22px_rgba(0,238,255,0.22)] hover:bg-[#00eeff]/22 hover:text-white"
                         : productMode === "figura"
-                          ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
-                          : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
+                        ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
+                        : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
                     }`}
                   >
                     {productModeLabel}
@@ -170,24 +180,23 @@ const NewPageWrapper: React.FC<Props> = ({
               </div>
             </div>
 
-            <UniverseRail
-              items={universes}
-              activeUniversoId={activeUniversoId}
-            />
+            <UniverseRail items={universes} activeUniversoId={activeUniversoId} />
           </div>
-{origins.length > 0 && (
-  <OriginsBar
-    items={origins}
-    activeId={activeOrigenId}
-    basePath="/explorar"
-    paramName="origenId"
-    autoScroll
-    sticky
-    stickyTopClassName="top-[72px]"
-    speedPxPerFrame={0.55}
-  />
-)}
-<div className="flex flex-col gap-8 relative z-0 mt-[110px]">
+
+          {origins.length > 0 && (
+            <OriginsBar
+              items={origins}
+              activeId={activeOrigenId}
+              basePath="/explorar"
+              paramName="origenId"
+              autoScroll
+              sticky
+              stickyTopClassName="top-[72px]"
+              speedPxPerFrame={0.55}
+            />
+          )}
+
+          <div className="flex flex-col gap-8 relative z-0 mt-[110px]">
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
             ) : (
@@ -239,6 +248,12 @@ const NewPageWrapper: React.FC<Props> = ({
               </button>
             </div>
           )}
+
+          {/* 🔥 SOLO ESTO ES NUEVO */}
+          <div className="mt-16 px-4 sm:px-6">
+            <CharacterExplorerLite items={explorerItems} />
+          </div>
+
         </div>
       </InnerPageWrapper>
     </ContextWrapper>
