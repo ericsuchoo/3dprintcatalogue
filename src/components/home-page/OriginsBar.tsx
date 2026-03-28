@@ -114,9 +114,6 @@ export const OriginsBar: React.FC<Props> = ({
   return (
     <section className={sectionClass}>
       <div className="originsBarInner">
-        <div className="originsBarHeader">
-       
-        </div>
 
         <div className="fadeLeft" />
         <div className="fadeRight" />
