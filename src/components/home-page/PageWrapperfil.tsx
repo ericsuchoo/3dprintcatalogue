@@ -102,7 +102,7 @@ const NewPageWrapper: React.FC<Props> = ({
       <InnerPageWrapper>
         
           
-        <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
+        <div className="pt-16 sm:pt-20 lg:pt-16 bg-[#0a0a0a] min-h-screen">
          
           <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -198,7 +198,7 @@ const NewPageWrapper: React.FC<Props> = ({
             />
           )}
 
-          <div className="flex flex-col gap-8 relative z-0 mt-[20px]">
+          <div className="flex flex-col gap-4 relative z-0 mt-[20px]">
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
             ) : (
