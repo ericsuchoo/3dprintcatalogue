@@ -113,7 +113,7 @@ export const OriginsBar: React.FC<Props> = ({
 
   return (
     <section className={sectionClass}>
-      <div className="originsBarInner">
+    
 
         <div className="fadeLeft" />
         <div className="fadeRight" />
@@ -145,7 +145,7 @@ export const OriginsBar: React.FC<Props> = ({
             })}
           </div>
         </div>
-      </div>
+     
     </section>
   );
 };
