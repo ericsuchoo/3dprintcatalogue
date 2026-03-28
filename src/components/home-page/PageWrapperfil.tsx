@@ -102,7 +102,7 @@ const NewPageWrapper: React.FC<Props> = ({
       <InnerPageWrapper>
         
           
-        <div className="pt-14 sm:pt-14 lg:pt-14 bg-[#0a0a0a] min-h-screen">
+        <div className="pt-16 sm:pt-14 lg:pt-16bg-[#0a0a0a] min-h-screen">
          
           <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

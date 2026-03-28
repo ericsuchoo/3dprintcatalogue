@@ -113,10 +113,10 @@ export const OriginsBar: React.FC<Props> = ({
 
   return (
     <section className={sectionClass}>
-      <div className="originsBarInner">
-        <div className="originsBarHeader">
-          <div className="originsKicker">ORÍGENES</div>
+      <div className="originsBarInner">   <div className="originsKicker">ORÍGENES</div>
           <div className="originsHint">SELECCIÓN RÁPIDA</div>
+        <div className="originsBarHeader">
+       
         </div>
 
         <div className="fadeLeft" />
