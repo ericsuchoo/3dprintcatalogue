@@ -103,18 +103,7 @@ const NewPageWrapper: React.FC<Props> = ({
         
           
         <div className="pt-20 sm:pt-36 lg:pt-20 bg-[#0a0a0a] min-h-screen">
-          {origins.length > 0 && (
-            <OriginsBar
-              items={origins}
-              activeId={activeOrigenId}
-              basePath="/explorar"
-              paramName="origenId"
-              autoScroll
-              sticky
-              stickyTopClassName="top-[12px]"
-              speedPxPerFrame={0.55}
-            />
-          )}
+         
           <div className="container pb-4">
             <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="pr-0 lg:pr-6">
@@ -196,7 +185,18 @@ const NewPageWrapper: React.FC<Props> = ({
 
             <UniverseRail items={universes} activeUniversoId={activeUniversoId} />
           </div>
-
+                   {origins.length > 0 && (
+            <OriginsBar
+              items={origins}
+              activeId={activeOrigenId}
+              basePath="/explorar"
+              paramName="origenId"
+              autoScroll
+              sticky
+              stickyTopClassName="top-[12px]"
+              speedPxPerFrame={0.55}
+            />
+          )}
 
           <div className="flex flex-col gap-8 relative z-0 mt-[20px]">
             {pageCategories.length > 0 ? (
