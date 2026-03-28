@@ -113,8 +113,7 @@ export const OriginsBar: React.FC<Props> = ({
 
   return (
     <section className={sectionClass}>
-      <div className="originsBarInner">   <div className="originsKicker">ORÍGENES</div>
-          <div className="originsHint">SELECCIÓN RÁPIDA</div>
+      <div className="originsBarInner">
         <div className="originsBarHeader">
        
         </div>
