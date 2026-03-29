@@ -120,7 +120,7 @@ export const OriginsBar: React.FC<Props> = ({
 
         <div
           ref={scrollerRef}
-          className="originsScroller"
+          className="originsScroller glass-scrollbar"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
