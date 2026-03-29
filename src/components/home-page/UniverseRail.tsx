@@ -175,7 +175,7 @@ export const UniverseRail: React.FC<Props> = ({
                       </span>
                     </div>
 
-                    <h4 className="text-xl md:text-3xl font-black uppercase italic text-white tracking-tight leading-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
+                    <h4 className="text-xl md:text-1xl font-black uppercase italic text-white tracking-tight leading-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
                       {item.title}
                     </h4>
 
