@@ -58,7 +58,9 @@ export const OriginsBar: React.FC<Props> = ({
     if (!activeNodes.length) return;
 
     const targetEl =
-      activeNodes.length > 1 ? activeNodes[Math.floor(activeNodes.length / 2)] : activeNodes[0];
+      activeNodes.length > 1
+        ? activeNodes[Math.floor(activeNodes.length / 2)]
+        : activeNodes[0];
 
     const left = Math.max(
       0,
@@ -95,7 +97,7 @@ export const OriginsBar: React.FC<Props> = ({
         el.scrollLeft += speedPxPerFrame;
 
         if (el.scrollLeft >= half) {
-          el.scrollLeft = 0;
+          el.scrollLeft = el.scrollLeft - half;
         }
       }
 
@@ -113,41 +115,34 @@ export const OriginsBar: React.FC<Props> = ({
 
   return (
     <section className={sectionClass}>
-      <div className="originsBarInner">
-        <div className="originsBarHeader">
-          <div className="originsKicker">ORÍGENES</div>
-          <div className="originsHint">SELECCIÓN RÁPIDA</div>
-        </div>
+      <div className="fadeLeft" />
+      <div className="fadeRight" />
 
-        <div className="fadeLeft" />
-        <div className="fadeRight" />
+      <div
+        ref={scrollerRef}
+        className="originsScroller glass-scrollbar"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        <div className="originsRow">
+          {loopItems.map((o, idx) => {
+            const isActive = activeId && String(activeId) === String(o.id);
 
-        <div
-          ref={scrollerRef}
-          className="originsScroller"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
-          <div className="originsRow">
-            {loopItems.map((o, idx) => {
-              const isActive = activeId && String(activeId) === String(o.id);
-
-              return (
-                <a
-                  key={`${o.id}-${idx}`}
-                  href={buildHref(o.id)}
-                  data-origin-id={o.id}
-                  className={`originPill ${isActive ? "originPillActive" : ""}`}
-                >
-                  <span className="originText">{o.label}</span>
-                  <span className="line top" />
-                  <span className="line right" />
-                  <span className="line bottom" />
-                  <span className="line left" />
-                </a>
-              );
-            })}
-          </div>
+            return (
+              <a
+                key={`${o.id}-${idx}`}
+                href={buildHref(o.id)}
+                data-origin-id={o.id}
+                className={`originPill ${isActive ? "originPillActive" : ""}`}
+              >
+                <span className="originText">{o.label}</span>
+                <span className="line top" />
+                <span className="line right" />
+                <span className="line bottom" />
+                <span className="line left" />
+              </a>
+            );
+          })}
         </div>
       </div>
     </section>

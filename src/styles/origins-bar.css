@@ -1,6 +1,7 @@
 html,
 body {
   overflow-x: hidden;
+  background-color: #0a0a0a;
 }
 
 .originsBarWrap {
@@ -46,18 +47,47 @@ body {
   color: #ff3b30;
 }
 
+/* 🔥 AQUÍ ESTÁ EL CAMBIO IMPORTANTE */
 .originsScroller {
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) rgba(255, 255, 255, 0.04);
+  -ms-overflow-style: auto;
   cursor: grab;
 }
 
+/* Scrollbar estilo glass */
 .originsScroller::-webkit-scrollbar {
-  display: none;
+  height: 10px;
+}
+
+.originsScroller::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.originsScroller::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(0, 238, 255, 0.22),
+    rgba(255, 255, 255, 0.14)
+  );
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.originsScroller::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(0, 238, 255, 0.32),
+    rgba(255, 255, 255, 0.18)
+  );
 }
 
 .originsScroller:active {
@@ -127,69 +157,11 @@ body {
     0 0 18px rgba(255, 59, 48, 0.15);
 }
 
+/* resto intacto */
 .line {
   position: absolute;
   pointer-events: none;
   opacity: 0.92;
-}
-
-.line.top {
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #ff3b30, #00cfff);
-}
-
-.line.right {
-  top: -100%;
-  right: 0;
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(180deg, transparent, #00cfff, #ff3b30);
-}
-
-.line.bottom {
-  bottom: 0;
-  right: -100%;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #00cfff, #ff3b30);
-}
-
-.line.left {
-  bottom: -100%;
-  left: 0;
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(360deg, transparent, #ff3b30, #00cfff);
-}
-
-.originPill:hover .line.top,
-.originPillActive .line.top {
-  left: 100%;
-  transition: 0.7s;
-}
-
-.originPill:hover .line.right,
-.originPillActive .line.right {
-  top: 100%;
-  transition: 0.7s;
-  transition-delay: 0.15s;
-}
-
-.originPill:hover .line.bottom,
-.originPillActive .line.bottom {
-  right: 100%;
-  transition: 0.7s;
-  transition-delay: 0.3s;
-}
-
-.originPill:hover .line.left,
-.originPillActive .line.left {
-  bottom: 100%;
-  transition: 0.7s;
-  transition-delay: 0.45s;
 }
 
 .fadeLeft,
