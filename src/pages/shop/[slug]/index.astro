@@ -21,14 +21,6 @@ type ProductoRow = {
   tipo_cosplay?: string | null;
 };
 
-type EscalaRow = {
-  id_producto: number;
-  disponible: number | null;
-  id_escala: number;
-  nombre_escala: string;
-  descripcion?: string | null;
-};
-
 function slugify(s: string) {
   return s
     .toString()
@@ -41,30 +33,121 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
+function productSlug(product: {
+  nombre_producto: string;
+  subtitulo?: string | null;
+}) {
+  const fullName = [product.nombre_producto, product.subtitulo]
+    .filter(Boolean)
+    .join(" ");
+
+  return slugify(fullName);
+}
+
 const { slug } = Astro.params;
+
+const productIdParam = Astro.url.searchParams.get("id");
+const parsedProductId = productIdParam ? Number(productIdParam) : null;
+
+const productId =
+  parsedProductId &&
+  Number.isInteger(parsedProductId) &&
+  parsedProductId > 0
+    ? parsedProductId
+    : null;
+
 const db = Astro.locals.runtime.env.DB as any;
 
-if (!db) return Astro.redirect("/404");
+if (!db) {
+  return Astro.redirect("/404");
+}
 
-// 🔥 CONTROL NSFW (luego lo puedes hacer dinámico)
+// CONTROL NSFW
 const mostrarNSFW = false;
 
-// 1) Resolver slug
-const listRes = await db.prepare(`SELECT id_producto, nombre_producto FROM productos`).all();
-const list = (listRes?.results || []) as any[];
+/* =========================================================
+   1) RESOLVER PRODUCTO
+   ========================================================= */
 
-const found = list.find((p) => slugify(p.nombre_producto) === slug);
-if (!found) return Astro.redirect("/404");
+let product: ProductoRow | null = null;
 
-// 2) Producto
-const product = await db
-  .prepare(`SELECT * FROM productos WHERE id_producto = ? LIMIT 1`)
-  .bind(found.id_producto)
-  .first();
+/*
+ * Ruta nueva:
+ * /shop/wolverine-cowboy?id=123
+ *
+ * El ID es la identidad real del producto.
+ */
+if (productId) {
+  const row = await db
+    .prepare(`
+      SELECT *
+      FROM productos
+      WHERE id_producto = ?
+      LIMIT 1
+    `)
+    .bind(productId)
+    .first();
 
-if (!product) return Astro.redirect("/404");
+  if (row) {
+    product = row as ProductoRow;
+  }
 
-// 3) 🔥 EDICIONES + IMÁGENES (PRO)
+  if (!product) {
+    return Astro.redirect("/404");
+  }
+
+  /*
+   * Evita URLs incoherentes como:
+   * /shop/batman?id=<id de Wolverine>
+   */
+  const expectedSlug = productSlug(product);
+
+  if (slug !== expectedSlug) {
+    return Astro.redirect(
+      `/shop/${expectedSlug}?id=${product.id_producto}`
+    );
+  }
+}
+
+/*
+ * Compatibilidad con URLs antiguas que todavía no tengan ?id=
+ *
+ * Primero intentamos nombre + subtítulo.
+ * Después conservamos el comportamiento antiguo por nombre.
+ */
+if (!product) {
+  const listRes = await db
+    .prepare(`
+      SELECT *
+      FROM productos
+      ORDER BY id_producto ASC
+    `)
+    .all();
+
+  const list = (listRes?.results || []) as ProductoRow[];
+
+  product =
+    list.find((p) => productSlug(p) === slug) ??
+    list.find((p) => slugify(p.nombre_producto) === slug) ??
+    null;
+
+  if (!product) {
+    return Astro.redirect("/404");
+  }
+
+  /*
+   * Canonizamos inmediatamente la URL antigua.
+   * Desde aquí todo producto queda identificado por su ID.
+   */
+  return Astro.redirect(
+    `/shop/${productSlug(product)}?id=${product.id_producto}`
+  );
+}
+
+/* =========================================================
+   2) EDICIONES + IMÁGENES
+   ========================================================= */
+
 const edRes = await db
   .prepare(`
     SELECT
@@ -75,22 +158,25 @@ const edRes = await db
       ei.orden,
       ei.nivel_contenido
     FROM edicion_producto ep
-    INNER JOIN ediciones e ON e.id_edicion = ep.id_edicion
-    LEFT JOIN edicion_imagenes ei 
+    INNER JOIN ediciones e
+      ON e.id_edicion = ep.id_edicion
+    LEFT JOIN edicion_imagenes ei
       ON ei.id_edicion_producto = ep.id_edicion_producto
     WHERE ep.id_producto = ?
-    ORDER BY ep.id_edicion_producto ASC, ei.orden ASC
+    ORDER BY
+      ep.id_edicion_producto ASC,
+      ei.orden ASC
   `)
   .bind(product.id_producto)
   .all();
 
 const rows = (edRes?.results || []) as any[];
 
-const map = new Map<number, any>();
+const editionMap = new Map<number, any>();
 
 for (const row of rows) {
-  if (!map.has(row.id_edicion_producto)) {
-    map.set(row.id_edicion_producto, {
+  if (!editionMap.has(row.id_edicion_producto)) {
+    editionMap.set(row.id_edicion_producto, {
       id_edicion: row.id_edicion,
       nombre_edicion: row.nombre_edicion,
       images: [],
@@ -98,37 +184,48 @@ for (const row of rows) {
   }
 
   if (row.img_url) {
-    map.get(row.id_edicion_producto).images.push({
+    editionMap.get(row.id_edicion_producto).images.push({
       url: row.img_url,
       nivel: row.nivel_contenido || "safe",
-      orden: row.orden || 0, // 🔥 necesario para ordenar
+      orden: row.orden || 0,
     });
   }
 }
 
-// 🔥 FORMATO FINAL (FUERA DEL FOR)
-const editions = Array.from(map.values()).map((ed) => {
-  // ordenar por orden
-  ed.images.sort((a: any, b: any) => a.orden - b.orden);
+const editions = Array.from(editionMap.values()).map((edition) => {
+  edition.images.sort(
+    (a: any, b: any) => a.orden - b.orden
+  );
 
-  // portada inteligente
-  const safeImage = ed.images.find((img: any) => img.nivel !== "nsfw")?.url;
-  const firstImage = ed.images[0]?.url || null;
+  const safeImage =
+    edition.images.find(
+      (img: any) => img.nivel !== "nsfw"
+    )?.url ?? null;
+
+  const firstImage =
+    edition.images[0]?.url ?? null;
 
   return {
-    id_edicion: ed.id_edicion,
-    nombre_edicion: ed.nombre_edicion,
-    img: safeImage || firstImage || product.img_producto || null,
+    id_edicion: edition.id_edicion,
+    nombre_edicion: edition.nombre_edicion,
 
-    // 🔥 AQUÍ ESTÁ LA CLAVE (NO BORRAR nivel)
-    images: ed.images.map((img: any) => ({
+    img:
+      safeImage ||
+      firstImage ||
+      product.img_producto ||
+      null,
+
+    images: edition.images.map((img: any) => ({
       url: img.url,
-      nivel: img.nivel, // 🔥 ESTA LÍNEA ES LA QUE TE FALTABA
+      nivel: img.nivel,
     })),
   };
 });
 
-// 4) Escalas
+/* =========================================================
+   3) ESCALAS
+   ========================================================= */
+
 const scalesRes = await db
   .prepare(`
     SELECT
@@ -138,7 +235,8 @@ const scalesRes = await db
       es.nombre_escala,
       es.descripcion
     FROM escala_producto ep
-    INNER JOIN escalas es ON es.id_escala = ep.id_escala
+    INNER JOIN escalas es
+      ON es.id_escala = ep.id_escala
     WHERE ep.id_producto = ?
     ORDER BY es.id_escala ASC
   `)
@@ -152,60 +250,102 @@ const scales = (scalesRes?.results || []).map((row: any) => ({
   disponible: Number(row.disponible || 0) === 1,
 }));
 
-// 5) Relacionados (igual)
-let relatedRows: any[] = [];
+/* =========================================================
+   4) PRODUCTOS RELACIONADOS
+   ========================================================= */
+
+let relatedRows: ProductoRow[] = [];
 
 if (product.id_personaje) {
   const rel = await db
     .prepare(`
-      SELECT * FROM productos
+      SELECT *
+      FROM productos
       WHERE id_producto != ?
-      AND id_personaje = ?
+        AND id_personaje = ?
+      ORDER BY id_producto DESC
       LIMIT 8
     `)
-    .bind(product.id_producto, product.id_personaje)
+    .bind(
+      product.id_producto,
+      product.id_personaje
+    )
     .all();
 
-  relatedRows = rel?.results || [];
+  relatedRows = (rel?.results || []) as ProductoRow[];
 }
 
-// FINAL
+/* =========================================================
+   5) DATA FINAL
+   ========================================================= */
+
+const canonicalSlug = productSlug(product);
+
+const modelId = [
+  product.nombre_producto,
+  product.subtitulo,
+]
+  .filter(Boolean)
+  .join(" ")
+  .toUpperCase();
+
 const data = {
   meta: {
     id_producto: product.id_producto,
+
     title: product.nombre_producto,
-    slug: slugify(product.nombre_producto),
-    model_id: slugify(product.nombre_producto).toUpperCase(),
+
+    slug: canonicalSlug,
+
+    model_id: modelId,
+
     subtitle: product.subtitulo ?? "",
+
     price: product.precio ?? 0,
     descuento: product.descuento ?? null,
+
     descripcion: product.descripcion ?? "",
     description: product.descripcion ?? "",
+
     disclaimer: product.disclaimer ?? "",
     aspectos_variables: product.aspectos_variables ?? "",
+
     tipo_cosplay: product.tipo_cosplay ?? "",
+
     personajeId: product.id_personaje ?? null,
     universoId: product.id_universo ?? null,
     proveedorId: product.id_proveedor ?? null,
-    cover: product.img_producto ? { url: product.img_producto } : null,
+
+    cover: product.img_producto
+      ? { url: product.img_producto }
+      : null,
+
     editions,
     scales,
   },
 
   otherProducts: relatedRows.map((pr) => ({
     id: pr.id_producto,
-    slug: slugify(pr.nombre_producto),
+
+    slug: productSlug(pr),
+
     title: pr.nombre_producto,
     subtitle: pr.subtitulo ?? "",
+
     description: pr.descripcion ?? "",
+
     price: pr.precio ?? 0,
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
+
     coverUrl: pr.img_producto ?? "",
   })),
 };
 ---
 
-<Layout title={`${data.meta.title} | DCimpress 3D`}>
-  <ProductPageWrapper client:load data={data as any} />
+<Layout title={`${data.meta.title}${data.meta.subtitle ? ` ${data.meta.subtitle}` : ""} | DCimpress 3D`}>
+  <ProductPageWrapper
+    client:load
+    data={data as any}
+  />
 </Layout>
