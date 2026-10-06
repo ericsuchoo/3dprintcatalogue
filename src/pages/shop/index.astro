@@ -401,11 +401,7 @@ if (db && (await tableExists("personajes"))) {
 const data = {
   products: productos.map((pr) => ({
     id: pr.id_producto,
-    slug: slugify(
-  [pr.nombre_producto, pr.subtitulo]
-    .filter(Boolean)
-    .join(" ")
-),
+    slug: slugify(String(pr.nombre_producto ?? `p-${pr.id_producto}`)),
     title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
