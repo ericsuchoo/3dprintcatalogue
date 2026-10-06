@@ -206,7 +206,16 @@ if (!db) {
   )
 ) AS gallery,
 
-      COUNT(DISTINCT pr.id_producto) AS productsCount
+      COUNT(DISTINCT CASE
+  WHEN '${productMode}' = 'cosplay'
+    AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL
+    THEN pr.id_producto
+  WHEN '${productMode}' = 'figura'
+    AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL
+    THEN pr.id_producto
+  WHEN '${productMode}' = 'todos'
+    THEN pr.id_producto
+END) AS productsCount
 
     FROM personajes p
     LEFT JOIN productos pr
@@ -236,7 +245,7 @@ if (!db) {
         SELECT 1
         FROM productos prc
         WHERE prc.id_personaje = p.id_personaje
-          AND CAST(COALESCE(prc.tipo_cosplay,'0') AS TEXT) = '1'
+          AND NULLIF(TRIM(prc.tipo_cosplay), '') IS NOT NULL
       )
     `);
   }
@@ -247,7 +256,7 @@ if (!db) {
         SELECT 1
         FROM productos prf
         WHERE prf.id_personaje = p.id_personaje
-          AND CAST(COALESCE(prf.tipo_cosplay,'0') AS TEXT) <> '1'
+          AND NULLIF(TRIM(prf.tipo_cosplay), '') IS NULL
       )
     `);
   }

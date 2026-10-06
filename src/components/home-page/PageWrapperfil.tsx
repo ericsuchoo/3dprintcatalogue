@@ -70,9 +70,15 @@ const NewPageWrapper: React.FC<Props> = ({
     return (categories || []).map((c) => ({
       id: String(c.meta.id_personaje),
       title: c.meta.title,
-      href: `/shop?personajeId=${c.meta.id_personaje}`,
+      href: `/shop?personajeId=${c.meta.id_personaje}${
+  productMode === "cosplay"
+    ? "&tipoProducto=cosplay"
+    : productMode === "figura"
+      ? "&tipoProducto=figura"
+      : ""
+}`,
     }));
-  }, [categories]);
+  }, [categories, productMode]);
 
   const goToPage = (page: number) => {
     const safe = Math.min(Math.max(page, 1), totalPages);

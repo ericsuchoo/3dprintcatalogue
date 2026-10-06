@@ -73,6 +73,12 @@ const universoId = parsePositiveInt(Astro.url.searchParams.get("universoId"));
 const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
 const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
 const sort = normalizeSort(Astro.url.searchParams.get("sort"));
+const tipoProductoParam = Astro.url.searchParams.get("tipoProducto")?.trim() || null;
+
+const tipoProducto =
+  tipoProductoParam === "cosplay" || tipoProductoParam === "figura"
+    ? tipoProductoParam
+    : null;
 
 const personajeQuery = Astro.url.searchParams.get("personaje")?.trim() || null;
 const personajeNombreParam = Astro.url.searchParams.get("characterName")?.trim() || null;
@@ -203,7 +209,13 @@ if (proveedorId) {
   whereClauses.push(`p.id_proveedor = ?`);
   whereParams.push(proveedorId);
 }
+if (tipoProducto === "cosplay") {
+  whereClauses.push(`NULLIF(TRIM(p.tipo_cosplay), '') IS NOT NULL`);
+}
 
+if (tipoProducto === "figura") {
+  whereClauses.push(`NULLIF(TRIM(p.tipo_cosplay), '') IS NULL`);
+}
 const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
 // --------------------
