@@ -202,9 +202,11 @@ export const Main: React.FC<Props> = ({ data, favoritesOnly = false }) => {
     const proveedorId = next.proveedorId ?? data.pagination?.proveedorId ?? null;
     const sort = next.sort ?? data.pagination?.sort ?? "newest";
     const page = next.page ?? null;
-    const tipoProducto =
-    next.tipoProducto ??
-    new URLSearchParams(window.location.search).get("tipoProducto");
+   const tipoProducto =
+  next.tipoProducto ??
+  (typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("tipoProducto")
+    : null);
 
 
     if (personajeId) params.set("personajeId", personajeId);
