@@ -7,7 +7,7 @@ type PersonajeRow = {
   nombre_personaje: string;
   id_universo?: number | null;
   productsCount?: number;
-  gallery?: string;
+  img_personaje?: string | null;
 };
 
 type UniversoRow = {
@@ -62,6 +62,17 @@ const universoId = Astro.url.searchParams.get("universoId");
 const origenId = Astro.url.searchParams.get("origenId");
 const tipoProductoParam = Astro.url.searchParams.get("tipoProducto");
 
+const requestedPageRaw = Number(
+  Astro.url.searchParams.get("page") || "1"
+);
+
+const requestedPage =
+  Number.isInteger(requestedPageRaw) && requestedPageRaw > 0
+    ? requestedPageRaw
+    : 1;
+
+const ITEMS_PER_PAGE = 24;
+
 const productMode: ProductMode =
   tipoProductoParam === "cosplay"
     ? "cosplay"
@@ -76,20 +87,36 @@ let origins: OriginItem[] = [];
 let universoNombre: string | null = null;
 let origenNombre: string | null = null;
 
+let totalCharacters = 0;
+let totalPages = 1;
+let currentPage = 1;
+
 const buildExploreUrl = (next: {
   universoId?: string | null;
   origenId?: string | null;
   tipoProducto?: ProductMode | null;
+  page?: number | null;
 }) => {
   const params = new URLSearchParams();
 
-  if (next.universoId) params.set("universoId", next.universoId);
-  if (next.origenId) params.set("origenId", next.origenId);
+  if (next.universoId) {
+    params.set("universoId", next.universoId);
+  }
+
+  if (next.origenId) {
+    params.set("origenId", next.origenId);
+  }
+
   if (next.tipoProducto && next.tipoProducto !== "all") {
     params.set("tipoProducto", next.tipoProducto);
   }
 
+  if (next.page && next.page > 1) {
+    params.set("page", String(next.page));
+  }
+
   const query = params.toString();
+
   return `/explorar${query ? `?${query}` : ""}`;
 };
 
@@ -104,15 +131,17 @@ const productModeToggleHref = buildExploreUrl({
   universoId,
   origenId,
   tipoProducto: nextProductMode,
+  page: 1,
 });
 
 const clearFilterHref =
-  universoId || origenId || productMode !== "all" ? "/explorar" : null;
+  universoId || origenId || productMode !== "all"
+    ? "/explorar"
+    : null;
 
 if (!db) {
   console.warn("[explorar] DB binding no disponible.");
 } else {
-
   /* ========================= */
   /* ORIGENES                  */
   /* ========================= */
@@ -139,7 +168,10 @@ if (!db) {
 
   const universosRes = await db
     .prepare(`
-      SELECT id_universo, nombre_universo, img_universo
+      SELECT
+        id_universo,
+        nombre_universo,
+        img_universo
       FROM universos
       ORDER BY nombre_universo ASC
     `)
@@ -153,83 +185,39 @@ if (!db) {
     imageUrl: u.img_universo ?? null,
   }));
 
+  /*
+   * Reutilizamos las listas que acabamos de cargar.
+   * No hacemos otra consulta D1 para resolver nombres.
+   */
   if (universoId) {
-    const universoRes = await db
-      .prepare(`
-        SELECT nombre_universo
-        FROM universos
-        WHERE id_universo = ?
-        LIMIT 1
-      `)
-      .bind(universoId)
-      .first();
-
-    universoNombre = (universoRes as UniversoRow | null)?.nombre_universo ?? null;
+    universoNombre =
+      universosRows.find(
+        (u) => String(u.id_universo) === String(universoId)
+      )?.nombre_universo ?? null;
   }
 
   if (origenId) {
-    const origenRes = await db
-      .prepare(`
-        SELECT nombre_etiqueta
-        FROM etiquetas
-        WHERE id_etiqueta = ?
-        LIMIT 1
-      `)
-      .bind(origenId)
-      .first();
-
-    origenNombre = (origenRes as EtiquetaRow | null)?.nombre_etiqueta ?? null;
+    origenNombre =
+      origenRows.find(
+        (o) => String(o.id_etiqueta) === String(origenId)
+      )?.nombre_etiqueta ?? null;
   }
 
   /* ========================= */
-  /* PERSONAJES                */
+  /* PERSONAJES PAGINADOS     */
   /* ========================= */
-
-  let sql = `
-    SELECT
-      p.id_personaje,
-      p.nombre_personaje,
-      p.id_universo,
-
-      (
-  SELECT json_group_array(
-    json_object(
-      'url',
-      url
-    )
-  )
-  FROM (
-    SELECT url
-    FROM personajes_imagenes
-    WHERE id_personaje = p.id_personaje
-    ORDER BY es_principal DESC, orden ASC
-  )
-) AS gallery,
-
-      COUNT(DISTINCT CASE
-  WHEN '${productMode}' = 'cosplay'
-    AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL
-    THEN pr.id_producto
-  WHEN '${productMode}' = 'figura'
-    AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL
-    THEN pr.id_producto
-  WHEN '${productMode}' = 'all'
-    THEN pr.id_producto
-END) AS productsCount
-
-    FROM personajes p
-    LEFT JOIN productos pr
-      ON pr.id_personaje = p.id_personaje
-  `;
 
   const whereClauses: string[] = [];
   const params: any[] = [];
 
+  let joinOrigen = "";
+
   if (origenId) {
-    sql += `
+    joinOrigen = `
       INNER JOIN personajes_etiquetas pe
         ON pe.id_personaje = p.id_personaje
     `;
+
     whereClauses.push(`pe.id_etiqueta = ?`);
     params.push(origenId);
   }
@@ -261,36 +249,136 @@ END) AS productsCount
     `);
   }
 
-  if (whereClauses.length) {
-    sql += ` WHERE ${whereClauses.join(" AND ")} `;
-  }
+  const whereSql = whereClauses.length
+    ? `WHERE ${whereClauses.join(" AND ")}`
+    : "";
 
-  sql += `
-    GROUP BY p.id_personaje
-    ORDER BY p.nombre_personaje ASC
+  /* ========================= */
+  /* TOTAL REAL               */
+  /* ========================= */
+
+  const countSql = `
+    SELECT
+      COUNT(DISTINCT p.id_personaje) AS total
+    FROM personajes p
+    ${joinOrigen}
+    ${whereSql}
   `;
 
-  const personajesRes = params.length
-    ? await db.prepare(sql).bind(...params).all()
-    : await db.prepare(sql).all();
+  const countRes = params.length
+    ? await db
+        .prepare(countSql)
+        .bind(...params)
+        .first()
+    : await db
+        .prepare(countSql)
+        .first();
 
-  const personajes = (personajesRes?.results || []) as PersonajeRow[];
+  totalCharacters = Number((countRes as any)?.total || 0);
+
+  totalPages = Math.max(
+    1,
+    Math.ceil(totalCharacters / ITEMS_PER_PAGE)
+  );
+
+  currentPage = Math.min(
+    requestedPage,
+    totalPages
+  );
+
+  const offset =
+    (currentPage - 1) * ITEMS_PER_PAGE;
+
+  /* ========================= */
+  /* PÁGINA ACTUAL            */
+  /* ========================= */
+
+const sql = `
+  SELECT
+    p.id_personaje,
+    p.nombre_personaje,
+    p.id_universo,
+
+    (
+      SELECT pi.url
+      FROM personajes_imagenes pi
+      WHERE pi.id_personaje = p.id_personaje
+      ORDER BY
+        pi.es_principal DESC,
+        pi.orden ASC
+      LIMIT 1
+    ) AS img_personaje,
+
+    (
+      SELECT COUNT(*)
+      FROM productos pr
+      WHERE pr.id_personaje = p.id_personaje
+
+      ${
+        productMode === "cosplay"
+          ? `AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL`
+          : productMode === "figura"
+            ? `AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL`
+            : ""
+      }
+    ) AS productsCount
+
+  FROM (
+    SELECT
+      p.id_personaje,
+      p.nombre_personaje,
+      p.id_universo
+
+    FROM personajes p
+
+    ${joinOrigen}
+
+    ${whereSql}
+
+    GROUP BY p.id_personaje
+
+    ORDER BY p.nombre_personaje ASC
+
+    LIMIT ? OFFSET ?
+  ) p
+
+  ORDER BY p.nombre_personaje ASC
+`;
+
+  const personajesParams = [
+    ...params,
+    ITEMS_PER_PAGE,
+    offset,
+  ];
+
+  const personajesRes = await db
+    .prepare(sql)
+    .bind(...personajesParams)
+    .all();
+
+  const personajes =
+    (personajesRes?.results || []) as PersonajeRow[];
 
   categories = personajes.map((p) => ({
     meta: {
       id_personaje: p.id_personaje,
+
       title: p.nombre_personaje,
+
       slug: slugify(p.nombre_personaje),
 
-      gallery: (() => {
-        try {
-          return p.gallery ? JSON.parse(p.gallery as any) : [];
-        } catch {
-          return [];
-        }
-      })(),
+      /*
+       * La card solo necesita una imagen.
+       * Ya no enviamos la galería completa.
+       */
+      gallery: p.img_personaje
+        ? [{ url: p.img_personaje }]
+        : [],
     },
-    productsCount: Number((p as any).productsCount || 0),
+
+    productsCount: Number(
+      p.productsCount || 0
+    ),
   }));
 }
 
@@ -316,5 +404,9 @@ const meta = {
     origenNombre={origenNombre}
     productMode={productMode}
     productModeToggleHref={productModeToggleHref}
+    currentPage={currentPage}
+    totalPages={totalPages}
+    totalCharacters={totalCharacters}
+    itemsPerPage={ITEMS_PER_PAGE}
   />
 </Layout>
