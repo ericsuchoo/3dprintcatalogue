@@ -26,6 +26,7 @@ type ProductoRow = {
 type PersonajeRow = {
   id_personaje: number | string;
   nombre_personaje: string;
+  id_universo: number | string | null;
 };
 
 type UniversoRow = {
@@ -93,21 +94,13 @@ if (!db) {
   console.warn("[shop] DB binding no disponible. Revisa wrangler.toml/bindings.");
 }
 
-async function tableExists(name: string) {
-  if (!db) return false;
-  const row = await db
-    .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name = ?`)
-    .bind(name)
-    .first();
-  return !!row?.name;
-}
 
 // --------------------
 // 0) Resolver personaje si viene por nombre
 // --------------------
 let resolvedPersonajeId = personajeId;
 
-if (db && !resolvedPersonajeId && personajeQuery && (await tableExists("personajes"))) {
+if (db && !resolvedPersonajeId && personajeQuery) {
   const row = await db
     .prepare(`
       SELECT id_personaje, nombre_personaje
@@ -144,50 +137,6 @@ if (!personajeNombre && personajeNombreParam) {
   personajeNombre = personajeNombreParam;
 }
 
-// --------------------
-// 1) Resolver nombres activos
-// --------------------
-if (db && resolvedPersonajeId) {
-  const row = await db
-    .prepare(`
-      SELECT id_personaje, nombre_personaje
-      FROM personajes
-      WHERE id_personaje = ?
-      LIMIT 1
-    `)
-    .bind(resolvedPersonajeId)
-    .first();
-
-  personajeNombre = (row as PersonajeRow | null)?.nombre_personaje ?? personajeNombre;
-}
-
-if (db && universoId) {
-  const row = await db
-    .prepare(`
-      SELECT id_universo, nombre_universo
-      FROM universos
-      WHERE id_universo = ?
-      LIMIT 1
-    `)
-    .bind(universoId)
-    .first();
-
-  universoNombre = (row as UniversoRow | null)?.nombre_universo ?? null;
-}
-
-if (db && proveedorId && (await tableExists("proveedores"))) {
-  const row = await db
-    .prepare(`
-      SELECT id_proveedor, nombre_proveedor
-      FROM proveedores
-      WHERE id_proveedor = ?
-      LIMIT 1
-    `)
-    .bind(proveedorId)
-    .first();
-
-  proveedorNombre = (row as ProveedorRow | null)?.nombre_proveedor ?? null;
-}
 
 // --------------------
 // 2) WHERE dinámico
@@ -303,40 +252,50 @@ let universos: UniversoRow[] = [];
 let proveedores: ProveedorRow[] = [];
 
 if (db) {
-  if (await tableExists("personajes")) {
-    const res = await db
-      .prepare(`
-        SELECT id_personaje, nombre_personaje
-        FROM personajes
-        ORDER BY nombre_personaje ASC
-      `)
-      .all();
-    personajes = (res?.results || []) as PersonajeRow[];
-  }
+  const [personajesRes, universosRes, proveedoresRes] = await Promise.all([
+    db.prepare(`
+      SELECT id_personaje, nombre_personaje, id_universo
+      FROM personajes
+      ORDER BY nombre_personaje ASC
+    `).all(),
 
-  if (await tableExists("universos")) {
-    const res = await db
-      .prepare(`
-        SELECT id_universo, nombre_universo
-        FROM universos
-        ORDER BY nombre_universo ASC
-      `)
-      .all();
-    universos = (res?.results || []) as UniversoRow[];
-  }
+    db.prepare(`
+      SELECT id_universo, nombre_universo
+      FROM universos
+      ORDER BY nombre_universo ASC
+    `).all(),
 
-  if (await tableExists("proveedores")) {
-    const res = await db
-      .prepare(`
-        SELECT id_proveedor, nombre_proveedor
-        FROM proveedores
-        ORDER BY nombre_proveedor ASC
-      `)
-      .all();
-    proveedores = (res?.results || []) as ProveedorRow[];
-  }
+    db.prepare(`
+      SELECT id_proveedor, nombre_proveedor
+      FROM proveedores
+      ORDER BY nombre_proveedor ASC
+    `).all(),
+  ]);
+
+  personajes = (personajesRes?.results || []) as PersonajeRow[];
+  universos = (universosRes?.results || []) as UniversoRow[];
+  proveedores = (proveedoresRes?.results || []) as ProveedorRow[];
+}
+if (resolvedPersonajeId) {
+  personajeNombre =
+    personajes.find(
+      (p) => Number(p.id_personaje) === Number(resolvedPersonajeId)
+    )?.nombre_personaje ?? personajeNombre;
 }
 
+if (universoId) {
+  universoNombre =
+    universos.find(
+      (u) => Number(u.id_universo) === Number(universoId)
+    )?.nombre_universo ?? null;
+}
+
+if (proveedorId) {
+  proveedorNombre =
+    proveedores.find(
+      (p) => Number(p.id_proveedor) === Number(proveedorId)
+    )?.nombre_proveedor ?? null;
+}
 const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(
   (value): value is string => Boolean(value)
 );
@@ -344,13 +303,11 @@ const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].fi
 // --------------------
 // 7) Sugerencias para buscador superior
 // --------------------
-type QuickCharacterSuggestionRow = {
-  id_personaje: number | string;
-  nombre_personaje: string;
-  nombre_universo: string | null;
-  etiquetas_personaje: string | null;
-};
 
+type PersonajeEtiquetaRow = {
+  id_personaje: number | string;
+  nombre_etiqueta: string;
+};
 let quickCharacterSuggestions: {
   id: string;
   title: string;
@@ -359,42 +316,43 @@ let quickCharacterSuggestions: {
   tags?: string[];
 }[] = [];
 
-if (db && (await tableExists("personajes"))) {
-  const quickRes = await db
+if (db) {
+  const etiquetasRes = await db
     .prepare(`
       SELECT
-        p.id_personaje,
-        p.nombre_personaje,
-        u.nombre_universo,
-        (
-          SELECT GROUP_CONCAT(e.nombre_etiqueta, '||')
-          FROM personajes_etiquetas pe
-          INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
-          WHERE pe.id_personaje = p.id_personaje
-        ) as etiquetas_personaje
-      FROM personajes p
-      LEFT JOIN universos u
-        ON u.id_universo = p.id_universo
-      ORDER BY p.nombre_personaje ASC
+        pe.id_personaje,
+        e.nombre_etiqueta
+      FROM personajes_etiquetas pe
+      INNER JOIN etiquetas e
+        ON e.id_etiqueta = pe.id_etiqueta
     `)
     .all();
 
-  const quickRows = (quickRes?.results || []) as QuickCharacterSuggestionRow[];
+  const etiquetasRows = (etiquetasRes?.results || []) as PersonajeEtiquetaRow[];
 
-  quickCharacterSuggestions = quickRows.map((row) => ({
-    id: String(row.id_personaje),
-    title: row.nombre_personaje,
-    href: `/shop?personajeId=${row.id_personaje}`,
-    universe: row.nombre_universo ?? "",
-    tags: row.etiquetas_personaje
-      ? row.etiquetas_personaje
-          .split("||")
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [],
+  const etiquetasPorPersonaje = new Map<string, string[]>();
+
+  for (const row of etiquetasRows) {
+    const id = String(row.id_personaje);
+    const tags = etiquetasPorPersonaje.get(id) ?? [];
+    tags.push(row.nombre_etiqueta);
+    etiquetasPorPersonaje.set(id, tags);
+  }
+
+  const universoPorId = new Map(
+    universos.map((u) => [String(u.id_universo), u.nombre_universo])
+  );
+
+  quickCharacterSuggestions = personajes.map((personaje) => ({
+    id: String(personaje.id_personaje),
+    title: personaje.nombre_personaje,
+    href: `/shop?personajeId=${personaje.id_personaje}`,
+    universe: personaje.id_universo
+      ? universoPorId.get(String(personaje.id_universo)) ?? ""
+      : "",
+    tags: etiquetasPorPersonaje.get(String(personaje.id_personaje)) ?? [],
   }));
 }
-
 // --------------------
 // 8) Data para React
 // --------------------
