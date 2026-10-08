@@ -21,10 +21,13 @@ export const CharacterSearchD1: React.FC = () => {
   const [results, setResults] = useState<CharacterItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [toast, setToast] = useState("");
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef(0);
 
   useEffect(() => {
@@ -49,6 +52,32 @@ export const CharacterSearchD1: React.FC = () => {
   }, [toast]);
 
   useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
     const q = query.trim();
     const requestId = ++requestRef.current;
 
@@ -56,6 +85,7 @@ export const CharacterSearchD1: React.FC = () => {
       setResults([]);
       setLoading(false);
       setError(false);
+      setIsOpen(false);
       return;
     }
 
@@ -64,6 +94,7 @@ export const CharacterSearchD1: React.FC = () => {
     setLoading(true);
     setError(false);
     setResults([]);
+    setIsOpen(true);
 
     const timer = window.setTimeout(async () => {
       try {
@@ -88,7 +119,7 @@ export const CharacterSearchD1: React.FC = () => {
         setResults(
           Array.isArray(data.results) ? data.results : []
         );
-      } catch (err) {
+      } catch {
         if (controller.signal.aborted) return;
         if (requestId !== requestRef.current) return;
 
@@ -122,7 +153,7 @@ export const CharacterSearchD1: React.FC = () => {
             JSON.stringify(next)
           );
         } catch {
-          // El navegador puede bloquear almacenamiento.
+          // Almacenamiento no disponible.
         }
 
         setToast(
@@ -144,33 +175,70 @@ export const CharacterSearchD1: React.FC = () => {
     });
   };
 
+  const clearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setIsOpen(false);
+    inputRef.current?.focus();
+  };
+
   const hasQuery = query.trim().length >= 2;
 
   return (
-    <section className="w-full min-w-0">
-      <div className="rounded-2xl border border-white/10 bg-[#0f0f0f] p-4 sm:p-6 shadow-[0_0_30px_rgba(0,0,0,0.35)]">
+    <div ref={containerRef} className="relative w-full min-w-0">
+      <div className="rounded-2xl border border-white/10 bg-[#111111] px-4 py-4 sm:px-5 sm:py-4 shadow-[0_0_24px_rgba(0,0,0,0.25)]">
         <label
           htmlFor="explorar-character-search"
-          className="block text-white font-semibold text-sm mb-3"
+          className="block text-white font-black text-[11px] uppercase tracking-[0.12em] mb-3"
         >
-          Busca por personaje o universo
+          Busca tu personaje
         </label>
 
         <div className="relative">
+          <span
+            aria-hidden="true"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00eeff]"
+          >
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-4-4" />
+            </svg>
+          </span>
+
           <input
+            ref={inputRef}
             id="explorar-character-search"
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ej: Batman, Darth Vader, Dragon Ball..."
+            onFocus={() => {
+              if (hasQuery) setIsOpen(true);
+            }}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              if (event.target.value.trim().length >= 2) {
+                setIsOpen(true);
+              }
+            }}
+            placeholder="Batman, Wolverine, Dragon Ball..."
             autoComplete="off"
-            className="w-full rounded-full border border-white/15 bg-black/60 text-white placeholder:text-white/40 px-5 py-3 pr-12 text-sm outline-none focus:border-[#00eeff]/60"
+            aria-expanded={isOpen && hasQuery}
+            aria-controls="explorar-search-results"
+            className="w-full h-11 rounded-full border border-white/15 bg-black text-white placeholder:text-white/40 pl-11 pr-12 text-sm outline-none focus:border-[#00eeff]/60 transition"
           />
 
           {query && (
             <button
               type="button"
-              onClick={() => setQuery("")}
+              onClick={clearSearch}
               aria-label="Limpiar búsqueda"
               className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
             >
@@ -179,15 +247,21 @@ export const CharacterSearchD1: React.FC = () => {
           )}
         </div>
 
-        <p className="text-white/50 text-xs mt-3">
-          Selecciona un personaje para ver sus modelos en el catálogo.
+        <p className="text-white/40 text-[11px] mt-2">
+          Selecciona un personaje para explorar sus modelos.
         </p>
+      </div>
 
-        {hasQuery && (
-          <div className="mt-6">
+      {/* PANEL FLOTANTE: NO MODIFICA LA ALTURA DE LA PAGINA */}
+      {isOpen && hasQuery && (
+        <div
+          id="explorar-search-results"
+          className="absolute z-[80] top-full left-0 right-0 mt-2 rounded-2xl border border-white/15 bg-[#101010] shadow-[0_20px_60px_rgba(0,0,0,0.85)] overflow-hidden"
+        >
+          <div className="p-4 sm:p-5 max-h-[min(440px,65vh)] overflow-y-auto">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-white font-bold text-base">
+                <h3 className="text-white font-black text-sm">
                   Coincidencias
                 </h3>
 
@@ -205,45 +279,56 @@ export const CharacterSearchD1: React.FC = () => {
                 </p>
               </div>
 
-              {results.length > 0 && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => scrollResults(-1)}
-                    aria-label="Desplazar a la izquierda"
-                    className="w-9 h-9 rounded-full border border-white/15 text-white hover:bg-white/10"
-                  >
-                    ←
-                  </button>
+              <div className="flex items-center gap-2">
+                {results.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => scrollResults(-1)}
+                      aria-label="Desplazar resultados a la izquierda"
+                      className="w-8 h-8 rounded-full border border-white/15 text-white hover:bg-white/10"
+                    >
+                      ←
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => scrollResults(1)}
-                    aria-label="Desplazar a la derecha"
-                    className="w-9 h-9 rounded-full border border-white/15 text-white hover:bg-white/10"
-                  >
-                    →
-                  </button>
-                </div>
-              )}
+                    <button
+                      type="button"
+                      onClick={() => scrollResults(1)}
+                      aria-label="Desplazar resultados a la derecha"
+                      className="w-8 h-8 rounded-full border border-white/15 text-white hover:bg-white/10"
+                    >
+                      →
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Cerrar resultados"
+                  className="w-8 h-8 rounded-full border border-white/15 text-white/60 hover:text-white hover:bg-white/10"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {error ? (
-              <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-white/60 text-sm">
+              <div className="py-5 text-white/60 text-sm">
                 Ocurrió un problema. Intenta escribir de nuevo.
               </div>
             ) : loading ? (
-              <div className="text-white/50 text-sm py-4">
+              <div className="py-5 text-white/50 text-sm">
                 Buscando personajes...
               </div>
             ) : results.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-white/60 text-sm">
-                No encontramos personajes con ese nombre o universo.
+              <div className="py-5 text-white/60 text-sm">
+                No encontramos coincidencias.
               </div>
             ) : (
               <div
                 ref={trackRef}
-                className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {results.map((item) => {
                   const isFavorite = favoriteIds.includes(item.id);
@@ -255,10 +340,10 @@ export const CharacterSearchD1: React.FC = () => {
                   return (
                     <article
                       key={item.id}
-                      className="shrink-0 w-[190px] sm:w-[220px] rounded-2xl overflow-hidden border border-white/10 bg-white/10 backdrop-blur-md snap-start"
+                      className="shrink-0 w-[155px] sm:w-[175px] rounded-xl overflow-hidden border border-white/10 bg-[#242424] snap-start"
                     >
                       <a href={href} className="block group/card">
-                        <div className="relative h-[165px] sm:h-[180px] bg-black/40 overflow-hidden">
+                        <div className="relative h-[145px] sm:h-[155px] bg-black/40 overflow-hidden">
                           {item.image ? (
                             <img
                               src={item.image}
@@ -267,27 +352,25 @@ export const CharacterSearchD1: React.FC = () => {
                               className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/40 text-sm">
+                            <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
                               Sin imagen
                             </div>
                           )}
-
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
                         </div>
                       </a>
 
-                      <div className="p-3 sm:p-4 flex items-start justify-between gap-2">
+                      <div className="p-3 flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <a
                             href={href}
                             title={item.name}
-                            className="block text-white font-bold text-sm truncate hover:text-[#00eeff]"
+                            className="block text-white font-bold text-xs truncate hover:text-[#00eeff]"
                           >
                             {item.name}
                           </a>
 
                           {item.universe && (
-                            <p className="text-white/60 text-xs mt-1 truncate">
+                            <p className="text-white/50 text-[10px] mt-1 truncate">
                               {item.universe}
                             </p>
                           )}
@@ -301,10 +384,10 @@ export const CharacterSearchD1: React.FC = () => {
                               ? "Quitar de favoritos"
                               : "Añadir a favoritos"
                           }
-                          className={`shrink-0 text-xl leading-none ${
+                          className={`shrink-0 text-lg leading-none ${
                             isFavorite
                               ? "text-red-500"
-                              : "text-white/80 hover:text-red-400"
+                              : "text-white/70 hover:text-red-400"
                           }`}
                         >
                           {isFavorite ? "♥" : "♡"}
@@ -316,15 +399,15 @@ export const CharacterSearchD1: React.FC = () => {
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-full border border-white/10 bg-black/90 px-4 py-3 text-sm text-white shadow-xl">
+        <div className="fixed bottom-6 right-6 z-[100] rounded-full border border-white/10 bg-black/95 px-4 py-3 text-sm text-white shadow-xl">
           {toast}
         </div>
       )}
-    </section>
+    </div>
   );
 };
 

@@ -240,14 +240,14 @@ const NewPageWrapper: React.FC<Props> = ({
 
             {/* BUSCADOR PRINCIPAL */}
             {discoveryMode && (
-              <div className="mt-7 max-w-3xl mx-auto">
+              <div className="mt-5 w-full max-w-4xl relative z-30">
                 <CharacterSearchD1 />
               </div>
             )}
           </section>
 
           {/* NAVEGACION POR UNIVERSOS */}
-          <section className="mt-3">
+    <section className="mt-1 relative z-0">
             <div className="container mb-4">
               <h2 className="text-white text-sm sm:text-base font-black uppercase italic tracking-wide">
                 Explora por{" "}
@@ -278,7 +278,7 @@ const NewPageWrapper: React.FC<Props> = ({
           )}
 
           {/* DESCUBRIMIENTO / CATALOGO */}
-          <section className="relative z-0 mt-7">
+        <section className="relative z-0 mt-4">
             <div className="container mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-white text-lg font-black uppercase italic">
