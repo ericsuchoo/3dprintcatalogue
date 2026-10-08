@@ -256,7 +256,20 @@ export const CharacterSearchD1: React.FC = () => {
       {isOpen && hasQuery && (
         <div
           id="explorar-search-results"
-          className="absolute z-[80] top-full left-0 right-0 mt-2 rounded-2xl border border-white/15 bg-[#101010] shadow-[0_20px_60px_rgba(0,0,0,0.85)] overflow-hidden"
+          
+className="
+  absolute z-[80]
+  top-full left-0 right-0 mt-2
+  rounded-2xl
+  border border-white/20
+  bg-[#101820]/85
+  backdrop-blur-2xl
+  backdrop-saturate-150
+  shadow-[0_24px_80px_rgba(0,0,0,0.75)]
+  ring-1 ring-[#00eeff]/10
+  overflow-hidden
+"
+
         >
           <div className="p-4 sm:p-5 max-h-[min(440px,65vh)] overflow-y-auto">
             <div className="flex items-center justify-between gap-3 mb-4">
@@ -340,10 +353,10 @@ export const CharacterSearchD1: React.FC = () => {
                   return (
                     <article
                       key={item.id}
-                      className="shrink-0 w-[155px] sm:w-[175px] rounded-xl overflow-hidden border border-white/10 bg-[#242424] snap-start"
+                      className="shrink-0 w-[175px] sm:w-[190px] rounded-xl overflow-hidden border border-white/15 bg-[#242424]/90 snap-start"
                     >
                       <a href={href} className="block group/card">
-                        <div className="relative h-[145px] sm:h-[155px] bg-black/40 overflow-hidden">
+                        <div className="relative h-[165px] sm:h-[175px] bg-black/40 overflow-hidden">
                           {item.image ? (
                             <img
                               src={item.image}

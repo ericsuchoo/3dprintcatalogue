@@ -160,95 +160,102 @@ const NewPageWrapper: React.FC<Props> = ({
       <InnerPageWrapper>
         <div className="pt-16 sm:pt-14 lg:pt-16 bg-[#0a0a0a] min-h-screen">
 
-          {/* ENCABEZADO PRINCIPAL */}
-          <section className="container pt-5 pb-5">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
-              <div className="min-w-0">
-                <h1 className="text-[26px] sm:text-3xl font-black uppercase italic tracking-tight text-white">
-                  {origenNombre ? (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#00eeff]">
-                        {origenNombre}
-                      </span>
-                    </>
-                  ) : activeUniversoId ? (
-                    <>
-                      Explora:{" "}
-                      <span className="text-[#00eeff]">
-                        {meta.title?.replace("Explorar: ", "")}
-                      </span>
-                    </>
-                  ) : discoveryMode ? (
-                    <>
-                      Explora{" "}
-                      <span className="text-[#00eeff]">
-                        nuestro universo
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Todos los{" "}
-                      <span className="text-[#00eeff]">
-                        personajes
-                      </span>
-                    </>
-                  )}
-                </h1>
+          
+{/* ENCABEZADO PRINCIPAL PREMIUM */}
+<section className="relative z-30 w-full px-4 sm:px-6 lg:px-10 xl:px-12 pt-5 pb-5">
+  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(400px,1.35fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(480px,1.3fr)_minmax(0,1fr)] gap-5 lg:gap-6 items-start">
 
-                <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
-                  {countDescription}
-                </p>
-              </div>
+    {/* IZQUIERDA: IDENTIDAD */}
+    <div className="min-w-0 lg:pt-3">
+      <h1 className="text-[24px] sm:text-[27px] xl:text-[30px] font-black uppercase italic tracking-tight leading-tight text-white">
+        {origenNombre ? (
+          <>
+            Explora:{" "}
+            <span className="text-[#00eeff]">
+              {origenNombre}
+            </span>
+          </>
+        ) : activeUniversoId ? (
+          <>
+            Explora:{" "}
+            <span className="text-[#00eeff]">
+              {meta.title?.replace("Explorar: ", "")}
+            </span>
+          </>
+        ) : discoveryMode ? (
+          <>
+            Explora{" "}
+            <span className="text-[#00eeff]">
+              nuestro universo
+            </span>
+          </>
+        ) : (
+          <>
+            Todos los{" "}
+            <span className="text-[#00eeff]">
+              personajes
+            </span>
+          </>
+        )}
+      </h1>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {productModeToggleHref && (
-                  <a
-                    href={productModeToggleHref}
-                    title={currentModeBadge}
-                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
-                      productMode === "cosplay"
-                        ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/10"
-                        : productMode === "figura"
-                          ? "border-red-500/60 text-red-400 bg-red-500/10"
-                          : "border-[#00eeff]/40 text-[#00eeff] hover:bg-[#00eeff]/10"
-                    }`}
-                  >
-                    {productModeLabel}
-                  </a>
-                )}
+      <p className="text-[10px] xl:text-[11px] text-zinc-500 uppercase tracking-[0.16em] mt-3 font-bold">
+        {countDescription}
+      </p>
+    </div>
 
-                {clearFilterHref && (
-                  <a
-                    href={clearFilterHref}
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5"
-                  >
-                    Quitar filtro
-                  </a>
-                )}
+    {/* CENTRO: BUSQUEDA */}
+    <div className="relative z-40 min-w-0 w-full">
+      {discoveryMode ? (
+        <CharacterSearchD1 />
+      ) : (
+        <div className="hidden lg:block" />
+      )}
+    </div>
 
-                {!discoveryMode && (
-                  <a
-                    href="/explorar"
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/20 text-white/80 hover:text-white transition uppercase tracking-[0.18em] font-black text-[10px]"
-                  >
-                    Volver a descubrir
-                  </a>
-                )}
-              </div>
-            </div>
+    {/* DERECHA: ACCIONES */}
+    <div className="flex flex-wrap items-center justify-start lg:justify-end gap-3 lg:pt-3">
+      {productModeToggleHref && (
+        <a
+          href={productModeToggleHref}
+          title={currentModeBadge}
+          className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] whitespace-nowrap ${
+            productMode === "cosplay"
+              ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/10"
+              : productMode === "figura"
+                ? "border-red-500/60 text-red-400 bg-red-500/10"
+                : "border-[#00eeff]/40 text-[#00eeff] hover:bg-[#00eeff]/10"
+          }`}
+        >
+          {productModeLabel}
+        </a>
+      )}
 
-            {/* BUSCADOR PRINCIPAL */}
-            {discoveryMode && (
-              <div className="mt-5 w-full max-w-4xl relative z-30">
-                <CharacterSearchD1 />
-              </div>
-            )}
-          </section>
+      {clearFilterHref && (
+        <a
+          href={clearFilterHref}
+          className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5"
+        >
+          Quitar filtro
+        </a>
+      )}
+
+      {!discoveryMode && (
+        <a
+          href="/explorar"
+          className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/20 text-white/80 hover:text-white transition uppercase tracking-[0.18em] font-black text-[10px]"
+        >
+          Volver a descubrir
+        </a>
+      )}
+    </div>
+  </div>
+</section>
+
 
           {/* NAVEGACION POR UNIVERSOS */}
     <section className="mt-1 relative z-0">
-            <div className="container mb-4">
+            <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-12 mb-4">
               <h2 className="text-white text-sm sm:text-base font-black uppercase italic tracking-wide">
                 Explora por{" "}
                 <span className="text-[#00eeff]">
@@ -279,7 +286,7 @@ const NewPageWrapper: React.FC<Props> = ({
 
           {/* DESCUBRIMIENTO / CATALOGO */}
         <section className="relative z-0 mt-4">
-            <div className="container mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+           <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-12 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h2 className="text-white text-lg font-black uppercase italic">
                   {discoveryMode
