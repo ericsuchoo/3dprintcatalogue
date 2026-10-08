@@ -211,7 +211,7 @@ if (!db) {
   }
 
   /* ========================= */
-  /* FILTROS DE PERSONAJES    */
+  /* FILTROS                   */
   /* ========================= */
 
   const whereClauses: string[] = [];
@@ -292,58 +292,8 @@ if (!db) {
   }
 
   /* ========================= */
-  /* ROTACION DIARIA          */
+  /* CONSULTA BASE            */
   /* ========================= */
-
-  /*
-   * Un mismo día UTC produce el mismo inicio.
-   * La selección avanza diez posiciones por día.
-   *
-   * No usamos ORDER BY RANDOM().
-   * No ejecutamos COUNT(*) en descubrimiento.
-   * No creamos tablas ni modificamos índices.
-   */
-
-  const dayNumber = Math.floor(Date.now() / 86400000);
-
-  /*
-   * Usamos el mayor ID existente para elegir
-   * un punto de inicio variable.
-   *
-   * MAX(id_personaje) se puede resolver
-   * eficientemente mediante la clave primaria.
-   */
-  let dailyStartId = 0;
-
-  if (discoveryMode) {
-    const maxRes = await db
-      .prepare(`
-        SELECT MAX(id_personaje) AS max_id
-        FROM personajes
-      `)
-      .first();
-
-    const maxId = Number((maxRes as any)?.max_id || 0);
-
-    if (maxId > 0) {
-      dailyStartId =
-        ((dayNumber * DISCOVERY_ITEMS) % maxId) + 1;
-    }
-  }
-
-  /* ========================= */
-  /* CONSULTA DE PERSONAJES   */
-  /* ========================= */
-
-  /*
-   * Descubrimiento:
-   * recupera hasta diez personajes desde
-   * el ID diario y continúa desde el inicio
-   * si llega al final.
-   *
-   * Catálogo:
-   * mantiene las 24 tarjetas paginadas.
-   */
 
   const productCountFilter =
     productMode === "cosplay"
@@ -362,7 +312,9 @@ if (!db) {
         SELECT pi.url
         FROM personajes_imagenes pi
         WHERE pi.id_personaje = p.id_personaje
-        ORDER BY pi.es_principal DESC, pi.orden ASC
+        ORDER BY
+          pi.es_principal DESC,
+          pi.orden ASC
         LIMIT 1
       ) AS img_personaje,
 
@@ -380,53 +332,103 @@ if (!db) {
 
   let personajes: PersonajeRow[] = [];
 
+  /* ========================= */
+  /* DESCUBRIMIENTO DIARIO    */
+  /* ========================= */
+
   if (discoveryMode) {
-    const discoverySelection = `
-      SELECT
-        id_personaje,
-        nombre_personaje,
-        id_universo
-      FROM personajes
-      WHERE id_personaje >= ?
-      ORDER BY id_personaje ASC
-      LIMIT ?
-    `;
-
-    const firstRes = await db
-      .prepare(enrichSql(discoverySelection))
-      .bind(dailyStartId, DISCOVERY_ITEMS)
-      .all();
-
-    personajes = (firstRes?.results || []) as PersonajeRow[];
-
     /*
-     * Si quedan menos de diez al final,
-     * completamos desde el primer ID.
+     * Diez segmentos del espacio de IDs.
+     * Una posición variable por segmento.
+     *
+     * No ordenamos toda la tabla aleatoriamente.
+     * No ejecutamos el conteo global.
      */
-    if (personajes.length < DISCOVERY_ITEMS) {
-      const remaining = DISCOVERY_ITEMS - personajes.length;
 
-      const wrapSelection = `
+    const bounds = await db
+      .prepare(`
         SELECT
-          id_personaje,
-          nombre_personaje,
-          id_universo
+          MIN(id_personaje) AS min_id,
+          MAX(id_personaje) AS max_id
         FROM personajes
-        WHERE id_personaje < ?
-        ORDER BY id_personaje ASC
-        LIMIT ?
-      `;
+      `)
+      .first();
 
-      const wrapRes = await db
-        .prepare(enrichSql(wrapSelection))
-        .bind(dailyStartId, remaining)
-        .all();
+    const minId = Number((bounds as any)?.min_id || 0);
+    const maxId = Number((bounds as any)?.max_id || 0);
 
-      personajes.push(
-        ...((wrapRes?.results || []) as PersonajeRow[])
+    if (maxId >= minId && minId > 0) {
+      const dayNumber = Math.floor(Date.now() / 86400000);
+      const rangeSize = maxId - minId + 1;
+      const segmentSize = Math.ceil(
+        rangeSize / DISCOVERY_ITEMS
       );
+
+      const selections: PersonajeRow[] = [];
+
+      for (let segment = 0; segment < DISCOVERY_ITEMS; segment++) {
+        const segmentMin =
+          minId + segment * segmentSize;
+
+        const segmentMax = Math.min(
+          maxId,
+          segmentMin + segmentSize - 1
+        );
+
+        if (segmentMin > maxId) break;
+
+        const width = segmentMax - segmentMin + 1;
+
+        // Desplazamiento diferente por segmento y día.
+        const shift =
+          (dayNumber * 7 + segment * 13) % width;
+
+        const startId = segmentMin + shift;
+
+        const selectionSql = `
+          SELECT
+            id_personaje,
+            nombre_personaje,
+            id_universo
+          FROM personajes
+          WHERE id_personaje BETWEEN ? AND ?
+          ORDER BY id_personaje ASC
+          LIMIT 1
+        `;
+
+        const first = await db
+          .prepare(enrichSql(selectionSql))
+          .bind(startId, segmentMax)
+          .all();
+
+        let row = (first.results || [])[0] as
+          | PersonajeRow
+          | undefined;
+
+        // Si hay huecos, buscar desde el inicio del segmento.
+        if (!row) {
+          const wrap = await db
+            .prepare(enrichSql(selectionSql))
+            .bind(segmentMin, segmentMax)
+            .all();
+
+          row = (wrap.results || [])[0] as
+            | PersonajeRow
+            | undefined;
+        }
+
+        if (row) {
+          selections.push(row);
+        }
+      }
+
+      personajes = selections;
     }
   } else {
+    /* ========================= */
+    /* CATALOGO PAGINADO        */
+    /* ========================= */
+
     const pageSql = enrichSql(`
       SELECT
         p.id_personaje,

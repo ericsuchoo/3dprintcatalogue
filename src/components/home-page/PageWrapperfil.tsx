@@ -1,13 +1,11 @@
 
 import React, { useMemo } from "react";
-import { CharacterSearchD1 } from "./CharacterSearchD1";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
-
 import { CategoriesMini } from "./CategoriesMini";
 import { UniverseRail } from "./UniverseRail";
-import { OriginsBar } from "../home-page/OriginsBar";
-import { CharacterExplorerLite } from "../home-page/CharacterExplorerLite";
+import { OriginsBar } from "./OriginsBar";
+import { CharacterSearchD1 } from "./CharacterSearchD1";
 
 type CategoryCard = {
   meta: {
@@ -70,23 +68,6 @@ const NewPageWrapper: React.FC<Props> = ({
   allCharactersMode = false,
 }) => {
   const pageCategories = categories || [];
-
-  // Buscador provisional: solo personajes de la página actual.
-  const explorerItems = useMemo(
-    () =>
-      pageCategories.map((c) => ({
-        id: String(c.meta.id_personaje),
-        title: c.meta.title,
-        href: `/shop?personajeId=${c.meta.id_personaje}${
-          productMode === "cosplay"
-            ? "&tipoProducto=cosplay"
-            : productMode === "figura"
-              ? "&tipoProducto=figura"
-              : ""
-        }`,
-      })),
-    [pageCategories, productMode]
-  );
 
   const productModeLabel =
     productMode === "all"
@@ -161,23 +142,11 @@ const NewPageWrapper: React.FC<Props> = ({
   }, [currentPage, totalPages]);
 
   const countDescription = discoveryMode
-    ? "Una selección de personajes para descubrir"
+    ? "Encuentra tu próximo personaje de colección."
     : origenNombre
-      ? `Mostrando ${pageStart}-${pageEnd} de ${totalCharacters} personajes del origen seleccionado${
-          productMode === "cosplay"
-            ? " con productos cosplay"
-            : productMode === "figura"
-              ? " con productos figura"
-              : ""
-        }`
+      ? `Mostrando ${pageStart}-${pageEnd} de ${totalCharacters} personajes del origen seleccionado`
       : activeUniversoId
-        ? `Mostrando ${pageStart}-${pageEnd} de ${totalCharacters} personajes del universo seleccionado${
-            productMode === "cosplay"
-              ? " con productos cosplay"
-              : productMode === "figura"
-                ? " con productos figura"
-                : ""
-          }`
+        ? `Mostrando ${pageStart}-${pageEnd} de ${totalCharacters} personajes del universo seleccionado`
         : `Mostrando ${pageStart}-${pageEnd} de ${totalCharacters} personajes${
             productMode === "cosplay"
               ? " con productos cosplay"
@@ -190,57 +159,59 @@ const NewPageWrapper: React.FC<Props> = ({
     <ContextWrapper>
       <InnerPageWrapper>
         <div className="pt-16 sm:pt-14 lg:pt-16 bg-[#0a0a0a] min-h-screen">
-          <div className="container pb-4">
-            <div className="mt-4 mb-1 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="pr-0 lg:pr-6">
-                <h1 className="text-[30px] sm:text-2xl lg:text-2xl leading-[0.95] font-black uppercase italic text-white tracking-tight">
+
+          {/* ENCABEZADO PRINCIPAL */}
+          <section className="container pt-5 pb-5">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+              <div className="min-w-0">
+                <h1 className="text-[26px] sm:text-3xl font-black uppercase italic tracking-tight text-white">
                   {origenNombre ? (
                     <>
                       Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      <span className="text-[#00eeff]">
                         {origenNombre}
                       </span>
                     </>
                   ) : activeUniversoId ? (
                     <>
                       Explora:{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      <span className="text-[#00eeff]">
                         {meta.title?.replace("Explorar: ", "")}
                       </span>
                     </>
                   ) : discoveryMode ? (
                     <>
-                      Explora por{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
-                        universos
+                      Explora{" "}
+                      <span className="text-[#00eeff]">
+                        nuestro universo
                       </span>
                     </>
                   ) : (
                     <>
                       Todos los{" "}
-                      <span className="text-[#00eeff] drop-shadow-[0_0_12px_rgba(0,238,255,0.35)]">
+                      <span className="text-[#00eeff]">
                         personajes
                       </span>
                     </>
                   )}
                 </h1>
 
-                <p className="text-[20px] md:text-sm text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
+                <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-[0.18em] mt-3 font-bold">
                   {countDescription}
                 </p>
               </div>
 
-              <div className="w-full mt-5 sm:mt-6 lg:mt-0 flex flex-wrap items-center justify-start lg:w-auto lg:justify-end gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {productModeToggleHref && (
                   <a
                     href={productModeToggleHref}
                     title={currentModeBadge}
-                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.22em] font-black text-[10px] ${
+                    className={`inline-flex items-center justify-center px-4 py-2.5 rounded-full border transition uppercase tracking-[0.18em] font-black text-[10px] ${
                       productMode === "cosplay"
-                        ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/14 shadow-[0_0_22px_rgba(0,238,255,0.22)] hover:bg-[#00eeff]/22 hover:text-white"
+                        ? "border-[#00eeff] text-[#00eeff] bg-[#00eeff]/10"
                         : productMode === "figura"
-                          ? "border-red-500/60 text-red-400 bg-red-500/12 shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:bg-red-500/20 hover:text-white"
-                          : "border-[#00eeff]/40 text-[#00eeff] bg-[#00eeff]/8 hover:bg-[#00eeff]/14 hover:border-[#00eeff] hover:text-white"
+                          ? "border-red-500/60 text-red-400 bg-red-500/10"
+                          : "border-[#00eeff]/40 text-[#00eeff] hover:bg-[#00eeff]/10"
                     }`}
                   >
                     {productModeLabel}
@@ -250,7 +221,7 @@ const NewPageWrapper: React.FC<Props> = ({
                 {clearFilterHref && (
                   <a
                     href={clearFilterHref}
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.22em] font-black text-[10px] bg-white/5 hover:bg-white/10"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition uppercase tracking-[0.18em] font-black text-[10px] bg-white/5"
                   >
                     Quitar filtro
                   </a>
@@ -259,20 +230,40 @@ const NewPageWrapper: React.FC<Props> = ({
                 {!discoveryMode && (
                   <a
                     href="/explorar"
-                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/20 text-white/80 hover:text-white hover:border-white/50 transition uppercase tracking-[0.18em] font-black text-[10px]"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-full border border-white/20 text-white/80 hover:text-white transition uppercase tracking-[0.18em] font-black text-[10px]"
                   >
                     Volver a descubrir
                   </a>
                 )}
               </div>
             </div>
-          </div>
 
-          <UniverseRail
-            items={universes}
-            activeUniversoId={activeUniversoId}
-          />
+            {/* BUSCADOR PRINCIPAL */}
+            {discoveryMode && (
+              <div className="mt-7 max-w-3xl mx-auto">
+                <CharacterSearchD1 />
+              </div>
+            )}
+          </section>
 
+          {/* NAVEGACION POR UNIVERSOS */}
+          <section className="mt-3">
+            <div className="container mb-4">
+              <h2 className="text-white text-sm sm:text-base font-black uppercase italic tracking-wide">
+                Explora por{" "}
+                <span className="text-[#00eeff]">
+                  universos
+                </span>
+              </h2>
+            </div>
+
+            <UniverseRail
+              items={universes}
+              activeUniversoId={activeUniversoId}
+            />
+          </section>
+
+          {/* FRANQUICIAS */}
           {origins.length > 0 && (
             <OriginsBar
               items={origins}
@@ -286,53 +277,55 @@ const NewPageWrapper: React.FC<Props> = ({
             />
           )}
 
-          <div className="flex flex-col gap-4 relative z-0 mt-[20px]">
-            
-{discoveryMode && (
-  <div className="container py-5">
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-5 items-start">
-      <div>
-        <h2 className="text-white text-lg font-black uppercase italic">
-          Descubre personajes
-        </h2>
+          {/* DESCUBRIMIENTO / CATALOGO */}
+          <section className="relative z-0 mt-7">
+            <div className="container mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-white text-lg font-black uppercase italic">
+                  {discoveryMode
+                    ? "Descubre personajes"
+                    : "Personajes disponibles"}
+                </h2>
 
-        <p className="text-zinc-500 text-xs mt-2">
-          Explora una selección diaria o encuentra directamente
-          tus personajes favoritos.
-        </p>
-      </div>
+                <p className="text-zinc-500 text-xs mt-2">
+                  {discoveryMode
+                    ? "Una selección diferente cada día."
+                    : countDescription}
+                </p>
+              </div>
 
-      <CharacterSearchD1 />
-
-      <a
-        href="/explorar?todos=1"
-        className="inline-flex items-center justify-center rounded-full border border-[#00eeff]/50 px-5 py-3 text-xs font-black uppercase tracking-widest text-[#00eeff] hover:bg-[#00eeff]/10 transition whitespace-nowrap"
-      >
-        Ver todos los personajes →
-      </a>
-    </div>
-  </div>
-)}
-
+              {discoveryMode && (
+                <a
+                  href="/explorar?todos=1"
+                  className="inline-flex items-center justify-center rounded-full border border-[#00eeff]/50 px-5 py-3 text-xs font-black uppercase tracking-widest text-[#00eeff] hover:bg-[#00eeff]/10 transition whitespace-nowrap"
+                >
+                  Ver todos los personajes →
+                </a>
+              )}
+            </div>
 
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
             ) : (
-              <div className="text-center py-20 text-zinc-700 uppercase font-black">
+              <div className="text-center py-20 text-zinc-600 uppercase font-black">
                 No hay personajes vinculados aún
               </div>
             )}
-          </div>
+          </section>
 
+          {/* PAGINACION COMPLETA */}
           {!discoveryMode && totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-10 pb-10 flex-wrap">
+            <nav
+              aria-label="Paginación de personajes"
+              className="flex justify-center items-center gap-2 mt-10 pb-16 flex-wrap"
+            >
               <a
                 href={
                   currentPage > 1
                     ? buildPageHref(currentPage - 1)
                     : "#"
                 }
-                className={`px-3 py-1 text-xs md:text-sm rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
+                className={`px-3 py-2 text-xs rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
                   currentPage === 1
                     ? "opacity-40 pointer-events-none"
                     : ""
@@ -349,7 +342,7 @@ const NewPageWrapper: React.FC<Props> = ({
                     key={page}
                     href={buildPageHref(page)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`w-8 h-8 text-xs md:text-sm rounded-full border transition flex items-center justify-center ${
+                    className={`w-9 h-9 text-xs rounded-full border transition flex items-center justify-center ${
                       isActive
                         ? "bg-red-600 border-red-500 text-white font-bold"
                         : "border-white/10 text-white/70 hover:border-white/40 hover:text-white"
@@ -366,7 +359,7 @@ const NewPageWrapper: React.FC<Props> = ({
                     ? buildPageHref(currentPage + 1)
                     : "#"
                 }
-                className={`px-3 py-1 text-xs md:text-sm rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
+                className={`px-3 py-2 text-xs rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/40 transition ${
                   currentPage === totalPages
                     ? "opacity-40 pointer-events-none"
                     : ""
@@ -374,14 +367,10 @@ const NewPageWrapper: React.FC<Props> = ({
               >
                 Siguiente
               </a>
-            </div>
+            </nav>
           )}
 
-          <div className="mt-24 mb-32 px-4 sm:px-6 bg-[#0a0a0a]">
-            <div className="max-w-6xl mx-auto rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.6)]">
-              <CharacterExplorerLite items={explorerItems} />
-            </div>
-          </div>
+          <div className="h-16" />
         </div>
       </InnerPageWrapper>
     </ContextWrapper>
