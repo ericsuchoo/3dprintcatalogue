@@ -1,3 +1,4 @@
+
 ---
 import Layout from "../layouts/Layout.astro";
 import NewPageWrapper from "../components/home-page/PageWrapperfil";
@@ -61,17 +62,7 @@ const db = Astro.locals.runtime.env.DB as any;
 const universoId = Astro.url.searchParams.get("universoId");
 const origenId = Astro.url.searchParams.get("origenId");
 const tipoProductoParam = Astro.url.searchParams.get("tipoProducto");
-
-const requestedPageRaw = Number(
-  Astro.url.searchParams.get("page") || "1"
-);
-
-const requestedPage =
-  Number.isInteger(requestedPageRaw) && requestedPageRaw > 0
-    ? requestedPageRaw
-    : 1;
-
-const ITEMS_PER_PAGE = 24;
+const verTodos = Astro.url.searchParams.get("todos") === "1";
 
 const productMode: ProductMode =
   tipoProductoParam === "cosplay"
@@ -79,6 +70,24 @@ const productMode: ProductMode =
     : tipoProductoParam === "figura"
       ? "figura"
       : "all";
+
+const discoveryMode =
+  !verTodos &&
+  !universoId &&
+  !origenId &&
+  productMode === "all";
+
+const ITEMS_PER_PAGE = 24;
+const DISCOVERY_ITEMS = 10;
+
+const requestedPageRaw = Number(
+  Astro.url.searchParams.get("page") || "1"
+);
+
+const requestedPage =
+  Number.isSafeInteger(requestedPageRaw) && requestedPageRaw > 0
+    ? requestedPageRaw
+    : 1;
 
 let categories: CategoryCard[] = [];
 let universos: UniverseCard[] = [];
@@ -95,6 +104,7 @@ const buildExploreUrl = (next: {
   universoId?: string | null;
   origenId?: string | null;
   tipoProducto?: ProductMode | null;
+  todos?: boolean;
   page?: number | null;
 }) => {
   const params = new URLSearchParams();
@@ -111,12 +121,15 @@ const buildExploreUrl = (next: {
     params.set("tipoProducto", next.tipoProducto);
   }
 
+  if (next.todos) {
+    params.set("todos", "1");
+  }
+
   if (next.page && next.page > 1) {
     params.set("page", String(next.page));
   }
 
   const query = params.toString();
-
   return `/explorar${query ? `?${query}` : ""}`;
 };
 
@@ -131,6 +144,7 @@ const productModeToggleHref = buildExploreUrl({
   universoId,
   origenId,
   tipoProducto: nextProductMode,
+  todos: verTodos,
   page: 1,
 });
 
@@ -168,10 +182,7 @@ if (!db) {
 
   const universosRes = await db
     .prepare(`
-      SELECT
-        id_universo,
-        nombre_universo,
-        img_universo
+      SELECT id_universo, nombre_universo, img_universo
       FROM universos
       ORDER BY nombre_universo ASC
     `)
@@ -185,10 +196,6 @@ if (!db) {
     imageUrl: u.img_universo ?? null,
   }));
 
-  /*
-   * Reutilizamos las listas que acabamos de cargar.
-   * No hacemos otra consulta D1 para resolver nombres.
-   */
   if (universoId) {
     universoNombre =
       universosRows.find(
@@ -204,11 +211,11 @@ if (!db) {
   }
 
   /* ========================= */
-  /* PERSONAJES PAGINADOS     */
+  /* FILTROS DE PERSONAJES    */
   /* ========================= */
 
   const whereClauses: string[] = [];
-  const params: any[] = [];
+  const params: (string | number)[] = [];
 
   let joinOrigen = "";
 
@@ -218,12 +225,12 @@ if (!db) {
         ON pe.id_personaje = p.id_personaje
     `;
 
-    whereClauses.push(`pe.id_etiqueta = ?`);
+    whereClauses.push("pe.id_etiqueta = ?");
     params.push(origenId);
   }
 
   if (universoId) {
-    whereClauses.push(`p.id_universo = ?`);
+    whereClauses.push("p.id_universo = ?");
     params.push(universoId);
   }
 
@@ -254,106 +261,93 @@ if (!db) {
     : "";
 
   /* ========================= */
-  /* TOTAL REAL               */
+  /* CONTEO Y PAGINACION      */
   /* ========================= */
 
-  const countSql = `
-    SELECT
-      COUNT(DISTINCT p.id_personaje) AS total
-    FROM personajes p
-    ${joinOrigen}
-    ${whereSql}
-  `;
+  if (!discoveryMode) {
+    const countSql = `
+      SELECT
+        ${
+          origenId
+            ? "COUNT(DISTINCT p.id_personaje)"
+            : "COUNT(*)"
+        } AS total
+      FROM personajes p
+      ${joinOrigen}
+      ${whereSql}
+    `;
 
-  const countRes = params.length
-    ? await db
-        .prepare(countSql)
-        .bind(...params)
-        .first()
-    : await db
-        .prepare(countSql)
-        .first();
+    const countRes = params.length
+      ? await db.prepare(countSql).bind(...params).first()
+      : await db.prepare(countSql).first();
 
-  totalCharacters = Number((countRes as any)?.total || 0);
+    totalCharacters = Number((countRes as any)?.total || 0);
 
-  totalPages = Math.max(
-    1,
-    Math.ceil(totalCharacters / ITEMS_PER_PAGE)
-  );
+    totalPages = Math.max(
+      1,
+      Math.ceil(totalCharacters / ITEMS_PER_PAGE)
+    );
 
-  currentPage = Math.min(
-    requestedPage,
-    totalPages
-  );
+    currentPage = Math.min(requestedPage, totalPages);
+  }
 
-  const offset =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+  const pageLimit = discoveryMode
+    ? DISCOVERY_ITEMS
+    : ITEMS_PER_PAGE;
+
+  const offset = discoveryMode
+    ? 0
+    : (currentPage - 1) * ITEMS_PER_PAGE;
 
   /* ========================= */
-  /* PÁGINA ACTUAL            */
+  /* PERSONAJES DE LA PAGINA  */
   /* ========================= */
 
-const sql = `
-  SELECT
-    p.id_personaje,
-    p.nombre_personaje,
-    p.id_universo,
-
-    (
-      SELECT pi.url
-      FROM personajes_imagenes pi
-      WHERE pi.id_personaje = p.id_personaje
-      ORDER BY
-        pi.es_principal DESC,
-        pi.orden ASC
-      LIMIT 1
-    ) AS img_personaje,
-
-    (
-      SELECT COUNT(*)
-      FROM productos pr
-      WHERE pr.id_personaje = p.id_personaje
-
-      ${
-        productMode === "cosplay"
-          ? `AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL`
-          : productMode === "figura"
-            ? `AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL`
-            : ""
-      }
-    ) AS productsCount
-
-  FROM (
+  const sql = `
     SELECT
       p.id_personaje,
       p.nombre_personaje,
-      p.id_universo
+      p.id_universo,
 
-    FROM personajes p
+      (
+        SELECT pi.url
+        FROM personajes_imagenes pi
+        WHERE pi.id_personaje = p.id_personaje
+        ORDER BY pi.es_principal DESC, pi.orden ASC
+        LIMIT 1
+      ) AS img_personaje,
 
-    ${joinOrigen}
+      (
+        SELECT COUNT(*)
+        FROM productos pr
+        WHERE pr.id_personaje = p.id_personaje
+        ${
+          productMode === "cosplay"
+            ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL"
+            : productMode === "figura"
+              ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL"
+              : ""
+        }
+      ) AS productsCount
 
-    ${whereSql}
-
-    GROUP BY p.id_personaje
+    FROM (
+      SELECT
+        p.id_personaje,
+        p.nombre_personaje,
+        p.id_universo
+      FROM personajes p
+      ${joinOrigen}
+      ${whereSql}
+      ORDER BY p.nombre_personaje ASC
+      LIMIT ? OFFSET ?
+    ) p
 
     ORDER BY p.nombre_personaje ASC
-
-    LIMIT ? OFFSET ?
-  ) p
-
-  ORDER BY p.nombre_personaje ASC
-`;
-
-  const personajesParams = [
-    ...params,
-    ITEMS_PER_PAGE,
-    offset,
-  ];
+  `;
 
   const personajesRes = await db
     .prepare(sql)
-    .bind(...personajesParams)
+    .bind(...params, pageLimit, offset)
     .all();
 
   const personajes =
@@ -362,23 +356,13 @@ const sql = `
   categories = personajes.map((p) => ({
     meta: {
       id_personaje: p.id_personaje,
-
       title: p.nombre_personaje,
-
       slug: slugify(p.nombre_personaje),
-
-      /*
-       * La card solo necesita una imagen.
-       * Ya no enviamos la galería completa.
-       */
       gallery: p.img_personaje
         ? [{ url: p.img_personaje }]
         : [],
     },
-
-    productsCount: Number(
-      p.productsCount || 0
-    ),
+    productsCount: Number(p.productsCount || 0),
   }));
 }
 
@@ -387,7 +371,9 @@ const meta = {
     ? `Explorar: ${origenNombre}`
     : universoNombre
       ? `Explorar: ${universoNombre}`
-      : "Explorar Personajes",
+      : discoveryMode
+        ? "Descubre personajes"
+        : "Explorar Personajes",
 };
 ---
 
@@ -408,5 +394,7 @@ const meta = {
     totalPages={totalPages}
     totalCharacters={totalCharacters}
     itemsPerPage={ITEMS_PER_PAGE}
+    discoveryMode={discoveryMode}
+    allCharactersMode={verTodos}
   />
 </Layout>
