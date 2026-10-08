@@ -1,6 +1,6 @@
 
 import React, { useMemo } from "react";
-
+import { CharacterSearchD1 } from "./CharacterSearchD1";
 import ContextWrapper from "../ContextWrapper";
 import InnerPageWrapper from "../InnnerPageWrapper";
 
@@ -287,25 +287,33 @@ const NewPageWrapper: React.FC<Props> = ({
           )}
 
           <div className="flex flex-col gap-4 relative z-0 mt-[20px]">
-            {discoveryMode && (
-              <div className="container flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-3">
-                <div>
-                  <h2 className="text-white text-lg font-black uppercase italic">
-                    Descubre personajes
-                  </h2>
-                  <p className="text-zinc-500 text-xs mt-1">
-                    Explora una pequeña selección o navega el catálogo completo.
-                  </p>
-                </div>
+            
+{discoveryMode && (
+  <div className="container py-5">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-5 items-start">
+      <div>
+        <h2 className="text-white text-lg font-black uppercase italic">
+          Descubre personajes
+        </h2>
 
-                <a
-                  href="/explorar?todos=1"
-                  className="inline-flex items-center justify-center rounded-full border border-[#00eeff]/50 px-5 py-3 text-xs font-black uppercase tracking-widest text-[#00eeff] hover:bg-[#00eeff]/10 transition"
-                >
-                  Ver todos los personajes →
-                </a>
-              </div>
-            )}
+        <p className="text-zinc-500 text-xs mt-2">
+          Explora una selección diaria o encuentra directamente
+          tus personajes favoritos.
+        </p>
+      </div>
+
+      <CharacterSearchD1 />
+
+      <a
+        href="/explorar?todos=1"
+        className="inline-flex items-center justify-center rounded-full border border-[#00eeff]/50 px-5 py-3 text-xs font-black uppercase tracking-widest text-[#00eeff] hover:bg-[#00eeff]/10 transition whitespace-nowrap"
+      >
+        Ver todos los personajes →
+      </a>
+    </div>
+  </div>
+)}
+
 
             {pageCategories.length > 0 ? (
               <CategoriesMini data={pageCategories} />
@@ -369,7 +377,6 @@ const NewPageWrapper: React.FC<Props> = ({
             </div>
           )}
 
-          {/* Buscador provisional hasta la fase 3 */}
           <div className="mt-24 mb-32 px-4 sm:px-6 bg-[#0a0a0a]">
             <div className="max-w-6xl mx-auto rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 sm:p-8 shadow-[0_0_40px_rgba(0,0,0,0.6)]">
               <CharacterExplorerLite items={explorerItems} />
