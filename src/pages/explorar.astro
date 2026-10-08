@@ -291,19 +291,68 @@ if (!db) {
     currentPage = Math.min(requestedPage, totalPages);
   }
 
-  const pageLimit = discoveryMode
-    ? DISCOVERY_ITEMS
-    : ITEMS_PER_PAGE;
-
-  const offset = discoveryMode
-    ? 0
-    : (currentPage - 1) * ITEMS_PER_PAGE;
-
   /* ========================= */
-  /* PERSONAJES DE LA PAGINA  */
+  /* ROTACION DIARIA          */
   /* ========================= */
 
-  const sql = `
+  /*
+   * Un mismo día UTC produce el mismo inicio.
+   * La selección avanza diez posiciones por día.
+   *
+   * No usamos ORDER BY RANDOM().
+   * No ejecutamos COUNT(*) en descubrimiento.
+   * No creamos tablas ni modificamos índices.
+   */
+
+  const dayNumber = Math.floor(Date.now() / 86400000);
+
+  /*
+   * Usamos el mayor ID existente para elegir
+   * un punto de inicio variable.
+   *
+   * MAX(id_personaje) se puede resolver
+   * eficientemente mediante la clave primaria.
+   */
+  let dailyStartId = 0;
+
+  if (discoveryMode) {
+    const maxRes = await db
+      .prepare(`
+        SELECT MAX(id_personaje) AS max_id
+        FROM personajes
+      `)
+      .first();
+
+    const maxId = Number((maxRes as any)?.max_id || 0);
+
+    if (maxId > 0) {
+      dailyStartId =
+        ((dayNumber * DISCOVERY_ITEMS) % maxId) + 1;
+    }
+  }
+
+  /* ========================= */
+  /* CONSULTA DE PERSONAJES   */
+  /* ========================= */
+
+  /*
+   * Descubrimiento:
+   * recupera hasta diez personajes desde
+   * el ID diario y continúa desde el inicio
+   * si llega al final.
+   *
+   * Catálogo:
+   * mantiene las 24 tarjetas paginadas.
+   */
+
+  const productCountFilter =
+    productMode === "cosplay"
+      ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL"
+      : productMode === "figura"
+        ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL"
+        : "";
+
+  const enrichSql = (selectionSql: string) => `
     SELECT
       p.id_personaje,
       p.nombre_personaje,
@@ -321,16 +370,64 @@ if (!db) {
         SELECT COUNT(*)
         FROM productos pr
         WHERE pr.id_personaje = p.id_personaje
-        ${
-          productMode === "cosplay"
-            ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NOT NULL"
-            : productMode === "figura"
-              ? "AND NULLIF(TRIM(pr.tipo_cosplay), '') IS NULL"
-              : ""
-        }
+        ${productCountFilter}
       ) AS productsCount
 
     FROM (
+      ${selectionSql}
+    ) p
+  `;
+
+  let personajes: PersonajeRow[] = [];
+
+  if (discoveryMode) {
+    const discoverySelection = `
+      SELECT
+        id_personaje,
+        nombre_personaje,
+        id_universo
+      FROM personajes
+      WHERE id_personaje >= ?
+      ORDER BY id_personaje ASC
+      LIMIT ?
+    `;
+
+    const firstRes = await db
+      .prepare(enrichSql(discoverySelection))
+      .bind(dailyStartId, DISCOVERY_ITEMS)
+      .all();
+
+    personajes = (firstRes?.results || []) as PersonajeRow[];
+
+    /*
+     * Si quedan menos de diez al final,
+     * completamos desde el primer ID.
+     */
+    if (personajes.length < DISCOVERY_ITEMS) {
+      const remaining = DISCOVERY_ITEMS - personajes.length;
+
+      const wrapSelection = `
+        SELECT
+          id_personaje,
+          nombre_personaje,
+          id_universo
+        FROM personajes
+        WHERE id_personaje < ?
+        ORDER BY id_personaje ASC
+        LIMIT ?
+      `;
+
+      const wrapRes = await db
+        .prepare(enrichSql(wrapSelection))
+        .bind(dailyStartId, remaining)
+        .all();
+
+      personajes.push(
+        ...((wrapRes?.results || []) as PersonajeRow[])
+      );
+    }
+  } else {
+    const pageSql = enrichSql(`
       SELECT
         p.id_personaje,
         p.nombre_personaje,
@@ -340,18 +437,18 @@ if (!db) {
       ${whereSql}
       ORDER BY p.nombre_personaje ASC
       LIMIT ? OFFSET ?
-    ) p
+    `);
 
-    ORDER BY p.nombre_personaje ASC
-  `;
+    const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const personajesRes = await db
-    .prepare(sql)
-    .bind(...params, pageLimit, offset)
-    .all();
+    const personajesRes = await db
+      .prepare(pageSql + " ORDER BY p.nombre_personaje ASC")
+      .bind(...params, ITEMS_PER_PAGE, offset)
+      .all();
 
-  const personajes =
-    (personajesRes?.results || []) as PersonajeRow[];
+    personajes =
+      (personajesRes?.results || []) as PersonajeRow[];
+  }
 
   categories = personajes.map((p) => ({
     meta: {
