@@ -1,10 +1,12 @@
+
 ---
 import Layout from "../../layouts/Layout.astro";
 import ProductsPageWrapper from "../../components/shop/products/PageWrapper";
 
-// --------------------
-// Tipos D1
-// --------------------
+/* =========================================
+   TIPOS D1
+========================================= */
+
 type ProductoRow = {
   id_producto: number | string;
   nombre_producto: string;
@@ -26,7 +28,6 @@ type ProductoRow = {
 type PersonajeRow = {
   id_personaje: number | string;
   nombre_personaje: string;
-  id_universo: number | string | null;
 };
 
 type UniversoRow = {
@@ -39,8 +40,15 @@ type ProveedorRow = {
   nombre_proveedor: string;
 };
 
-function slugify(s: string) {
-  return s
+type SortMode = "newest" | "price_asc" | "price_desc";
+type ProductMode = "cosplay" | "figura" | null;
+
+/* =========================================
+   UTILIDADES
+========================================= */
+
+function slugify(value: string) {
+  return value
     .toString()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -51,59 +59,96 @@ function slugify(s: string) {
     .replace(/--+/g, "-");
 }
 
-function parsePositiveInt(value: string | null) {
+function parsePositiveInt(value: string | null): number | null {
   if (!value) return null;
-  const num = Number(value);
-  if (!Number.isInteger(num) || num <= 0) return null;
-  return num;
+
+  const number = Number(value);
+
+  return Number.isSafeInteger(number) && number > 0
+    ? number
+    : null;
 }
 
-function normalizeSort(value: string | null) {
-  const allowed = ["newest", "price_asc", "price_desc"] as const;
-  if (value && allowed.includes(value as any)) return value as (typeof allowed)[number];
+function normalizeSort(value: string | null): SortMode {
+  if (value === "price_asc" || value === "price_desc") {
+    return value;
+  }
+
   return "newest";
 }
 
+/* =========================================
+   D1 Y PARÁMETROS
+========================================= */
+
 const db = Astro.locals.runtime.env.DB as any;
 
-// --------------------
-// Query params
-// --------------------
-const personajeId = parsePositiveInt(Astro.url.searchParams.get("personajeId"));
-const universoId = parsePositiveInt(Astro.url.searchParams.get("universoId"));
-const proveedorId = parsePositiveInt(Astro.url.searchParams.get("proveedorId"));
-const requestedPage = parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
-const sort = normalizeSort(Astro.url.searchParams.get("sort"));
-const tipoProductoParam = Astro.url.searchParams.get("tipoProducto")?.trim() || null;
+const personajeId = parsePositiveInt(
+  Astro.url.searchParams.get("personajeId")
+);
 
-const tipoProducto =
-  tipoProductoParam === "cosplay" || tipoProductoParam === "figura"
+const universoId = parsePositiveInt(
+  Astro.url.searchParams.get("universoId")
+);
+
+const proveedorId = parsePositiveInt(
+  Astro.url.searchParams.get("proveedorId")
+);
+
+const requestedPage =
+  parsePositiveInt(Astro.url.searchParams.get("page")) ?? 1;
+
+const sort = normalizeSort(
+  Astro.url.searchParams.get("sort")
+);
+
+const tipoProductoParam =
+  Astro.url.searchParams.get("tipoProducto")?.trim() || null;
+
+const tipoProducto: ProductMode =
+  tipoProductoParam === "cosplay" ||
+  tipoProductoParam === "figura"
     ? tipoProductoParam
     : null;
 
-const personajeQuery = Astro.url.searchParams.get("personaje")?.trim() || null;
-const personajeNombreParam = Astro.url.searchParams.get("characterName")?.trim() || null;
+const personajeQuery =
+  Astro.url.searchParams.get("personaje")?.trim() || null;
+
+const personajeNombreParam =
+  Astro.url.searchParams.get("characterName")?.trim() || null;
 
 const ITEMS_PER_PAGE = 30;
+
+/* =========================================
+   ESTADO DE PÁGINA
+========================================= */
+
+let resolvedPersonajeId = personajeId;
 
 let personajeNombre: string | null = null;
 let universoNombre: string | null = null;
 let proveedorNombre: string | null = null;
 
+let totalProducts = 0;
+let productos: ProductoRow[] = [];
+
+let universos: UniversoRow[] = [];
+let proveedores: ProveedorRow[] = [];
+
 if (!db) {
-  console.warn("[shop] DB binding no disponible. Revisa wrangler.toml/bindings.");
+  console.warn("[shop] DB binding no disponible.");
 }
 
-
-// --------------------
-// 0) Resolver personaje si viene por nombre
-// --------------------
-let resolvedPersonajeId = personajeId;
+/* =========================================
+   1. RESOLVER PERSONAJE POR NOMBRE
+========================================= */
 
 if (db && !resolvedPersonajeId && personajeQuery) {
-  const row = await db
+  const exactRow = await db
     .prepare(`
-      SELECT id_personaje, nombre_personaje
+      SELECT
+        id_personaje,
+        nombre_personaje
       FROM personajes
       WHERE LOWER(nombre_personaje) = LOWER(?)
       LIMIT 1
@@ -111,13 +156,19 @@ if (db && !resolvedPersonajeId && personajeQuery) {
     .bind(personajeQuery)
     .first();
 
-  if (row) {
-    resolvedPersonajeId = Number((row as PersonajeRow).id_personaje);
-    personajeNombre = (row as PersonajeRow).nombre_personaje ?? null;
+  if (exactRow) {
+    resolvedPersonajeId = Number(
+      (exactRow as PersonajeRow).id_personaje
+    );
+
+    personajeNombre =
+      (exactRow as PersonajeRow).nombre_personaje;
   } else {
     const likeRow = await db
       .prepare(`
-        SELECT id_personaje, nombre_personaje
+        SELECT
+          id_personaje,
+          nombre_personaje
         FROM personajes
         WHERE LOWER(nombre_personaje) LIKE LOWER(?)
         ORDER BY nombre_personaje ASC
@@ -127,84 +178,153 @@ if (db && !resolvedPersonajeId && personajeQuery) {
       .first();
 
     if (likeRow) {
-      resolvedPersonajeId = Number((likeRow as PersonajeRow).id_personaje);
-      personajeNombre = (likeRow as PersonajeRow).nombre_personaje ?? null;
+      resolvedPersonajeId = Number(
+        (likeRow as PersonajeRow).id_personaje
+      );
+
+      personajeNombre =
+        (likeRow as PersonajeRow).nombre_personaje;
     }
   }
+}
+
+/* =========================================
+   2. RESOLVER NOMBRE DEL PERSONAJE
+========================================= */
+
+/*
+ * Antes cargábamos los 1,027 personajes
+ * para obtener también el nombre seleccionado.
+ *
+ * Ahora consultamos solamente el personaje
+ * que realmente se está visitando.
+ */
+
+if (db && resolvedPersonajeId && !personajeNombre) {
+  const personajeRes = await db
+    .prepare(`
+      SELECT nombre_personaje
+      FROM personajes
+      WHERE id_personaje = ?
+      LIMIT 1
+    `)
+    .bind(resolvedPersonajeId)
+    .first();
+
+  personajeNombre =
+    (personajeRes as { nombre_personaje?: string } | null)
+      ?.nombre_personaje ?? null;
 }
 
 if (!personajeNombre && personajeNombreParam) {
   personajeNombre = personajeNombreParam;
 }
 
+/* =========================================
+   3. FILTROS DINÁMICOS
+========================================= */
 
-// --------------------
-// 2) WHERE dinámico
-// --------------------
 const whereClauses: string[] = [];
-const whereParams: any[] = [];
+const whereParams: (string | number)[] = [];
 
 if (resolvedPersonajeId) {
-  whereClauses.push(`p.id_personaje = ?`);
+  whereClauses.push("p.id_personaje = ?");
   whereParams.push(resolvedPersonajeId);
 }
 
 if (universoId) {
-  whereClauses.push(`p.id_universo = ?`);
+  whereClauses.push("p.id_universo = ?");
   whereParams.push(universoId);
 }
 
 if (proveedorId) {
-  whereClauses.push(`p.id_proveedor = ?`);
+  whereClauses.push("p.id_proveedor = ?");
   whereParams.push(proveedorId);
 }
+
 if (tipoProducto === "cosplay") {
-  whereClauses.push(`NULLIF(TRIM(p.tipo_cosplay), '') IS NOT NULL`);
+  whereClauses.push(`
+    NULLIF(TRIM(p.tipo_cosplay), '') IS NOT NULL
+  `);
 }
 
 if (tipoProducto === "figura") {
-  whereClauses.push(`NULLIF(TRIM(p.tipo_cosplay), '') IS NULL`);
+  whereClauses.push(`
+    NULLIF(TRIM(p.tipo_cosplay), '') IS NULL
+  `);
 }
-const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-// --------------------
-// 3) ORDER dinámico
-// --------------------
-let orderSql = `ORDER BY COALESCE(p.fecha_modifica, p.fecha_creacion) DESC, p.id_producto DESC`;
+const whereSql = whereClauses.length
+  ? `WHERE ${whereClauses.join(" AND ")}`
+  : "";
+
+/* =========================================
+   4. ORDENAMIENTO
+========================================= */
+
+let orderSql = `
+  ORDER BY
+    COALESCE(p.fecha_modifica, p.fecha_creacion) DESC,
+    p.id_producto DESC
+`;
 
 if (sort === "price_asc") {
-  orderSql = `ORDER BY COALESCE(p.precio, 0) ASC, p.id_producto DESC`;
-} else if (sort === "price_desc") {
-  orderSql = `ORDER BY COALESCE(p.precio, 0) DESC, p.id_producto DESC`;
+  orderSql = `
+    ORDER BY
+      COALESCE(p.precio, 0) ASC,
+      p.id_producto DESC
+  `;
 }
 
-// --------------------
-// 4) Conteo real
-// --------------------
-let totalProducts = 0;
+if (sort === "price_desc") {
+  orderSql = `
+    ORDER BY
+      COALESCE(p.precio, 0) DESC,
+      p.id_producto DESC
+  `;
+}
+
+/* =========================================
+   5. CONTEO DE PRODUCTOS
+========================================= */
 
 if (db) {
   const countSql = `
-    SELECT COUNT(*) as total
+    SELECT COUNT(*) AS total
     FROM productos p
     ${whereSql}
   `;
 
   const countRes = whereParams.length
-    ? await db.prepare(countSql).bind(...whereParams).first()
-    : await db.prepare(countSql).first();
+    ? await db
+        .prepare(countSql)
+        .bind(...whereParams)
+        .first()
+    : await db
+        .prepare(countSql)
+        .first();
 
-  totalProducts = Number((countRes as any)?.total || 0);
+  totalProducts = Number(
+    (countRes as { total?: number } | null)?.total ?? 0
+  );
 }
 
-const totalPages = Math.max(1, Math.ceil(totalProducts / ITEMS_PER_PAGE));
-const currentPage = Math.min(requestedPage, totalPages);
-const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+const totalPages = Math.max(
+  1,
+  Math.ceil(totalProducts / ITEMS_PER_PAGE)
+);
 
-// --------------------
-// 5) Productos paginados
-// --------------------
-let productos: ProductoRow[] = [];
+const currentPage = Math.min(
+  requestedPage,
+  totalPages
+);
+
+const offset =
+  (currentPage - 1) * ITEMS_PER_PAGE;
+
+/* =========================================
+   6. PRODUCTOS PAGINADOS
+========================================= */
 
 if (db) {
   const sql = `
@@ -223,168 +343,168 @@ if (db) {
       p.id_personaje,
       p.fecha_creacion,
       p.fecha_modifica,
+
       (
         SELECT e.nombre_etiqueta
         FROM productos_etiquetas pe
-        INNER JOIN etiquetas e ON e.id_etiqueta = pe.id_etiqueta
+        INNER JOIN etiquetas e
+          ON e.id_etiqueta = pe.id_etiqueta
         WHERE pe.id_producto = p.id_producto
         ORDER BY
-          CAST(COALESCE(pe.prioridad, e.prioridad, '9999') AS INTEGER) ASC,
+          CAST(
+            COALESCE(
+              pe.prioridad,
+              e.prioridad,
+              '9999'
+            ) AS INTEGER
+          ) ASC,
           e.nombre_etiqueta ASC
         LIMIT 1
-      ) as nombre_etiqueta
+      ) AS nombre_etiqueta
+
     FROM productos p
+
     ${whereSql}
+
     ${orderSql}
+
     LIMIT ? OFFSET ?
   `;
 
-  const params = [...whereParams, ITEMS_PER_PAGE, offset];
-  const res = await db.prepare(sql).bind(...params).all();
+  const params = [
+    ...whereParams,
+    ITEMS_PER_PAGE,
+    offset,
+  ];
+
+  const res = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
+
   productos = (res?.results || []) as ProductoRow[];
 }
 
-// --------------------
-// 6) Filtros D1
-// --------------------
-let personajes: PersonajeRow[] = [];
-let universos: UniversoRow[] = [];
-let proveedores: ProveedorRow[] = [];
+/* =========================================
+   7. UNIVERSOS Y PROVEEDORES
+========================================= */
+
+/*
+ * Conservamos estas listas porque son
+ * necesarias para los filtros y suelen
+ * tener pocos registros.
+ *
+ * Eliminamos la consulta completa a
+ * personajes y personajes_etiquetas.
+ */
 
 if (db) {
-  const [personajesRes, universosRes, proveedoresRes] = await Promise.all([
-    db.prepare(`
-      SELECT id_personaje, nombre_personaje, id_universo
-      FROM personajes
-      ORDER BY nombre_personaje ASC
-    `).all(),
+  const [universosRes, proveedoresRes] =
+    await Promise.all([
+      db
+        .prepare(`
+          SELECT id_universo, nombre_universo
+          FROM universos
+          ORDER BY nombre_universo ASC
+        `)
+        .all(),
 
-    db.prepare(`
-      SELECT id_universo, nombre_universo
-      FROM universos
-      ORDER BY nombre_universo ASC
-    `).all(),
+      db
+        .prepare(`
+          SELECT id_proveedor, nombre_proveedor
+          FROM proveedores
+          ORDER BY nombre_proveedor ASC
+        `)
+        .all(),
+    ]);
 
-    db.prepare(`
-      SELECT id_proveedor, nombre_proveedor
-      FROM proveedores
-      ORDER BY nombre_proveedor ASC
-    `).all(),
-  ]);
+  universos =
+    (universosRes?.results || []) as UniversoRow[];
 
-  personajes = (personajesRes?.results || []) as PersonajeRow[];
-  universos = (universosRes?.results || []) as UniversoRow[];
-  proveedores = (proveedoresRes?.results || []) as ProveedorRow[];
+  proveedores =
+    (proveedoresRes?.results || []) as ProveedorRow[];
 }
-if (resolvedPersonajeId) {
-  personajeNombre =
-    personajes.find(
-      (p) => Number(p.id_personaje) === Number(resolvedPersonajeId)
-    )?.nombre_personaje ?? personajeNombre;
-}
+
+/* =========================================
+   8. NOMBRES DE FILTROS
+========================================= */
 
 if (universoId) {
   universoNombre =
     universos.find(
-      (u) => Number(u.id_universo) === Number(universoId)
+      (u) => Number(u.id_universo) === universoId
     )?.nombre_universo ?? null;
 }
 
 if (proveedorId) {
   proveedorNombre =
     proveedores.find(
-      (p) => Number(p.id_proveedor) === Number(proveedorId)
+      (p) => Number(p.id_proveedor) === proveedorId
     )?.nombre_proveedor ?? null;
 }
-const activeFilterLabels = [personajeNombre, universoNombre, proveedorNombre].filter(
+
+const activeFilterLabels = [
+  personajeNombre,
+  universoNombre,
+  proveedorNombre,
+].filter(
   (value): value is string => Boolean(value)
 );
 
-// --------------------
-// 7) Sugerencias para buscador superior
-// --------------------
+/* =========================================
+   9. DATA PARA REACT
+========================================= */
 
-type PersonajeEtiquetaRow = {
-  id_personaje: number | string;
-  nombre_etiqueta: string;
-};
-let quickCharacterSuggestions: {
-  id: string;
-  title: string;
-  href: string;
-  universe?: string;
-  tags?: string[];
-}[] = [];
-
-if (db) {
-  const etiquetasRes = await db
-    .prepare(`
-      SELECT
-        pe.id_personaje,
-        e.nombre_etiqueta
-      FROM personajes_etiquetas pe
-      INNER JOIN etiquetas e
-        ON e.id_etiqueta = pe.id_etiqueta
-    `)
-    .all();
-
-  const etiquetasRows = (etiquetasRes?.results || []) as PersonajeEtiquetaRow[];
-
-  const etiquetasPorPersonaje = new Map<string, string[]>();
-
-  for (const row of etiquetasRows) {
-    const id = String(row.id_personaje);
-    const tags = etiquetasPorPersonaje.get(id) ?? [];
-    tags.push(row.nombre_etiqueta);
-    etiquetasPorPersonaje.set(id, tags);
-  }
-
-  const universoPorId = new Map(
-    universos.map((u) => [String(u.id_universo), u.nombre_universo])
-  );
-
-  quickCharacterSuggestions = personajes.map((personaje) => ({
-    id: String(personaje.id_personaje),
-    title: personaje.nombre_personaje,
-    href: `/shop?personajeId=${personaje.id_personaje}`,
-    universe: personaje.id_universo
-      ? universoPorId.get(String(personaje.id_universo)) ?? ""
-      : "",
-    tags: etiquetasPorPersonaje.get(String(personaje.id_personaje)) ?? [],
-  }));
-}
-// --------------------
-// 8) Data para React
-// --------------------
 const data = {
   products: productos.map((pr) => ({
     id: pr.id_producto,
+
     slug: slugify(
-  [pr.nombre_producto, pr.subtitulo]
-    .filter(Boolean)
-    .join(" ")
-),
-    title: pr.nombre_producto ?? `Producto ${pr.id_producto}`,
+      [pr.nombre_producto, pr.subtitulo]
+        .filter(Boolean)
+        .join(" ")
+    ),
+
+    title:
+      pr.nombre_producto ??
+      `Producto ${pr.id_producto}`,
+
     subtitle: pr.subtitulo ?? "",
     description: pr.descripcion ?? "",
+
     price: pr.precio ?? null,
+
     priceMode:
-      (pr.precio_modo as "fixed" | "from" | "quote" | null) ??
+      (pr.precio_modo as
+        | "fixed"
+        | "from"
+        | "quote"
+        | null) ??
       (pr.precio ? "fixed" : "quote"),
+
     discount: pr.descuento ?? 0,
     units: pr.unidades ?? null,
+
     coverUrl: pr.img_producto ?? "",
+
     personajeId: pr.id_personaje ?? null,
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
-    date: pr.fecha_modifica ?? pr.fecha_creacion ?? null,
-    tagLabel: pr.nombre_etiqueta ?? "FIGURA 3D",
+
+    date:
+      pr.fecha_modifica ??
+      pr.fecha_creacion ??
+      null,
+
+    tagLabel:
+      pr.nombre_etiqueta ?? "FIGURA 3D",
   })),
 
-  genders: personajes.map((p) => ({
-    title: p.nombre_personaje,
-    slug: String(p.id_personaje),
-  })),
+  /*
+   * Los personajes ya no se envían
+   * completos a React.
+   */
+  genders: [],
 
   categories: universos.map((u) => ({
     title: u.nombre_universo,
@@ -396,27 +516,45 @@ const data = {
     slug: String(pr.id_proveedor),
   })),
 
-  initialPersonajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
-  initialUniversoId: universoId ? String(universoId) : null,
-  initialProveedorId: proveedorId ? String(proveedorId) : null,
+  initialPersonajeId: resolvedPersonajeId
+    ? String(resolvedPersonajeId)
+    : null,
+
+  initialUniversoId: universoId
+    ? String(universoId)
+    : null,
+
+  initialProveedorId: proveedorId
+    ? String(proveedorId)
+    : null,
+
   initialSort: sort,
 
   personajeNombre,
   universoNombre,
   proveedorNombre,
+
   activeFilterLabels,
 
   selectedCharacter: resolvedPersonajeId
     ? {
         id: String(resolvedPersonajeId),
-        name: personajeNombre ?? personajeQuery ?? personajeNombreParam ?? "",
+        name:
+          personajeNombre ??
+          personajeQuery ??
+          personajeNombreParam ??
+          "",
       }
     : null,
 
-  quickCharacterSuggestions,
+  quickCharacterSuggestions: [],
 
   clearFilterHref:
-    resolvedPersonajeId || universoId || proveedorId || sort !== "newest"
+    resolvedPersonajeId ||
+    universoId ||
+    proveedorId ||
+    sort !== "newest" ||
+    tipoProducto !== null
       ? "/shop"
       : null,
 
@@ -427,9 +565,19 @@ const data = {
     itemsPerPage: ITEMS_PER_PAGE,
     pageCount: productos.length,
     basePath: "/shop",
-    personajeId: resolvedPersonajeId ? String(resolvedPersonajeId) : null,
-    universoId: universoId ? String(universoId) : null,
-    proveedorId: proveedorId ? String(proveedorId) : null,
+
+    personajeId: resolvedPersonajeId
+      ? String(resolvedPersonajeId)
+      : null,
+
+    universoId: universoId
+      ? String(universoId)
+      : null,
+
+    proveedorId: proveedorId
+      ? String(proveedorId)
+      : null,
+
     sort,
   },
 };
