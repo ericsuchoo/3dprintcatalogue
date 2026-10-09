@@ -179,7 +179,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           p.nombre_personaje ASC,
           p.id_personaje ASC
 
-        LIMIT ?
+        LIMIT ? OFFSET ?
       `)
       .bind(
         pattern,
@@ -187,17 +187,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
         pattern,
         pattern,
         pattern,
-        SEARCH_LIMIT
+        SEARCH_LIMIT + 1,
+(page - 1) * SEARCH_LIMIT
       )
       .all();
 
     const rows = (result.results || []) as CharacterRow[];
+    const hasMore = rows.length > SEARCH_LIMIT;
+const pageRows = rows.slice(0, SEARCH_LIMIT);
 
     /*
      * Recuperamos etiquetas solo de los
      * personajes encontrados, no de todos.
      */
-    const ids = rows.map((row) => Number(row.id_personaje));
+    const ids = pageRows.map((row) => Number(row.id_personaje));
 
     const tagsByCharacter = new Map<string, string[]>();
 
@@ -246,7 +249,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase();
 
-    const results = rows.map((row) => {
+    const results = pageRows.map((row) => {
       const id = String(row.id_personaje);
 
       const tags = tagsByCharacter.get(id) || [];
@@ -294,11 +297,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
         a.title.localeCompare(b.title)
     );
 
-    return json({
-      results,
-      page: 1,
-      hasMore: false,
-    });
+   return json({
+  results,
+  page,
+  hasMore,
+});
   } catch (error) {
     console.error("[shop/personajes]", error);
 

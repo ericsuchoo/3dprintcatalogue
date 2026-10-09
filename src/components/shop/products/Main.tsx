@@ -143,6 +143,8 @@ export const Main: React.FC<Props> = ({
   >([]);
 
   const [sidebarPage, setSidebarPage] = useState(1);
+  const [sidebarSearchPage, setSidebarSearchPage] = useState(1);
+const [sidebarSearchHasMore, setSidebarSearchHasMore] = useState(false);
   const [sidebarHasMore, setSidebarHasMore] = useState(false);
   const [sidebarLoading, setSidebarLoading] = useState(false);
   const [sidebarError, setSidebarError] = useState(false);
@@ -338,10 +340,10 @@ useEffect(() => {
 
     const timer = window.setTimeout(async () => {
       try {
-        const params = new URLSearchParams({
-          mode: "search",
-          q: query,
-        });
+   const params = new URLSearchParams({
+  mode: "search",
+  q: query,
+});
 
         const response = await fetch(
           `/api/shop/personajes?${params.toString()}`,
@@ -404,13 +406,16 @@ useEffect(() => {
 
   setSidebarLoading(true);
   setSidebarError(false);
+ if (sidebarSearchPage === 1) {
   setSidebarCharacters([]);
+}
 
   const timer = window.setTimeout(async () => {
     try {
       const params = new URLSearchParams({
         mode: "search",
         q: query,
+        page: String(sidebarSearchPage),
       });
 
       const response = await fetch(
@@ -427,8 +432,18 @@ useEffect(() => {
 
       if (controller.signal.aborted) return;
 
-      setSidebarCharacters(json.results || []);
-      setSidebarHasMore(false);
+    setSidebarCharacters((previous) =>
+  sidebarSearchPage === 1
+    ? json.results || []
+    : [
+        ...previous,
+        ...(json.results || []).filter(
+          (item) => !previous.some((p) => p.id === item.id)
+        ),
+      ]
+);
+
+setSidebarSearchHasMore(Boolean(json.hasMore));
     } catch {
       if (!controller.signal.aborted) {
         setSidebarError(true);
@@ -444,7 +459,7 @@ useEffect(() => {
     window.clearTimeout(timer);
     controller.abort();
   };
-}, [filtersOpen, sidebarCharacterSearch]);
+}, [filtersOpen, sidebarCharacterSearch, sidebarSearchPage]);
 
   /*
    * BLOQUEO DE SCROLL DEL MODAL.
@@ -1067,9 +1082,12 @@ useEffect(() => {
             type="search"
             value={sidebarCharacterSearch}
             onChange={(event) => {
-              setSidebarCharacterSearch(event.target.value);
-              setSidebarPage(1);
-            }}
+  setSidebarCharacterSearch(event.target.value);
+  setSidebarPage(1);
+  setSidebarSearchPage(1);
+  setSidebarSearchHasMore(false);
+  setSidebarCharacters([]);
+}}
             placeholder="Filtrar personajes..."
             className="bg-transparent px-2 py-3 w-full text-xs text-white placeholder:text-zinc-500 focus:outline-none"
           />
@@ -1107,18 +1125,29 @@ useEffect(() => {
               </div>
             )}
 
-          {!sidebarLoading &&
-            !sidebarError &&
-            sidebarHasMore &&
-            sidebarCharacterSearch.trim().length < 2 && (
-              <button
-                type="button"
-                onClick={() => setSidebarPage((page) => page + 1)}
-                className="w-full rounded-xl border border-[#00eeff]/30 bg-[#00eeff]/5 px-4 py-3 text-xs font-black uppercase tracking-[0.15em] text-[#00eeff] hover:bg-[#00eeff]/10 transition"
-              >
-                Cargar más personajes
-              </button>
-            )}
+          
+{!sidebarLoading &&
+  !sidebarError &&
+  (
+    sidebarCharacterSearch.trim().length >= 2
+      ? sidebarSearchHasMore
+      : sidebarHasMore
+  ) && (
+    <button
+      type="button"
+      onClick={() => {
+        if (sidebarCharacterSearch.trim().length >= 2) {
+          setSidebarSearchPage((page) => page + 1);
+        } else {
+          setSidebarPage((page) => page + 1);
+        }
+      }}
+      className="w-full rounded-xl border border-[#00eeff]/30 bg-[#00eeff]/5 px-4 py-3 text-xs font-black uppercase tracking-[0.15em] text-[#00eeff] hover:bg-[#00eeff]/10 transition"
+    >
+      Cargar más personajes
+    </button>
+  )}
+
         </div>
       </div>
 
