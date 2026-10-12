@@ -3,10 +3,6 @@
 import Layout from "../../layouts/Layout.astro";
 import ProductsPageWrapper from "../../components/shop/products/PageWrapper";
 
-/* =========================================
-   TIPOS D1
-========================================= */
-
 type ProductoRow = {
   id_producto: number | string;
   nombre_producto: string;
@@ -36,10 +32,6 @@ type ProveedorRow = {
 type SortMode = "newest" | "price_asc" | "price_desc";
 type ProductMode = "cosplay" | "figura" | null;
 
-/* =========================================
-   UTILIDADES
-========================================= */
-
 function slugify(value: string) {
   return value
     .toString()
@@ -62,9 +54,8 @@ function parsePositiveInt(value: string | null): number | null {
     : null;
 }
 
-function normalizeSort(value: string | null): SortMode {
-  // Los precios aun no estan disponibles.
-  // Conservamos el tipo para compatibilidad.
+function normalizeSort(_value: string | null): SortMode {
+  // Los precios siguen desactivados.
   return "newest";
 }
 
@@ -84,6 +75,11 @@ const universoId = parsePositiveInt(
 
 const proveedorId = parsePositiveInt(
   Astro.url.searchParams.get("proveedorId")
+);
+
+// NUEVO: filtro por franquicia o categoria.
+const etiquetaId = parsePositiveInt(
+  Astro.url.searchParams.get("etiquetaId")
 );
 
 const requestedPage =
@@ -119,6 +115,7 @@ let resolvedPersonajeId = personajeId;
 let personajeNombre: string | null = null;
 let universoNombre: string | null = null;
 let proveedorNombre: string | null = null;
+let etiquetaNombre: string | null = null;
 
 let totalProducts = 0;
 let productos: ProductoRow[] = [];
@@ -137,9 +134,7 @@ if (!db) {
 if (db && !resolvedPersonajeId && personajeQuery) {
   const exactRow = await db
     .prepare(`
-      SELECT
-        id_personaje,
-        nombre_personaje
+      SELECT id_personaje, nombre_personaje
       FROM personajes
       WHERE LOWER(nombre_personaje) = LOWER(?)
       LIMIT 1
@@ -157,9 +152,7 @@ if (db && !resolvedPersonajeId && personajeQuery) {
   } else {
     const likeRow = await db
       .prepare(`
-        SELECT
-          id_personaje,
-          nombre_personaje
+        SELECT id_personaje, nombre_personaje
         FROM personajes
         WHERE LOWER(nombre_personaje) LIKE LOWER(?)
         ORDER BY nombre_personaje ASC
@@ -180,7 +173,7 @@ if (db && !resolvedPersonajeId && personajeQuery) {
 }
 
 /* =========================================
-   2. RESOLVER NOMBRE DEL PERSONAJE
+   2. NOMBRE DEL PERSONAJE
 ========================================= */
 
 if (db && resolvedPersonajeId && !personajeNombre) {
@@ -208,7 +201,7 @@ if (!personajeNombre && personajeNombreParam) {
 ========================================= */
 
 const whereClauses: string[] = [];
-const whereParams: (string | number)[] = [];
+const whereParams: number[] = [];
 
 if (resolvedPersonajeId) {
   whereClauses.push("p.id_personaje = ?");
@@ -223,6 +216,38 @@ if (universoId) {
 if (proveedorId) {
   whereClauses.push("p.id_proveedor = ?");
   whereParams.push(proveedorId);
+}
+
+/*
+ * FILTRO POR ETIQUETA
+ *
+ * Busca productos relacionados mediante:
+ *
+ * 1. personajes_etiquetas
+ * 2. productos_etiquetas
+ *
+ * EXISTS evita duplicar productos.
+ * No utiliza LIKE ni busca texto.
+ */
+if (etiquetaId) {
+  whereClauses.push(`
+    (
+      EXISTS (
+        SELECT 1
+        FROM personajes_etiquetas pe
+        WHERE pe.id_etiqueta = ?
+          AND pe.id_personaje = p.id_personaje
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM productos_etiquetas pte
+        WHERE pte.id_etiqueta = ?
+          AND pte.id_producto = p.id_producto
+      )
+    )
+  `);
+
+  whereParams.push(etiquetaId, etiquetaId);
 }
 
 if (tipoProducto === "cosplay") {
@@ -262,14 +287,10 @@ if (db) {
     ${whereSql}
   `;
 
-  const countRes = whereParams.length
-    ? await db
-        .prepare(countSql)
-        .bind(...whereParams)
-        .first()
-    : await db
-        .prepare(countSql)
-        .first();
+  const countRes = await db
+    .prepare(countSql)
+    .bind(...whereParams)
+    .first();
 
   totalProducts = Number(
     (countRes as { total?: number } | null)?.total ?? 0
@@ -301,7 +322,6 @@ if (db) {
       p.nombre_producto,
       p.subtitulo,
       p.img_producto,
-
       p.id_personaje,
       p.id_universo,
       p.id_proveedor,
@@ -400,10 +420,31 @@ if (proveedorId) {
     )?.nombre_proveedor ?? null;
 }
 
+/*
+ * Recuperar nombre solo cuando se selecciona
+ * una etiqueta.
+ */
+if (db && etiquetaId) {
+  const etiquetaRes = await db
+    .prepare(`
+      SELECT nombre_etiqueta
+      FROM etiquetas
+      WHERE id_etiqueta = ?
+      LIMIT 1
+    `)
+    .bind(etiquetaId)
+    .first();
+
+  etiquetaNombre =
+    (etiquetaRes as { nombre_etiqueta?: string } | null)
+      ?.nombre_etiqueta ?? null;
+}
+
 const activeFilterLabels = [
   personajeNombre,
   universoNombre,
   proveedorNombre,
+  etiquetaNombre,
 ].filter(
   (value): value is string => Boolean(value)
 );
@@ -437,7 +478,6 @@ const data = {
     priceMode: "quote" as const,
     discount: 0,
 
-    // Imagen principal desde R2.
     coverUrl: pr.img_producto ?? "",
 
     // Relaciones reales conservadas.
@@ -445,12 +485,10 @@ const data = {
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
 
-    // Distintivo visible de la tarjeta.
     tagLabel:
       pr.nombre_etiqueta ?? "FIGURA 3D",
   })),
 
-  // No enviar el catalogo completo de personajes.
   genders: [],
 
   categories: universos.map((u) => ({
@@ -500,6 +538,7 @@ const data = {
     resolvedPersonajeId ||
     universoId ||
     proveedorId ||
+    etiquetaId ||
     sort !== "newest" ||
     tipoProducto !== null
       ? "/shop"
@@ -523,6 +562,11 @@ const data = {
 
     proveedorId: proveedorId
       ? String(proveedorId)
+      : null,
+
+    // Nuevo filtro para la paginacion.
+    etiquetaId: etiquetaId
+      ? String(etiquetaId)
       : null,
 
     sort,

@@ -10,9 +10,8 @@ import React, {
 
 } from "react";
 
-
-
 import { ProductCardD1 as ProductCard } from "../../ProductCardD1";
+
 import CharacterSearchD1 from "../../home-page/CharacterSearchD1";
 
 import type {
@@ -99,6 +98,8 @@ interface Props {
 
       proveedorId?: string | null;
 
+      etiquetaId?: string | null;
+
       sort?: "newest" | "price_asc" | "price_desc";
 
     };
@@ -165,8 +166,50 @@ export const Main: React.FC<Props> = ({
 
   const { favorites } = useFavorites();
 
-
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  type EtiquetaOption = { id: string; name: string };
+  const [etiquetasOpen, setEtiquetasOpen] = useState(false);
+  const [etiquetas, setEtiquetas] = useState<EtiquetaOption[]>([]);
+  const [etiquetasLoading, setEtiquetasLoading] = useState(false);
+  const [etiquetasError, setEtiquetasError] = useState(false);
+  const [etiquetaSearch, setEtiquetaSearch] = useState("");
+  const [etiquetasLoaded, setEtiquetasLoaded] = useState(false);
+  const [etiquetasRetry, setEtiquetasRetry] = useState(0);
+
+  useEffect(() => {
+    if (!etiquetasOpen || etiquetasLoaded) return;
+    const controller = new AbortController();
+    const load = async () => {
+      setEtiquetasLoading(true);
+      setEtiquetasError(false);
+      try {
+        const response = await fetch("/api/shop/etiquetas", {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("No se pudieron cargar etiquetas");
+        const payload = (await response.json()) as { results?: EtiquetaOption[] };
+        if (controller.signal.aborted) return;
+        setEtiquetas(Array.isArray(payload.results) ? payload.results : []);
+        setEtiquetasLoaded(true);
+      } catch {
+        if (!controller.signal.aborted) setEtiquetasError(true);
+      } finally {
+        if (!controller.signal.aborted) setEtiquetasLoading(false);
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, [etiquetasOpen, etiquetasLoaded, etiquetasRetry]);
+
+  const etiquetasFiltradas = useMemo(() => {
+    const term = etiquetaSearch.trim().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!term) return etiquetas;
+    return etiquetas.filter((item) => item.name.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(term));
+  }, [etiquetas, etiquetaSearch]);
+
 
   const [instagramCopied, setInstagramCopied] = useState(false);
 
@@ -361,6 +404,7 @@ export const Main: React.FC<Props> = ({
     !!data.initialUniversoId ||
 
     !!data.initialProveedorId ||
+    !!data.pagination?.etiquetaId ||
 
     (data.initialSort != null && data.initialSort !== "newest");
 
@@ -371,6 +415,8 @@ export const Main: React.FC<Props> = ({
     universoId?: string | null;
 
     proveedorId?: string | null;
+
+    etiquetaId?: string | null;
 
     sort?: string | null;
 
@@ -406,6 +452,11 @@ export const Main: React.FC<Props> = ({
 
         : data.pagination?.proveedorId ?? null;
 
+    const etiquetaId =
+      next.etiquetaId !== undefined
+        ? next.etiquetaId
+        : data.pagination?.etiquetaId ?? null;
+
     const sort =
 
       next.sort ?? data.pagination?.sort ?? "newest";
@@ -431,6 +482,8 @@ export const Main: React.FC<Props> = ({
     if (universoId) params.set("universoId", universoId);
 
     if (proveedorId) params.set("proveedorId", proveedorId);
+
+    if (etiquetaId) params.set("etiquetaId", etiquetaId);
 
     if (sort && sort !== "newest") params.set("sort", sort);
 
@@ -524,11 +577,11 @@ export const Main: React.FC<Props> = ({
 
   const instagramQuoteUrl =
 
-    "https://www.instagram.com/dinocat3d/";
+    "https\://www.instagram.com/dinocat3d/";
 
   const paintingStudioUrl =
 
-    "https://www.instagram.com/dcpanitingstudio/";
+    "https\://www.instagram.com/dcpanitingstudio/";
 
   const instagramQuoteMessage = useMemo(() => {
 
@@ -540,7 +593,7 @@ export const Main: React.FC<Props> = ({
 
         ? window.location.origin
 
-        : "https://3dprintcatalogue.pages.dev";
+        : "https\://3dprintcatalogue.pages.dev";
 
     const lines = quotableVisibleProducts.map(
 
@@ -1357,13 +1410,83 @@ export const Main: React.FC<Props> = ({
           )}
 
           {/* BUSCADOR REUTILIZADO DE EXPLORAR */}
+
           {!favoritesOnly && (
+
             <div className="mb-5">
+
               <CharacterSearchD1 />
+
             </div>
+
           )}
 
-{/* FILTROS HORIZONTALES DEL CATALOGO */}
+{/* FILTRO GUIADO DE FRANQUICIAS Y CATEGORIAS */}
+            {!favoritesOnly && (
+              <section className="mb-4 rounded-2xl border border-white/10 bg-[#0f0f0f] p-3 sm:p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    aria-expanded={etiquetasOpen}
+                    aria-controls="shop-etiquetas-panel"
+                    onClick={() => setEtiquetasOpen((open) => !open)}
+                    className={`rounded-full border px-4 py-3 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
+                  >
+                    Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
+                  </button>
+                  {data.pagination?.etiquetaId && (
+                    <button
+                      type="button"
+                      onClick={() => window.location.assign(buildUrl({ etiquetaId: null, page: 1 }))}
+                      className="rounded-full border border-red-500/40 px-3 py-2 text-xs text-red-400"
+                    >
+                      Quitar franquicia / categoría
+                    </button>
+                  )}
+                </div>
+                {etiquetasOpen && (
+                  <div id="shop-etiquetas-panel" className="mt-4 border-t border-white/10 pt-4">
+                    <label htmlFor="shop-etiqueta-search" className="mb-2 block text-xs text-zinc-400">
+                      Filtra las opciones disponibles
+                    </label>
+                    <input
+                      id="shop-etiqueta-search"
+                      type="search"
+                      value={etiquetaSearch}
+                      onChange={(event) => setEtiquetaSearch(event.target.value)}
+                      placeholder="Ej. Naruto, Dragon Ball, villanos..."
+                      className="w-full max-w-lg rounded-xl border border-white/20 bg-black px-4 py-3 text-sm text-white outline-none focus:border-[#00eeff]"
+                    />
+                    {etiquetasLoading && <p className="mt-3 text-xs text-zinc-400">Cargando opciones...</p>}
+                    {etiquetasError && (
+                      <div className="mt-3 flex items-center gap-3 text-xs text-red-400">
+                        No se pudieron cargar las opciones.
+                        <button type="button" className="underline" onClick={() => setEtiquetasRetry((count) => count + 1)}>
+                          Reintentar
+                        </button>
+                      </div>
+                    )}
+                    {!etiquetasLoading && !etiquetasError && (
+                      <div className="mt-3 flex max-h-60 flex-wrap gap-2 overflow-y-auto" aria-label="Opciones de franquicias y categorías">
+                        {etiquetasFiltradas.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }))}
+                            className={`rounded-full border px-3 py-2 text-xs transition ${data.pagination?.etiquetaId === item.id ? "border-[#00eeff] bg-[#00eeff]/10 text-[#00eeff]" : "border-white/15 text-zinc-200 hover:border-[#00eeff]/50"}`}
+                          >
+                            {item.name}
+                          </button>
+                        ))}
+                        {etiquetasFiltradas.length === 0 && <p className="text-xs text-zinc-400">No hay coincidencias.</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* FILTROS HORIZONTALES DEL CATALOGO */}
 
 {!favoritesOnly && (
 
@@ -1479,8 +1602,6 @@ export const Main: React.FC<Props> = ({
 
     </select>
 
-
-
     {(data.initialUniversoId || data.initialProveedorId) && (
 
       <button
@@ -1502,8 +1623,6 @@ export const Main: React.FC<Props> = ({
   </div>
 
 )}
-
-
 
           {/* CONTEO */}
 
