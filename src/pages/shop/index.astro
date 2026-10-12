@@ -11,17 +11,10 @@ type ProductoRow = {
   id_producto: number | string;
   nombre_producto: string;
   subtitulo?: string | null;
-  descripcion?: string | null;
   img_producto?: string | null;
-  unidades?: number | null;
-  precio?: number | null;
-  precio_modo?: string | null;
-  descuento?: number | null;
-  id_proveedor?: number | null;
-  id_universo?: number | null;
   id_personaje?: number | null;
-  fecha_creacion?: string | null;
-  fecha_modifica?: string | null;
+  id_universo?: number | null;
+  id_proveedor?: number | null;
   nombre_etiqueta?: string | null;
 };
 
@@ -70,15 +63,13 @@ function parsePositiveInt(value: string | null): number | null {
 }
 
 function normalizeSort(value: string | null): SortMode {
-  if (value === "price_asc" || value === "price_desc") {
-    return value;
-  }
-
+  // Los precios aun no estan disponibles.
+  // Conservamos el tipo para compatibilidad.
   return "newest";
 }
 
 /* =========================================
-   D1 Y PARÁMETROS
+   D1 Y PARAMETROS
 ========================================= */
 
 const db = Astro.locals.runtime.env.DB as any;
@@ -120,7 +111,7 @@ const personajeNombreParam =
 const ITEMS_PER_PAGE = 30;
 
 /* =========================================
-   ESTADO DE PÁGINA
+   ESTADO DE PAGINA
 ========================================= */
 
 let resolvedPersonajeId = personajeId;
@@ -192,14 +183,6 @@ if (db && !resolvedPersonajeId && personajeQuery) {
    2. RESOLVER NOMBRE DEL PERSONAJE
 ========================================= */
 
-/*
- * Antes cargábamos los 1,027 personajes
- * para obtener también el nombre seleccionado.
- *
- * Ahora consultamos solamente el personaje
- * que realmente se está visitando.
- */
-
 if (db && resolvedPersonajeId && !personajeNombre) {
   const personajeRes = await db
     .prepare(`
@@ -221,7 +204,7 @@ if (!personajeNombre && personajeNombreParam) {
 }
 
 /* =========================================
-   3. FILTROS DINÁMICOS
+   3. FILTROS DINAMICOS
 ========================================= */
 
 const whereClauses: string[] = [];
@@ -262,27 +245,11 @@ const whereSql = whereClauses.length
    4. ORDENAMIENTO
 ========================================= */
 
-let orderSql = `
+const orderSql = `
   ORDER BY
     COALESCE(p.fecha_modifica, p.fecha_creacion) DESC,
     p.id_producto DESC
 `;
-
-if (sort === "price_asc") {
-  orderSql = `
-    ORDER BY
-      COALESCE(p.precio, 0) ASC,
-      p.id_producto DESC
-  `;
-}
-
-if (sort === "price_desc") {
-  orderSql = `
-    ORDER BY
-      COALESCE(p.precio, 0) DESC,
-      p.id_producto DESC
-  `;
-}
 
 /* =========================================
    5. CONTEO DE PRODUCTOS
@@ -324,6 +291,7 @@ const offset =
 
 /* =========================================
    6. PRODUCTOS PAGINADOS
+   CONSULTA LIGERA
 ========================================= */
 
 if (db) {
@@ -332,24 +300,21 @@ if (db) {
       p.id_producto,
       p.nombre_producto,
       p.subtitulo,
-      p.descripcion,
       p.img_producto,
-      p.unidades,
-      p.precio,
-      p.precio_modo,
-      p.descuento,
-      p.id_proveedor,
-      p.id_universo,
+
       p.id_personaje,
-      p.fecha_creacion,
-      p.fecha_modifica,
+      p.id_universo,
+      p.id_proveedor,
 
       (
         SELECT e.nombre_etiqueta
         FROM productos_etiquetas pe
+
         INNER JOIN etiquetas e
           ON e.id_etiqueta = pe.id_etiqueta
+
         WHERE pe.id_producto = p.id_producto
+
         ORDER BY
           CAST(
             COALESCE(
@@ -359,6 +324,7 @@ if (db) {
             ) AS INTEGER
           ) ASC,
           e.nombre_etiqueta ASC
+
         LIMIT 1
       ) AS nombre_etiqueta
 
@@ -388,15 +354,6 @@ if (db) {
 /* =========================================
    7. UNIVERSOS Y PROVEEDORES
 ========================================= */
-
-/*
- * Conservamos estas listas porque son
- * necesarias para los filtros y suelen
- * tener pocos registros.
- *
- * Eliminamos la consulta completa a
- * personajes y personajes_etiquetas.
- */
 
 if (db) {
   const [universosRes, proveedoresRes] =
@@ -470,40 +427,30 @@ const data = {
       `Producto ${pr.id_producto}`,
 
     subtitle: pr.subtitulo ?? "",
-    description: pr.descripcion ?? "",
 
-    price: pr.precio ?? null,
+    // Datos completos reservados para la ficha.
+    description: "",
+    units: null,
 
-    priceMode:
-      (pr.precio_modo as
-        | "fixed"
-        | "from"
-        | "quote"
-        | null) ??
-      (pr.precio ? "fixed" : "quote"),
+    // Precios desactivados temporalmente.
+    price: null,
+    priceMode: "quote" as const,
+    discount: 0,
 
-    discount: pr.descuento ?? 0,
-    units: pr.unidades ?? null,
-
+    // Imagen principal desde R2.
     coverUrl: pr.img_producto ?? "",
 
+    // Relaciones reales conservadas.
     personajeId: pr.id_personaje ?? null,
     universoId: pr.id_universo ?? null,
     proveedorId: pr.id_proveedor ?? null,
 
-    date:
-      pr.fecha_modifica ??
-      pr.fecha_creacion ??
-      null,
-
+    // Distintivo visible de la tarjeta.
     tagLabel:
       pr.nombre_etiqueta ?? "FIGURA 3D",
   })),
 
-  /*
-   * Los personajes ya no se envían
-   * completos a React.
-   */
+  // No enviar el catalogo completo de personajes.
   genders: [],
 
   categories: universos.map((u) => ({
