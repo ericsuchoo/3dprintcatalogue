@@ -369,6 +369,18 @@ if (db) {
     .all();
 
   productos = (res?.results || []) as ProductoRow[];
+  if (etiquetaId) {
+  console.info("[shop:diagnostico-etiqueta]", {
+    etiquetaId,
+    personajeId: resolvedPersonajeId,
+    universoId,
+    proveedorId,
+    tipoProducto,
+    totalProducts,
+    productosRecibidos: productos.length,
+    ids: productos.map((p) => p.id_producto),
+  });
+}
 }
 
 /* =========================================
