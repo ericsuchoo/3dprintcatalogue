@@ -1421,208 +1421,94 @@ export const Main: React.FC<Props> = ({
 
           )}
 
-{/* FILTRO GUIADO DE FRANQUICIAS Y CATEGORIAS */}
-            {!favoritesOnly && (
-              <section className="mb-4 rounded-2xl border border-white/10 bg-[#0f0f0f] p-3 sm:p-4">
-                <div className="flex flex-wrap items-center gap-3">
+{/* FILTROS COMPACTOS: UNIVERSOS Y FRANQUICIAS / CATEGORIAS */}
+          {!favoritesOnly && (
+            <section className="mb-4 rounded-2xl border border-white/10 bg-[#0f0f0f] p-3 sm:p-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <select
+                  aria-label="Filtrar por universo"
+                  value={data.initialUniversoId ?? ""}
+                  onChange={(event) =>
+                    window.location.assign(
+                      buildUrl({ universoId: event.target.value || null, page: 1 })
+                    )
+                  }
+                  className="min-w-0 max-w-[calc(50%-0.25rem)] flex-1 sm:flex-none sm:w-48 rounded-xl border border-[#00eeff]/40 bg-black px-3 py-2.5 text-xs text-white outline-none focus:border-[#00eeff]"
+                >
+                  <option value="">Todos los universos</option>
+                  {(data.categories || []).map((item) => (
+                    <option key={item.slug} value={String(item.slug)}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  aria-expanded={etiquetasOpen}
+                  aria-controls="shop-etiquetas-panel"
+                  onClick={() => setEtiquetasOpen((open) => !open)}
+                  className={`min-w-0 max-w-[calc(50%-0.25rem)] flex-1 sm:flex-none sm:w-48 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
+                >
+                  Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
+                </button>
+
+                {(data.initialUniversoId || data.initialProveedorId || data.pagination?.etiquetaId) && (
                   <button
                     type="button"
-                    aria-expanded={etiquetasOpen}
-                    aria-controls="shop-etiquetas-panel"
-                    onClick={() => setEtiquetasOpen((open) => !open)}
-                    className={`rounded-full border px-4 py-3 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
+                    onClick={() =>
+                      window.location.assign(
+                        buildUrl({ universoId: null, proveedorId: null, etiquetaId: null, page: 1 })
+                      )
+                    }
+                    className="rounded-xl border border-red-500/40 px-3 py-2.5 text-xs font-bold text-red-400 hover:text-white"
                   >
-                    Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
+                    Quitar filtros
                   </button>
-                  {data.pagination?.etiquetaId && (
-                    <button
-                      type="button"
-                      onClick={() => window.location.assign(buildUrl({ etiquetaId: null, page: 1 }))}
-                      className="rounded-full border border-red-500/40 px-3 py-2 text-xs text-red-400"
-                    >
-                      Quitar franquicia / categoría
-                    </button>
+                )}
+              </div>
+
+              {etiquetasOpen && (
+                <div id="shop-etiquetas-panel" className="mt-3 border-t border-white/10 pt-3">
+                  <label htmlFor="shop-etiqueta-search" className="mb-2 block text-xs text-zinc-400">
+                    Buscar franquicia o categoría
+                  </label>
+                  <input
+                    id="shop-etiqueta-search"
+                    type="search"
+                    value={etiquetaSearch}
+                    onChange={(event) => setEtiquetaSearch(event.target.value)}
+                    placeholder="Ej. Naruto, Dragon Ball, villanos..."
+                    className="w-full max-w-lg rounded-xl border border-white/20 bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-[#00eeff]"
+                  />
+                  {etiquetasLoading && <p className="mt-3 text-xs text-zinc-400">Cargando opciones...</p>}
+                  {etiquetasError && (
+                    <div className="mt-3 flex items-center gap-3 text-xs text-red-400">
+                      No se pudieron cargar las opciones.
+                      <button type="button" className="underline" onClick={() => setEtiquetasRetry((count) => count + 1)}>
+                        Reintentar
+                      </button>
+                    </div>
+                  )}
+                  {!etiquetasLoading && !etiquetasError && (
+                    <div className="mt-3 flex max-h-60 flex-wrap gap-2 overflow-y-auto" aria-label="Opciones de franquicias y categorías">
+                      {etiquetasFiltradas.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }))}
+                          className={`rounded-full border px-3 py-2 text-xs transition ${data.pagination?.etiquetaId === item.id ? "border-[#00eeff] bg-[#00eeff]/10 text-[#00eeff]" : "border-white/15 text-zinc-200 hover:border-[#00eeff]/50"}`}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                      {etiquetasFiltradas.length === 0 && <p className="text-xs text-zinc-400">No hay coincidencias.</p>}
+                    </div>
                   )}
                 </div>
-                {etiquetasOpen && (
-                  <div id="shop-etiquetas-panel" className="mt-4 border-t border-white/10 pt-4">
-                    <label htmlFor="shop-etiqueta-search" className="mb-2 block text-xs text-zinc-400">
-                      Filtra las opciones disponibles
-                    </label>
-                    <input
-                      id="shop-etiqueta-search"
-                      type="search"
-                      value={etiquetaSearch}
-                      onChange={(event) => setEtiquetaSearch(event.target.value)}
-                      placeholder="Ej. Naruto, Dragon Ball, villanos..."
-                      className="w-full max-w-lg rounded-xl border border-white/20 bg-black px-4 py-3 text-sm text-white outline-none focus:border-[#00eeff]"
-                    />
-                    {etiquetasLoading && <p className="mt-3 text-xs text-zinc-400">Cargando opciones...</p>}
-                    {etiquetasError && (
-                      <div className="mt-3 flex items-center gap-3 text-xs text-red-400">
-                        No se pudieron cargar las opciones.
-                        <button type="button" className="underline" onClick={() => setEtiquetasRetry((count) => count + 1)}>
-                          Reintentar
-                        </button>
-                      </div>
-                    )}
-                    {!etiquetasLoading && !etiquetasError && (
-                      <div className="mt-3 flex max-h-60 flex-wrap gap-2 overflow-y-auto" aria-label="Opciones de franquicias y categorías">
-                        {etiquetasFiltradas.map((item) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }))}
-                            className={`rounded-full border px-3 py-2 text-xs transition ${data.pagination?.etiquetaId === item.id ? "border-[#00eeff] bg-[#00eeff]/10 text-[#00eeff]" : "border-white/15 text-zinc-200 hover:border-[#00eeff]/50"}`}
-                          >
-                            {item.name}
-                          </button>
-                        ))}
-                        {etiquetasFiltradas.length === 0 && <p className="text-xs text-zinc-400">No hay coincidencias.</p>}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* FILTROS HORIZONTALES DEL CATALOGO */}
-
-{!favoritesOnly && (
-
-  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f0f] p-3 sm:p-4 mb-4">
-
-    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">
-
-      Filtrar por:
-
-    </span>
-
-    <select
-
-      aria-label="Filtrar por universo"
-
-      value={data.initialUniversoId ?? ""}
-
-      onChange={(event) =>
-
-        window.location.assign(
-
-          buildUrl({
-
-            universoId: event.target.value || null,
-
-            page: 1,
-
-          })
-
-        )
-
-      }
-
-      className="rounded-full border border-[#00eeff]/40 bg-black px-4 py-3 text-xs text-white outline-none"
-
-    >
-
-      <option value="">Todos los universos</option>
-
-      {(data.categories || []).map((item) => (
-
-        <option key={item.slug} value={String(item.slug)}>
-
-          {item.title}
-
-        </option>
-
-      ))}
-
-    </select>
-
-    <select
-
-      aria-label="Filtrar por creador"
-
-      value={data.initialProveedorId ?? ""}
-
-      onChange={(event) =>
-
-        window.location.assign(
-
-          buildUrl({
-
-            proveedorId: event.target.value || null,
-
-            page: 1,
-
-          })
-
-        )
-
-      }
-
-      className="rounded-full border border-white/20 bg-black px-4 py-3 text-xs text-white outline-none"
-
-    >
-
-      <option value="">Todos los creadores</option>
-
-      {(data.brands || []).map((item) => (
-
-        <option key={item.slug} value={String(item.slug)}>
-
-          {item.title}
-
-        </option>
-
-      ))}
-
-    </select>
-
-    <select
-
-      aria-label="Ordenar catálogo"
-
-      value={data.initialSort ?? "newest"}
-
-      onChange={(event) =>
-
-        window.location.assign(buildUrl({ sort: event.target.value, page: 1 }))
-
-      }
-
-      className="rounded-full border border-white/20 bg-black px-4 py-3 text-xs text-white outline-none"
-
-    >
-
-      <option value="newest">Más recientes</option>
-
-      <option value="price_asc">Menor precio</option>
-
-      <option value="price_desc">Mayor precio</option>
-
-    </select>
-
-    {(data.initialUniversoId || data.initialProveedorId) && (
-
-      <button
-
-        type="button"
-
-        onClick={clearFilters}
-
-        className="rounded-full border border-red-500/40 px-4 py-3 text-xs font-black uppercase text-red-400 hover:text-white"
-
-      >
-
-        Quitar filtros
-
-      </button>
-
-    )}
-
-  </div>
-
-)}
+              )}
+            </section>
+          )}
 
           {/* CONTEO */}
 
