@@ -229,26 +229,27 @@ if (proveedorId) {
  * EXISTS evita duplicar productos.
  * No utiliza LIKE ni busca texto.
  */
+
 if (etiquetaId) {
   whereClauses.push(`
     (
-      EXISTS (
-        SELECT 1
+      p.id_personaje IN (
+        SELECT pe.id_personaje
         FROM personajes_etiquetas pe
         WHERE pe.id_etiqueta = ?
-          AND pe.id_personaje = p.id_personaje
       )
-      OR EXISTS (
-        SELECT 1
+      OR p.id_producto IN (
+        SELECT pte.id_producto
         FROM productos_etiquetas pte
         WHERE pte.id_etiqueta = ?
-          AND pte.id_producto = p.id_producto
       )
     )
   `);
 
   whereParams.push(etiquetaId, etiquetaId);
 }
+
+  
 
 if (tipoProducto === "cosplay") {
   whereClauses.push(`
