@@ -171,7 +171,7 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
             </div>
           )}
 
-          <div className="absolute bottom-3 left-3 z-20 pointer-events-none">
+          <div className="absolute bottom-3 left-3 z-20 pointer-events-none md:group-hover:opacity-0 md:group-focus-within:opacity-0 transition-opacity">
             <span className="bg-black/70 backdrop-blur-sm text-white text-[9px] font-black px-3 py-1.5 uppercase tracking-[0.18em] rounded-md border border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.25)]">
               {card.tagLabel || "FIGURA 3D"}
             </span>
@@ -179,9 +179,23 @@ export const ProductCardD1: React.FC<ProductCardD1Props> = ({
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500" />
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20 bg-black/25 backdrop-blur-[2px]">
-            <div className="bg-red-500 text-white font-black text-[11px] px-6 py-3 rounded-full uppercase tracking-[2px] shadow-[0_0_22px_rgba(239,68,68,0.42)] border border-red-300 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-              Ver detalles
+          {/* Vista rápida glass: visible solo con hover o foco de teclado */}
+          <div className="pointer-events-none absolute inset-0 z-20 hidden items-center justify-center bg-black/30 opacity-0 backdrop-blur-[2px] transition-opacity duration-300 group-hover:opacity-100 group-focus-within:opacity-100 md:flex">
+            <div className="w-[min(88%,340px)] translate-y-2 transition-transform duration-300 group-hover:translate-y-0 group-focus-within:translate-y-0">
+              <div className="relative rounded-xl border border-white/25 bg-[#111318]/75 px-4 pb-3 pt-5 text-center shadow-[0_16px_40px_rgba(0,0,0,0.5)] backdrop-blur-md">
+                <h3 className="absolute inset-x-2 top-0 -translate-y-1/2 rounded-md bg-[#111318]/90 px-2 py-1 text-center text-[clamp(13px,1.25vw,20px)] font-black uppercase italic leading-tight tracking-tight text-[#D8B76C] drop-shadow-[0_2px_5px_rgba(0,0,0,0.9)] line-clamp-2">
+                  {card.title}
+                </h3>
+                <p className="mt-2 text-[clamp(12px,1vw,16px)] font-bold uppercase tracking-[0.10em] text-[#00DFF2] line-clamp-2">
+                  {card.subtitle || "Premium Series"}
+                </p>
+                <div className="mt-3 rounded-lg bg-[#E63843] px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-[0_0_16px_rgba(230,56,67,0.25)]">
+                  Ver detalles ↗
+                </div>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                  {card.tagLabel || "FIGURA 3D"}
+                </p>
+              </div>
             </div>
           </div>
         </div>

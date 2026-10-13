@@ -1440,18 +1440,21 @@ export const Main: React.FC<Props> = ({
 
           )}
 
-          {/* ENCABEZADO EXPLORA */}
-          {!favoritesOnly && !selectedCharacterName && filtroExploraActivo && (
+          {/* ENCABEZADO EXPLORA: ESTADO BASE Y FILTRO ACTIVO */}
+          {!favoritesOnly && !selectedCharacterName && (
             <div className="mb-5">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase italic tracking-tight text-white">
-                EXPLORA:{" "}
+                {filtroExploraActivo ? "EXPLORA:" : "EXPLORA"}{" "}
                 <span className="text-[#00eeff]">
-                  {nombreFiltroExplora ?? "Cargando..."}
+                  {filtroExploraActivo ? (nombreFiltroExplora ?? "Cargando...") : "NUESTRO UNIVERSO"}
                 </span>
               </h2>
               <p className="mt-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
-                Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"}
-                {tipoFiltroExplora === "franquicia" ? " de la franquicia seleccionada" : " del universo seleccionado"}
+                {filtroExploraActivo ? (
+                  <>Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"}{tipoFiltroExplora === "franquicia" ? " de la franquicia seleccionada" : " del universo seleccionado"}</>
+                ) : (
+                  "ENCUENTRA TU PRÓXIMO PERSONAJE DE COLECCIÓN."
+                )}
               </p>
             </div>
           )}
