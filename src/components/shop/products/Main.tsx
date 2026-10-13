@@ -5,6 +5,7 @@ import React, {
   useEffect,
 
   useMemo,
+  useRef,
 
   useState,
 
@@ -170,6 +171,7 @@ export const Main: React.FC<Props> = ({
 
   type EtiquetaOption = { id: string; name: string };
   const [etiquetasOpen, setEtiquetasOpen] = useState(false);
+  const etiquetasMenuRef = useRef<HTMLDivElement>(null);
   const [etiquetas, setEtiquetas] = useState<EtiquetaOption[]>([]);
   const [etiquetasLoading, setEtiquetasLoading] = useState(false);
   const [etiquetasError, setEtiquetasError] = useState(false);
@@ -201,6 +203,24 @@ export const Main: React.FC<Props> = ({
     void load();
     return () => controller.abort();
   }, [etiquetasOpen, etiquetasLoaded, etiquetasRetry]);
+
+  useEffect(() => {
+    if (!etiquetasOpen) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!etiquetasMenuRef.current?.contains(event.target as Node)) {
+        setEtiquetasOpen(false);
+      }
+    };
+    const closeEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEtiquetasOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeEscape);
+    };
+  }, [etiquetasOpen]);
 
   const etiquetasFiltradas = useMemo(() => {
     const term = etiquetaSearch.trim().normalize("NFD")
@@ -1443,15 +1463,62 @@ export const Main: React.FC<Props> = ({
                   ))}
                 </select>
 
-                <button
-                  type="button"
-                  aria-expanded={etiquetasOpen}
-                  aria-controls="shop-etiquetas-panel"
-                  onClick={() => setEtiquetasOpen((open) => !open)}
-                  className={`min-w-0 max-w-[calc(50%-0.25rem)] flex-1 sm:flex-none sm:w-48 rounded-xl border px-3 py-2.5 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
-                >
-                  Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
-                </button>
+                <div ref={etiquetasMenuRef} className="relative min-w-0 flex-1 sm:flex-none sm:w-48">
+                  <button
+                    type="button"
+                    aria-expanded={etiquetasOpen}
+                    aria-controls="shop-etiquetas-panel"
+                    onClick={() => setEtiquetasOpen((open) => !open)}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
+                  >
+                    Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
+                  </button>
+                  {etiquetasOpen && (
+                    <div
+                      id="shop-etiquetas-panel"
+                      className="absolute left-0 top-full z-50 mt-2 w-[min(340px,calc(100vw-40px))] rounded-xl border border-white/20 bg-[#101010] p-3 shadow-2xl"
+                    >
+                      <label htmlFor="shop-etiqueta-search" className="mb-2 block text-xs text-zinc-400">
+                        Buscar franquicia o categoría
+                      </label>
+                      <input
+                        id="shop-etiqueta-search"
+                        type="search"
+                        value={etiquetaSearch}
+                        onChange={(event) => setEtiquetaSearch(event.target.value)}
+                        placeholder="Buscar por nombre..."
+                        className="w-full rounded-lg border border-white/20 bg-black px-3 py-2 text-sm text-white outline-none focus:border-[#00eeff]"
+                      />
+                      {etiquetasLoading && <p className="mt-3 text-xs text-zinc-400">Cargando opciones...</p>}
+                      {etiquetasError && (
+                        <div className="mt-3 flex items-center gap-3 text-xs text-red-400">
+                          No se pudieron cargar las opciones.
+                          <button type="button" className="underline" onClick={() => setEtiquetasRetry((count) => count + 1)}>
+                            Reintentar
+                          </button>
+                        </div>
+                      )}
+                      {!etiquetasLoading && !etiquetasError && (
+                        <div className="mt-2 max-h-56 overflow-y-auto" aria-label="Opciones de franquicias y categorías">
+                          {etiquetasFiltradas.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setEtiquetasOpen(false);
+                                window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }));
+                              }}
+                              className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition ${data.pagination?.etiquetaId === item.id ? "bg-[#00eeff]/10 text-[#00eeff]" : "text-zinc-200 hover:bg-white/10"}`}
+                            >
+                              {item.name}
+                            </button>
+                          ))}
+                          {etiquetasFiltradas.length === 0 && <p className="px-3 py-2 text-xs text-zinc-400">No hay coincidencias.</p>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {(data.initialUniversoId || data.initialProveedorId || data.pagination?.etiquetaId) && (
                   <button
@@ -1468,45 +1535,7 @@ export const Main: React.FC<Props> = ({
                 )}
               </div>
 
-              {etiquetasOpen && (
-                <div id="shop-etiquetas-panel" className="mt-3 border-t border-white/10 pt-3">
-                  <label htmlFor="shop-etiqueta-search" className="mb-2 block text-xs text-zinc-400">
-                    Buscar franquicia o categoría
-                  </label>
-                  <input
-                    id="shop-etiqueta-search"
-                    type="search"
-                    value={etiquetaSearch}
-                    onChange={(event) => setEtiquetaSearch(event.target.value)}
-                    placeholder="Ej. Naruto, Dragon Ball, villanos..."
-                    className="w-full max-w-lg rounded-xl border border-white/20 bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-[#00eeff]"
-                  />
-                  {etiquetasLoading && <p className="mt-3 text-xs text-zinc-400">Cargando opciones...</p>}
-                  {etiquetasError && (
-                    <div className="mt-3 flex items-center gap-3 text-xs text-red-400">
-                      No se pudieron cargar las opciones.
-                      <button type="button" className="underline" onClick={() => setEtiquetasRetry((count) => count + 1)}>
-                        Reintentar
-                      </button>
-                    </div>
-                  )}
-                  {!etiquetasLoading && !etiquetasError && (
-                    <div className="mt-3 flex max-h-60 flex-wrap gap-2 overflow-y-auto" aria-label="Opciones de franquicias y categorías">
-                      {etiquetasFiltradas.map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }))}
-                          className={`rounded-full border px-3 py-2 text-xs transition ${data.pagination?.etiquetaId === item.id ? "border-[#00eeff] bg-[#00eeff]/10 text-[#00eeff]" : "border-white/15 text-zinc-200 hover:border-[#00eeff]/50"}`}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                      {etiquetasFiltradas.length === 0 && <p className="text-xs text-zinc-400">No hay coincidencias.</p>}
-                    </div>
-                  )}
-                </div>
-              )}
+
             </section>
           )}
 
