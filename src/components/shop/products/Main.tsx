@@ -222,6 +222,8 @@ export const Main: React.FC<Props> = ({
     };
   }, [etiquetasOpen]);
 
+  const etiquetaActiva = etiquetas.find((item) => String(item.id) === String(data.pagination?.etiquetaId ?? ""));
+
   const etiquetasFiltradas = useMemo(() => {
     const term = etiquetaSearch.trim().normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -1450,7 +1452,7 @@ export const Main: React.FC<Props> = ({
                   value={data.initialUniversoId ?? ""}
                   onChange={(event) =>
                     window.location.assign(
-                      buildUrl({ universoId: event.target.value || null, page: 1 })
+                      buildUrl({ universoId: event.target.value || null, etiquetaId: null, page: 1 })
                     )
                   }
                   className="min-w-0 max-w-[calc(50%-0.25rem)] flex-1 sm:flex-none sm:w-48 rounded-xl border border-[#00eeff]/40 bg-black px-3 py-2.5 text-xs text-white outline-none focus:border-[#00eeff]"
@@ -1471,7 +1473,10 @@ export const Main: React.FC<Props> = ({
                     onClick={() => setEtiquetasOpen((open) => !open)}
                     className={`w-full rounded-xl border px-3 py-2.5 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
                   >
-                    Franquicias / Categorías {etiquetasOpen ? "−" : "+"}
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate">{etiquetaActiva?.name ?? (data.pagination?.etiquetaId ? "Franquicia seleccionada" : "Franquicias / Categorías")}</span>
+                      <span aria-hidden="true">{etiquetasOpen ? "−" : "+"}</span>
+                    </span>
                   </button>
                   {etiquetasOpen && (
                     <div
@@ -1506,11 +1511,13 @@ export const Main: React.FC<Props> = ({
                               type="button"
                               onClick={() => {
                                 setEtiquetasOpen(false);
-                                window.location.assign(buildUrl({ etiquetaId: item.id, page: 1 }));
+                                window.location.assign(buildUrl({ etiquetaId: String(data.pagination?.etiquetaId) === String(item.id) ? null : item.id, universoId: null, page: 1 }));
                               }}
-                              className={`block w-full rounded-lg px-3 py-2 text-left text-xs transition ${data.pagination?.etiquetaId === item.id ? "bg-[#00eeff]/10 text-[#00eeff]" : "text-zinc-200 hover:bg-white/10"}`}
+                              aria-pressed={String(data.pagination?.etiquetaId ?? "") === String(item.id)}
+                              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs transition ${String(data.pagination?.etiquetaId ?? "") === String(item.id) ? "bg-[#00eeff]/10 font-bold text-[#00eeff]" : "text-zinc-200 hover:bg-white/10"}`}
                             >
-                              {item.name}
+                              <span>{item.name}</span>
+                              {String(data.pagination?.etiquetaId ?? "") === String(item.id) && <span aria-label="Seleccionada" className="text-base font-bold text-[#00eeff]">✓</span>}
                             </button>
                           ))}
                           {etiquetasFiltradas.length === 0 && <p className="px-3 py-2 text-xs text-zinc-400">No hay coincidencias.</p>}
@@ -1534,8 +1541,21 @@ export const Main: React.FC<Props> = ({
                   </button>
                 )}
               </div>
-
-
+              {(data.initialUniversoId || data.pagination?.etiquetaId) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3 text-xs" aria-label="Filtro activo">
+                  <span className="font-semibold text-[#00eeff]">Filtro activo:</span>
+                  {data.initialUniversoId && (
+                    <button type="button" onClick={() => window.location.assign(buildUrl({ universoId: null, page: 1 }))} className="rounded-lg border border-[#00eeff]/50 bg-[#00eeff]/10 px-3 py-1.5 text-[#00eeff]" title="Quitar filtro de universo">
+                      Universo: {(data.categories || []).find((item) => String(item.slug) === String(data.initialUniversoId))?.title ?? data.initialUniversoId} ×
+                    </button>
+                  )}
+                  {data.pagination?.etiquetaId && (
+                    <button type="button" onClick={() => window.location.assign(buildUrl({ etiquetaId: null, page: 1 }))} className="rounded-lg border border-[#00eeff]/50 bg-[#00eeff]/10 px-3 py-1.5 text-[#00eeff]" title="Quitar filtro de franquicia">
+                      Franquicia: {etiquetaActiva?.name ?? "Seleccionada"} ×
+                    </button>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
