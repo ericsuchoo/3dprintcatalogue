@@ -201,7 +201,7 @@ if (!personajeNombre && personajeNombreParam) {
 ========================================= */
 
 const whereClauses: string[] = [];
-const whereParams: number[] = [];
+const whereParams: (number | string)[] = [];
 
 if (resolvedPersonajeId) {
   whereClauses.push("p.id_personaje = ?");
@@ -230,24 +230,28 @@ if (proveedorId) {
  * No utiliza LIKE ni busca texto.
  */
 
-if (etiquetaId) {
+if (etiquetaId !== null) {
   whereClauses.push(`
     (
-      p.id_personaje IN (
-        SELECT pe.id_personaje
+      EXISTS (
+        SELECT 1
         FROM personajes_etiquetas pe
         WHERE pe.id_etiqueta = ?
+          AND pe.id_personaje = p.id_personaje
       )
-      OR p.id_producto IN (
-        SELECT pte.id_producto
+      OR EXISTS (
+        SELECT 1
         FROM productos_etiquetas pte
         WHERE pte.id_etiqueta = ?
+          AND pte.id_producto = p.id_producto
       )
     )
   `);
 
-  whereParams.push(etiquetaId, etiquetaId);
+  const etiquetaKey = String(etiquetaId);
+  whereParams.push(etiquetaKey, etiquetaKey);
 }
+
 
   
 
