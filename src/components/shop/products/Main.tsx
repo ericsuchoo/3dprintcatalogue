@@ -180,7 +180,7 @@ export const Main: React.FC<Props> = ({
   const [etiquetasRetry, setEtiquetasRetry] = useState(0);
 
   useEffect(() => {
-    if (!etiquetasOpen || etiquetasLoaded) return;
+    if ((!etiquetasOpen && !data.pagination?.etiquetaId) || etiquetasLoaded) return;
     const controller = new AbortController();
     const load = async () => {
       setEtiquetasLoading(true);
@@ -202,7 +202,7 @@ export const Main: React.FC<Props> = ({
     };
     void load();
     return () => controller.abort();
-  }, [etiquetasOpen, etiquetasLoaded, etiquetasRetry]);
+  }, [etiquetasOpen, etiquetasLoaded, etiquetasRetry, data.pagination?.etiquetaId]);
 
   useEffect(() => {
     if (!etiquetasOpen) return;
@@ -1067,6 +1067,15 @@ export const Main: React.FC<Props> = ({
 
     null;
 
+  const universoActivo = (data.categories || []).find(
+    (item) => String(item.slug) === String(data.initialUniversoId ?? "")
+  );
+  const filtroExploraActivo = Boolean(data.initialUniversoId || data.pagination?.etiquetaId);
+  const nombreFiltroExplora = data.pagination?.etiquetaId
+    ? etiquetaActiva?.name ?? null
+    : universoActivo?.title ?? null;
+  const tipoFiltroExplora = data.pagination?.etiquetaId ? "franquicia" : "universo";
+
   const renderFiltersContent = () => (
 
     <div className="grid grid-cols-1 gap-6 border border-[#00eeff] p-4 sm:p-5 md:p-6 bg-[#0f0f0f] rounded-2xl backdrop-blur-sm shadow-[0_0_30px_rgba(0,238,255,0.08)]">
@@ -1386,7 +1395,7 @@ export const Main: React.FC<Props> = ({
               )}
 
               {!selectedCharacterName &&
-
+                !filtroExploraActivo &&
                 Boolean(data.activeFilterLabels?.length) && (
 
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -1429,6 +1438,22 @@ export const Main: React.FC<Props> = ({
 
             </div>
 
+          )}
+
+          {/* ENCABEZADO EXPLORA */}
+          {!favoritesOnly && !selectedCharacterName && filtroExploraActivo && (
+            <div className="mb-5">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase italic tracking-tight text-white">
+                EXPLORA:{" "}
+                <span className="text-[#00eeff]">
+                  {nombreFiltroExplora ?? "Cargando..."}
+                </span>
+              </h2>
+              <p className="mt-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
+                Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"}
+                {tipoFiltroExplora === "franquicia" ? " de la franquicia seleccionada" : " del universo seleccionado"}
+              </p>
+            </div>
           )}
 
           {/* BUSCADOR REUTILIZADO DE EXPLORAR */}
@@ -1474,7 +1499,7 @@ export const Main: React.FC<Props> = ({
                     className={`w-full rounded-xl border px-3 py-2.5 text-xs font-bold transition ${etiquetasOpen || data.pagination?.etiquetaId ? "border-[#00eeff] text-[#00eeff]" : "border-white/20 text-white hover:border-[#00eeff]/60"}`}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="truncate">{etiquetaActiva?.name ?? (data.pagination?.etiquetaId ? "Franquicia seleccionada" : "Franquicias / Categorías")}</span>
+                      <span className="truncate">{etiquetaActiva?.name ?? (data.pagination?.etiquetaId ? "Cargando..." : "Franquicias / Categorías")}</span>
                       <span aria-hidden="true">{etiquetasOpen ? "−" : "+"}</span>
                     </span>
                   </button>
@@ -1541,21 +1566,6 @@ export const Main: React.FC<Props> = ({
                   </button>
                 )}
               </div>
-              {(data.initialUniversoId || data.pagination?.etiquetaId) && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-3 text-xs" aria-label="Filtro activo">
-                  <span className="font-semibold text-[#00eeff]">Filtro activo:</span>
-                  {data.initialUniversoId && (
-                    <button type="button" onClick={() => window.location.assign(buildUrl({ universoId: null, page: 1 }))} className="rounded-lg border border-[#00eeff]/50 bg-[#00eeff]/10 px-3 py-1.5 text-[#00eeff]" title="Quitar filtro de universo">
-                      Universo: {(data.categories || []).find((item) => String(item.slug) === String(data.initialUniversoId))?.title ?? data.initialUniversoId} ×
-                    </button>
-                  )}
-                  {data.pagination?.etiquetaId && (
-                    <button type="button" onClick={() => window.location.assign(buildUrl({ etiquetaId: null, page: 1 }))} className="rounded-lg border border-[#00eeff]/50 bg-[#00eeff]/10 px-3 py-1.5 text-[#00eeff]" title="Quitar filtro de franquicia">
-                      Franquicia: {etiquetaActiva?.name ?? "Seleccionada"} ×
-                    </button>
-                  )}
-                </div>
-              )}
             </section>
           )}
 
