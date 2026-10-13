@@ -1348,114 +1348,37 @@ export const Main: React.FC<Props> = ({
 
                <div className="min-w-0">
 
-          {/* PERSONAJE SELECCIONADO */}
-
-          {(selectedCharacterName ||
-
-            data.activeFilterLabels?.length ||
-
-            data.clearFilterHref) && (
-
-            <div className="mb-5 flex flex-col gap-4">
-
-              {selectedCharacterName && (
-
-                <div className="rounded-2xl border border-red-500/20 bg-gradient-to-r from-red-500/10 via-[#111] to-[#111] px-4 sm:px-5 py-4 shadow-[0_0_30px_rgba(239,68,68,0.12)]">
-
-                  <div className="text-[10px] md:text-[11px] uppercase tracking-[0.26em] text-zinc-400 font-black mb-2">
-
-                    Explorando personaje
-
-                  </div>
-
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-                    <h2 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-
-                      {selectedCharacterName}
-
-                    </h2>
-
-                    <a
-
-                      href="/shop"
-
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[9px] md:text-[10px] bg-red-500/10 hover:bg-red-500/20"
-
-                    >
-
-                      Ver todo el catálogo
-
-                    </a>
-
-                  </div>
-
-                </div>
-
+          {/* ENCABEZADO UNIFICADO: PERSONAJE, FRANQUICIA, UNIVERSO O BASE */}
+          {!favoritesOnly && (
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase italic tracking-tight text-white">
+                  {selectedCharacterName || filtroExploraActivo ? "EXPLORA:" : "EXPLORA"}{" "}
+                  <span className="text-[#00eeff]">
+                    {selectedCharacterName ||
+                      (filtroExploraActivo
+                        ? nombreFiltroExplora ?? "Cargando..."
+                        : "NUESTRO UNIVERSO")}
+                  </span>
+                </h2>
+                <p className="mt-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
+                  {selectedCharacterName ? (
+                    <>Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"} del personaje seleccionado</>
+                  ) : filtroExploraActivo ? (
+                    <>Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"}{tipoFiltroExplora === "franquicia" ? " de la franquicia seleccionada" : " del universo seleccionado"}</>
+                  ) : (
+                    "ENCUENTRA TU PRÓXIMO PERSONAJE DE COLECCIÓN."
+                  )}
+                </p>
+              </div>
+              {(selectedCharacterName || filtroExploraActivo) && (
+                <a
+                  href={data.clearFilterHref || "/shop"}
+                  className="self-start shrink-0 rounded-full border border-red-500/40 bg-red-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-400 transition hover:border-red-500 hover:text-white"
+                >
+                  Quitar filtro
+                </a>
               )}
-
-              {!selectedCharacterName &&
-                !filtroExploraActivo &&
-                Boolean(data.activeFilterLabels?.length) && (
-
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-                    <div>
-
-                      <h2 className="text-2xl md:text-3xl font-black uppercase italic text-white tracking-tight">
-
-                        Shop:{" "}
-
-                        <span className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]">
-
-                          {data.activeFilterLabels?.join(" / ")}
-
-                        </span>
-
-                      </h2>
-
-                    </div>
-
-                    {data.clearFilterHref && (
-
-                      <a
-
-                        href={data.clearFilterHref}
-
-                        className="inline-flex items-center justify-center px-4 py-2 rounded-full border border-red-500/40 text-red-400 hover:text-white hover:border-red-500 transition uppercase tracking-[0.18em] font-black text-[9px] md:text-[10px] bg-red-500/10 hover:bg-red-500/20"
-
-                      >
-
-                        Quitar filtros
-
-                      </a>
-
-                    )}
-
-                  </div>
-
-                )}
-
-            </div>
-
-          )}
-
-          {/* ENCABEZADO EXPLORA: ESTADO BASE Y FILTRO ACTIVO */}
-          {!favoritesOnly && !selectedCharacterName && (
-            <div className="mb-5">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase italic tracking-tight text-white">
-                {filtroExploraActivo ? "EXPLORA:" : "EXPLORA"}{" "}
-                <span className="text-[#00eeff]">
-                  {filtroExploraActivo ? (nombreFiltroExplora ?? "Cargando...") : "NUESTRO UNIVERSO"}
-                </span>
-              </h2>
-              <p className="mt-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
-                {filtroExploraActivo ? (
-                  <>Mostrando {pageStart}-{pageEnd} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"}{tipoFiltroExplora === "franquicia" ? " de la franquicia seleccionada" : " del universo seleccionado"}</>
-                ) : (
-                  "ENCUENTRA TU PRÓXIMO PERSONAJE DE COLECCIÓN."
-                )}
-              </p>
             </div>
           )}
 
