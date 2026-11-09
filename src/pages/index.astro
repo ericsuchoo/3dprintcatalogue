@@ -80,60 +80,9 @@ const categories = (universosAgg || []).map((u) => ({
   productsCount: u.personajesCount,
 }));
 
-// --------------------
-// PERSONAJES PARA CTA (FIX SEGURO)
-// --------------------
-type PersonajeRow = {
-  id_personaje: number | string;
-  nombre_personaje: string;
-  img_personaje: string | null;
-  id_universo: number | null;
-  nombre_universo: string | null;
-};
-
-// cambia esto si tu ruta real del catálogo es otra
-const SHOP_BASE_URL = "/shop";
-
-const personajesRes = await db
-  .prepare(`
-    SELECT
-      p.id_personaje,
-      p.nombre_personaje,
-      (
-        SELECT pi.url
-        FROM personajes_imagenes pi
-        WHERE pi.id_personaje = p.id_personaje
-        ORDER BY pi.es_principal DESC, pi.orden ASC
-        LIMIT 1
-      ) AS img_personaje,
-      p.id_universo,
-      u.nombre_universo
-    FROM personajes p
-    LEFT JOIN universos u
-      ON u.id_universo = p.id_universo
-    ORDER BY p.nombre_personaje ASC
-  `)
-  .all();
-
-const personajesRows = (personajesRes.results || []) as unknown as PersonajeRow[];
-
-const characters = personajesRows.map((p) => {
-  const slug = toSlug(p.nombre_personaje);
-  const params = new URLSearchParams({
-    character: slug,
-    characterId: String(p.id_personaje),
-    characterName: p.nombre_personaje,
-  });
-
-  return {
-    id: String(p.id_personaje),
-    slug,
-    name: p.nombre_personaje,
-    image: p.img_personaje ?? "", // ← seguro
-    universe: p.nombre_universo || "",
-    href: `${SHOP_BASE_URL}?${params.toString()}`,
-  };
-});
+// La busqueda y los favoritos se consultan bajo demanda en el cliente.
+// No recuperar todo el catalogo en cada visita a la portada.
+const characters: never[] = [];
 ---
 
 <Layout title={`${homeStaticData.seo?.title || homeStaticData.title} | 3D Shop`}>

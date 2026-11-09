@@ -1,6 +1,5 @@
 import React, {
   useEffect,
-  useMemo,
   useRef,
   useState,
   useCallback,
@@ -37,14 +36,6 @@ function getImageSrc(media: MediaLike | null | undefined): string {
   if (typeof media.url === "string" && media.url.length > 0) return media.url;
   if (typeof media.src === "string" && media.src.length > 0) return media.src;
   return "";
-}
-
-function normalizeText(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function useDebouncedValue<T>(value: T, delay = 250) {
@@ -195,7 +186,7 @@ export const HomeCta: React.FC<Props> = ({
   description,
   image,
   cta,
-  characters = [],
+  characters: _characters = [],
 }) => {
   const imageSrc = getImageSrc(image);
 
@@ -203,6 +194,12 @@ export const HomeCta: React.FC<Props> = ({
   const debouncedQuery = useDebouncedValue(query, 250);
 
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<CharacterItem[]>([]);
+  const [favoriteResults, setFavoriteResults] = useState<CharacterItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+  const favoritesInitialized = useRef(false);
+  const knownCharacters = useRef(new Map<string, CharacterItem>());
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -216,10 +213,14 @@ export const HomeCta: React.FC<Props> = ({
       }
     } catch (error) {
       console.error("No se pudieron cargar favoritos:", error);
+    } finally {
+      favoritesInitialized.current = true;
+      setFavoritesLoaded(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!favoritesInitialized.current) return;
     try {
       localStorage.setItem("favorite_characters", JSON.stringify(favoriteIds));
     } catch (error) {
@@ -233,50 +234,82 @@ export const HomeCta: React.FC<Props> = ({
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const filteredCharacters = useMemo(() => {
-    const safeQuery = normalizeText(debouncedQuery);
-
-    if (!safeQuery) return [];
-
-    return characters
-      .filter((item) => {
-        const name = normalizeText(item.name || "");
-        const universe = normalizeText(item.universe || "");
-        return name.includes(safeQuery) || universe.includes(safeQuery);
+  // El endpoint existente mantiene la busqueda por nombre y universo.
+  // AbortController evita que respuestas antiguas sustituyan una busqueda nueva.
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    const controller = new AbortController();
+    setSearching(true);
+    fetch(`/api/buscar-personajes?q=${encodeURIComponent(q)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Busqueda no disponible");
+        return response.json();
       })
-      .slice(0, 12);
-  }, [characters, debouncedQuery]);
-
-  const favoriteCharacters = useMemo(() => {
-    if (!favoriteIds.length) return [];
-
-    return favoriteIds
-      .map((favId) =>
-        characters.find((item) => String(item.id) === String(favId))
-      )
-      .filter(Boolean) as CharacterItem[];
-  }, [characters, favoriteIds]);
-
-  const toggleFavorite = useCallback(
-    (id: string) => {
-      const selected = characters.find(
-        (item) => String(item.id) === String(id)
-      );
-
-      setFavoriteIds((prev) => {
-        const exists = prev.includes(id);
-
-        if (exists) {
-          if (selected) setToast(`Quitado de favoritos: ${selected.name}`);
-          return prev.filter((favId) => favId !== id);
+      .then((data: { results?: CharacterItem[] }) => {
+        const items = Array.isArray(data.results) ? data.results : [];
+        for (const item of items) knownCharacters.current.set(String(item.id), item);
+        setSearchResults(items);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.error("No se pudieron buscar personajes:", error);
+          setSearchResults([]);
         }
-
-        if (selected) setToast(`Añadido a favoritos: ${selected.name}`);
-        return [...prev, id];
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSearching(false);
       });
-    },
-    [characters]
-  );
+    return () => controller.abort();
+  }, [debouncedQuery]);
+
+  // Consultar solamente los favoritos guardados, nunca el catalogo entero.
+  useEffect(() => {
+    if (!favoritesLoaded || favoriteIds.length === 0) {
+      setFavoriteResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const ids = favoriteIds;
+    const batches: string[][] = [];
+    for (let i = 0; i < ids.length; i += 100) batches.push(ids.slice(i, i + 100));
+    Promise.all(batches.map(async (batch) => {
+      const response = await fetch(`/api/personajes-por-ids?ids=${encodeURIComponent(batch.join(","))}`, {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("Favoritos no disponibles");
+      return response.json() as Promise<{ results?: CharacterItem[] }>;
+    }))
+      .then((pages) => ({ results: pages.flatMap((page) => page.results || []) }))
+      .then((data: { results?: CharacterItem[] }) => {
+        const items = Array.isArray(data.results) ? data.results : [];
+        for (const item of items) knownCharacters.current.set(String(item.id), item);
+        const byId = new Map(items.map((item) => [String(item.id), item]));
+        setFavoriteResults(ids.map((id) => byId.get(id)).filter(Boolean) as CharacterItem[]);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) console.error("Error cargando favoritos:", error);
+      });
+    return () => controller.abort();
+  }, [favoriteIds, favoritesLoaded]);
+
+  const filteredCharacters = searchResults;
+  const favoriteCharacters = favoriteResults;
+
+  const toggleFavorite = useCallback((id: string) => {
+    const selected = knownCharacters.current.get(String(id));
+    setFavoriteIds((prev) => {
+      const exists = prev.includes(id);
+      if (selected) setToast(`${exists ? "Quitado de" : "Anadido a"} favoritos: ${selected.name}`);
+      return exists ? prev.filter((favId) => favId !== id) : [...prev, id];
+    });
+  }, []);
 
   const hasQuery = query.trim().length > 0;
 
@@ -348,7 +381,11 @@ export const HomeCta: React.FC<Props> = ({
                 />
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white/80 backdrop-blur-md">
-                  No hemos encontrado personajes con ese nombre o universo.
+                  {searching || query.trim() !== debouncedQuery.trim()
+                    ? "Buscando personajes..."
+                    : query.trim().length < 2
+                      ? "Escribe al menos dos caracteres."
+                      : "No hemos encontrado personajes con ese nombre o universo."}
                 </div>
               )}
             </div>
