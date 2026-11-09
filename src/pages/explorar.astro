@@ -348,9 +348,8 @@ if (!db) {
     const bounds = await db
       .prepare(`
         SELECT
-          MIN(id_personaje) AS min_id,
-          MAX(id_personaje) AS max_id
-        FROM personajes
+          (SELECT id_personaje FROM personajes ORDER BY id_personaje ASC LIMIT 1) AS min_id,
+          (SELECT id_personaje FROM personajes ORDER BY id_personaje DESC LIMIT 1) AS max_id
       `)
       .first();
 
