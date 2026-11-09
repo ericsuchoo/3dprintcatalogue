@@ -40,12 +40,12 @@ export async function GET({ locals }: any) {
     return new Response(JSON.stringify(results), {
       headers: { "content-type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    console.error("[api/productos]", err);
     return new Response(
       JSON.stringify({
         ok: false,
-        error: String(err?.message ?? err),
-        stack: err?.stack ?? null,
+        error: "Error al consultar productos",
       }),
       { status: 500, headers: { "content-type": "application/json" } }
     );

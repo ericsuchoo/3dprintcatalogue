@@ -6,7 +6,9 @@ function generateShareId(length = 12) {
   let result = "";
 
   for (let i = 0; i < length; i += 1) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    const random = new Uint32Array(1);
+    crypto.getRandomValues(random);
+    result += chars.charAt(random[0] % chars.length);
   }
 
   return result;
@@ -39,9 +41,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ? body.productIds
       : [];
 
+    if (productIdsRaw.length > 500) {
+      return new Response(JSON.stringify({ ok: false, error: "Demasiados productos" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const productIds = productIdsRaw
       .map((value: unknown) => Number(value))
-      .filter((value: number) => Number.isInteger(value) && value > 0);
+      .filter((value: number) => Number.isSafeInteger(value) && value > 0);
 
     if (productIds.length === 0) {
       return new Response(
@@ -126,8 +135,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     createdShareId = shareId;
 
-    // Insertar cabecera
-    await db
+    // Insertar cabecera e items en un unico lote atomico D1.
+    const headerStatement = db
       .prepare(
         `
         INSERT INTO favoritos_compartidos (
@@ -141,21 +150,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
         VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, 1)
       `
       )
-      .bind(shareId, nombreLista, notas, firmaLista)
-      .run();
+      .bind(shareId, nombreLista, notas, firmaLista);
 
-    // Insertar items
-    for (const productId of uniqueIds) {
-      await db
-        .prepare(
-          `
-          INSERT INTO favoritos_compartidos_items (id_compartido, id_producto)
-          VALUES (?, ?)
-        `
-        )
-        .bind(shareId, productId)
-        .run();
-    }
+    const itemStatements = uniqueIds.map((productId) =>
+      db.prepare(`
+        INSERT INTO favoritos_compartidos_items (id_compartido, id_producto)
+        VALUES (?, ?)
+      `).bind(shareId, productId)
+    );
+    await db.batch([headerStatement, ...itemStatements]);
 
     return new Response(
       JSON.stringify({
