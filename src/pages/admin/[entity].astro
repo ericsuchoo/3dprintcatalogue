@@ -1,0 +1,17 @@
+---
+import { adminContext, safePage, verifyAdmin } from '../../lib/os/auth';
+import { ENTITIES, isEntity, listEntity } from '../../lib/os/catalogue';
+export const prerender = false;
+const { env, db } = adminContext(Astro.locals);
+const identity = await verifyAdmin(Astro.request, env ?? {});
+if (!identity) return new Response('Acceso administrativo no autorizado', { status: 401, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' } });
+const entity = Astro.params.entity ?? '';
+if (!isEntity(entity)) return Astro.redirect('/admin');
+const page = safePage(Astro.url.searchParams.get('page'));
+let rows: Record<string, unknown>[] = [];
+let error = '';
+try { if (!db) throw new Error('Binding D1 no disponible'); rows = await listEntity(db, entity, page) as Record<string, unknown>[]; }
+catch { error = 'No se pudieron cargar los registros. Comprueba D1 y el esquema.'; }
+const columns = ENTITIES[entity].columns.split(',');
+---
+<!doctype html><html lang="es"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{entity} · 3DPrintCatalogue OS</title><style>body{font-family:system-ui,sans-serif;background:#0b1220;color:#edf4ff;margin:0;padding:clamp(18px,4vw,50px)}main{max-width:1250px;margin:auto}a{color:#a8d4ff}h1{text-transform:capitalize}p{color:#bac9db}.scroll{overflow:auto;border:1px solid #33445d;border-radius:14px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:14px;border-bottom:1px solid #2c3a52;white-space:nowrap}th{background:#18283e}tr:hover{background:#16243a}.pager{display:flex;gap:20px;margin-top:24px}.empty{padding:24px;color:#c5d2e3}</style></head><body><main><a href="/admin">← Administración</a><h1>{entity}</h1><p>Consulta de solo lectura · Página {page} · Máximo 25 registros por página.</p>{error ? <div role="alert" class="empty">{error}</div> : <div class="scroll"><table><thead><tr>{columns.map(c => <th scope="col">{c}</th>)}</tr></thead><tbody>{rows.map(row => <tr>{columns.map(c => <td>{row[c] === null || row[c] === undefined ? '—' : String(row[c])}</td>)}</tr>)}</tbody></table>{rows.length === 0 && <div class="empty">Sin registros disponibles.</div>}</div>}<nav class="pager" aria-label="Paginación">{page > 1 && <a href={`?page=${page-1}`}>← Anterior</a>}{rows.length === 25 && <a href={`?page=${page+1}`}>Siguiente →</a>}</nav></main></body></html>
