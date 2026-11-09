@@ -3,6 +3,11 @@ import type { APIRoute } from "astro";
 
 export const prerender = false;
 
+type CharacterCandidate = {
+  id_personaje: number;
+  nombre_personaje: string;
+};
+
 type CharacterRow = {
   id_personaje: number;
   nombre_personaje: string;
@@ -107,23 +112,7 @@ export const GET: APIRoute = async ({
       new Set([normalized, query])
     );
 
-    const selected = new Map<number, CharacterRow>();
-
-    const characterFields = `
-      p.id_personaje,
-      p.nombre_personaje,
-      u.nombre_universo,
-
-      (
-        SELECT pi.url
-        FROM personajes_imagenes pi
-        WHERE pi.id_personaje = p.id_personaje
-        ORDER BY
-          pi.es_principal DESC,
-          pi.orden ASC
-        LIMIT 1
-      ) AS img_personaje
-    `;
+    const selected = new Map<number, CharacterCandidate>();
 
     for (const prefix of prefixVariants) {
       if (selected.size >= MAX_RESULTS) break;
@@ -133,13 +122,8 @@ export const GET: APIRoute = async ({
       if (!upper) continue;
 
       const prefixSql = `
-        SELECT
-          ${characterFields}
-
+        SELECT p.id_personaje, p.nombre_personaje
         FROM personajes p
-
-        LEFT JOIN universos u
-          ON u.id_universo = p.id_universo
 
         WHERE
           p.nombre_personaje >= ?
@@ -162,7 +146,7 @@ export const GET: APIRoute = async ({
         .all();
 
       const rows =
-        (prefixRes.results || []) as CharacterRow[];
+        (prefixRes.results || []) as CharacterCandidate[];
 
       for (const row of rows) {
         selected.set(
@@ -189,13 +173,9 @@ export const GET: APIRoute = async ({
       const pattern = `%${escapeLike(query)}%`;
 
       const partialSql = `
-        SELECT
-          ${characterFields}
-
+        SELECT p.id_personaje, p.nombre_personaje
         FROM personajes p
-
-        LEFT JOIN universos u
-          ON u.id_universo = p.id_universo
+        LEFT JOIN universos u ON u.id_universo = p.id_universo
 
         WHERE
           p.nombre_personaje LIKE ? ESCAPE '\\'
@@ -214,7 +194,7 @@ export const GET: APIRoute = async ({
         .all();
 
       const rows =
-        (partialRes.results || []) as CharacterRow[];
+        (partialRes.results || []) as CharacterCandidate[];
 
       for (const row of rows) {
         if (selected.size >= MAX_RESULTS) break;
@@ -234,18 +214,37 @@ export const GET: APIRoute = async ({
      * prefijo; después los complementarios.
      */
 
-    const results = Array.from(selected.values())
-      .slice(0, MAX_RESULTS)
-      .map((row) => ({
+    // Enriquecer SOLO los IDs seleccionados. Las consultas de coincidencia
+    // no necesitan acceder a personajes_imagenes para cada candidato.
+    const candidates = Array.from(selected.values()).slice(0, MAX_RESULTS);
+    if (!candidates.length) return jsonResponse({ results: [] });
+
+    const ids = candidates.map((row) => Number(row.id_personaje));
+    const placeholders = ids.map(() => "?").join(",");
+    const detailsRes = await db.prepare(`
+      SELECT p.id_personaje, p.nombre_personaje, u.nombre_universo,
+        (SELECT pi.url FROM personajes_imagenes pi
+         WHERE pi.id_personaje = p.id_personaje
+         ORDER BY pi.es_principal DESC, pi.orden ASC LIMIT 1) AS img_personaje
+      FROM personajes p
+      LEFT JOIN universos u ON u.id_universo = p.id_universo
+      WHERE p.id_personaje IN (${placeholders})
+    `).bind(...ids).all();
+
+    const details = new Map<number, CharacterRow>(
+      ((detailsRes.results || []) as CharacterRow[]).map((row) => [Number(row.id_personaje), row])
+    );
+    const results = candidates.flatMap((candidate) => {
+      const row = details.get(Number(candidate.id_personaje));
+      if (!row) return [];
+      return [{
         id: String(row.id_personaje),
         name: row.nombre_personaje,
         universe: row.nombre_universo || "",
         image: row.img_personaje || "",
-        href:
-          `/shop?personajeId=${encodeURIComponent(
-            String(row.id_personaje)
-          )}`,
-      }));
+        href: `/shop?personajeId=${encodeURIComponent(String(row.id_personaje))}`,
+      }];
+    });
 
     return jsonResponse({ results });
   } catch (error) {
