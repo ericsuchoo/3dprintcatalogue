@@ -1,296 +1,44 @@
 import React from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, EffectFade, Pagination } from "swiper/modules";
-
+import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
-import "swiper/css/pagination";
 
-type MediaLike = {
-  url?: string;
-  src?: string;
-};
+type MediaLike = { url?: string; src?: string };
+type Props = { title: string; description: string; gallery: MediaLike[]; logo_dc3?: MediaLike };
+const srcOf = (m?: MediaLike) => m?.url || m?.src || "";
 
-interface Props {
-  title: string;
-  description: string;
-  gallery: MediaLike[];
-  logo_dc3?: MediaLike;
-}
-
-function getImageSrc(media: MediaLike | null | undefined): string {
-  if (!media) return "";
-  if (typeof media.url === "string" && media.url.length > 0) return media.url;
-  if (typeof media.src === "string" && media.src.length > 0) return media.src;
-  return "";
-}
-
-export const HomeHero: React.FC<Props> = ({ title, gallery, logo_dc3 }) => {
-  const slides = gallery && gallery.length > 0 ? gallery : [];
-  const logoSrc = getImageSrc(logo_dc3);
-
+export const HomeHero: React.FC<Props> = ({ title, description, gallery, logo_dc3 }) => {
+  const slides = (gallery || []).filter((item) => Boolean(srcOf(item)));
+  const logo = srcOf(logo_dc3);
   return (
-    <section className="relative w-full bg-black h-[60vh] md:h-screen flex flex-col overflow-hidden">
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @font-face {
-              font-family: 'Orbitron Font';
-              src: url('/fonts/Orbitron[wght].woff') format('woff');
-              font-weight: normal; font-style: normal; font-display: swap;
-            }
-            @font-face {
-              font-family: 'Voga-Medium';
-              src: url('/fonts/Voga-Medium.woff') format('woff');
-              font-weight: 500; font-style: normal; font-display: swap;
-            }
-
-            @keyframes revealUp {
-              from { opacity: 0; transform: translateY(30px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-
-            @keyframes zoomOutLanding {
-              from { opacity: 0; transform: scale(1.5); filter: blur(10px); }
-              to { opacity: 1; transform: scale(1); filter: blur(0); }
-            }
-
-            @keyframes laserScan {
-              0% { background-position: -200% 0; }
-              100% { background-position: 200% 0; }
-            }
-
-            .animate-reveal {
-              opacity: 0;
-              animation: revealUp 0.8s cubic-bezier(1, 0.9, 0.4, 0.1) forwards;
-            }
-
-            .impress3d-laser {
-              font-weight: 800 !important;
-              display: inline-block;
-              opacity: 0;
-              animation: zoomOutLanding 1s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-                         laserScan 4s linear infinite 1.2s;
-              background: linear-gradient(
-                90deg, 
-                #1e357c 0%, 
-                #a3baec 45%, 
-                #96bbe6 50%, 
-                #aaa5a5 55%, 
-                #e6dede 100%
-              );
-              background-size: 200% auto;
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              position: relative;
-            }
-
-            .delay-1 { animation-delay: 0.2s; }
-            .delay-2 { animation-delay: 0.4s; }
-            .delay-3 { animation-delay: 0.9s; }
-
-            .hero-ui-container {
-              position: absolute;
-              inset: 0;
-              z-index: 50;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              padding-top: 12vh !important; 
-              pointer-events: none;
-            }
-
-            .logo-scaling-force {
-              width: 60vw !important; 
-              max-width: 350px !important;
-              pointer-events: auto !important;
-              position: relative;
-              margin-bottom: 0.5rem !important;
-              margin-top: 0.5rem !important; 
-              background: rgba(75, 72, 72, 0);
-              backdrop-filter: blur(5px);
-              border: 1px solid rgba(255, 255, 255, 0);
-            }
-            .miau-responsive { font-size: 13vw !important; top: -14vw !important;  margin-top: 1.5rem !important; }
-            .welcome-single-line { font-size: 5.5vw !important; bottom: -11vw !important; white-space: nowrap !important; text-align: center; }
-
-            .description-wrapper {
-              margin-top: 10.5rem !important; 
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              width: 95vw;
-              pointer-events: auto !important;
-              text-align: center;
-              background: rgba(75, 72, 72, 0);
-              backdrop-filter: blur(5px);
-              -webkit-backdrop-filter: blur(5px);
-              border: 1px solid rgba(255, 255, 255, 0);
-              border-radius: 20px;
-              padding: 2rem 1rem !important;
-              text-transform: uppercase;
-            }
-
-            .desc-part-1 {
-              font-family: 'Orbitron Font' !important;
-              font-size: 40px !important;
-              letter-spacing: 0.4em !important;
-              margin-bottom: 1rem !important;
-              margin-top: 1rem !important;
-              color: rgb(224, 223, 221) !important;
-              text-shadow: 2px 5px 3px rgba(42, 62, 100, 0.81) !important;
-            }
-
-            .desc-part-2 {
-              font-family: 'Helvetica Neue', sans-serif !important;
-              font-weight: 100 !important;
-              font-size: 36px !important;
-              line-height: 1.1 !important;
-              letter-spacing: 0.10em !important;
-              margin-top: 4rem !important;
-              margin-bottom: 1.5rem !important;
-              color: rgb(245, 221, 181) !important;
-              text-shadow: 0px 0px 25px rgba(245, 75, 32, 0.69), 2px 5px 3px #ff5100c4 !important;
-            }
-
-            .desc-part-3-row {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 1.5rem;
-              margin-top: 3rem !important;
-              margin-bottom: 1rem !important;
-            }
-
-            .word-unica {
-              font-family: 'Orbitron Font' !important;
-              font-weight: 100 !important;
-              font-size: 90px !important;
-              color: #f0efef !important;
-              letter-spacing: 0.5em !important;
-              text-shadow: 0px 0px 25px rgba(253, 0, 0, 0.6), 2px 5px 3px #000000c4 !important;
-            }
-
-            .word-separator {
-              font-family: 'Helvetica Neue', sans-serif !important;
-              font-weight: 100 !important;
-              font-size: 90px !important;
-              color: #7bb470  !important;
-              text-transform: lowercase !important;
-              letter-spacing: 0.5em !important;
-              text-shadow: 2px 5px 3px #0400ff5e , 2px 5px 3px #000000c4 !important;
-            }
-
-            .word-profesional {
-              font-family: 'Voga-Medium' !important;
-              font-weight: 10 !important;
-              font-size: 100px !important;
-              color: #f0efef !important;
-              letter-spacing: 0.4em !important;
-              margin-top: -1.5rem !important;
-              text-shadow: 0px 0px 25px rgba(0, 160, 253, 0.6), 2px 5px 3px #000000c4 !important;
-              margin-rigth: 14rem !important;
-            }
-
-            @media (min-width: 1024px) {
-              .hero-ui-container { justify-content: center !important; padding-top: 3 !important; }
-              .logo-scaling-force { width: 240px !important; margin-bottom: 4rem !important; }
-              .miau-responsive { font-size: 4.5rem !important; top: -5.5rem !important; }
-              .welcome-single-line { font-size: 2.4rem !important; bottom: -3.5rem !important; width: auto !important; }
-              
-              .description-wrapper { 
-                flex-direction: column !important;
-                gap: 1rem; margin-top: 2rem !important; 
-                width: 100% !important; max-width: 100% !important;
-                padding: 3rem 0 !important; border-radius: 0 !important;
-                border-left: none !important; border-right: none !important;
-              }
-
-              .desc-part-1 { margin-top: 0 !important; letter-spacing: 0.8em !important; font-size: 29px !important; margin-bottom: 2rem !important; }
-              .desc-part-2 { margin-top: 1rem !important; letter-spacing: 1.5rem !important; font-size: 22px !important; margin-bottom: 0 !important; }
-              
-              .desc-part-3-row { 
-                flex-direction: row !important; align-items: baseline; gap: 3.8rem;
-                margin-top: 2rem !important; margin-bottom: 0 !important; 
-              }
-              .word-unica { color: #f0efef !important; font-size:64px !important; }
-              .word-separator { margin-left: -4rem !important;  font-size: 44px !important; }
-              .word-profesional { color: #f0efef !important; margin-left: -3.5rem !important; font-family: 'Voga-Medium' !important; font-size: 74px !important;  font-weight: 10 !important;}
-            }
-
-            .swiper-responsive-height { height: 100vh !important; width: 100%; }
-            @media (min-width: 1024px) { .swiper-responsive-height { height: 100% !important; } }
-            .custom-swiper .swiper-pagination-bullet { background: transparent !important; opacity: 0; }
-          `,
-        }}
-      />
-
-      <div className="hero-ui-container">
-        <div className="flex flex-col items-center text-center w-full px-2">
-          {logoSrc && (
-            <div className="logo-scaling-force group p-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 drop-shadow-2xl transition-all duration-500 hover:scale-105 animate-reveal">
-              <span className="absolute left-1/2 -translate-x-1/2 text-white font-black italic tracking-tighter opacity-0 scale-50 transition-all duration-300 group-hover:opacity-100 group-hover:scale-100 group-hover:-rotate-12 drop-shadow-[0_10px_10px_rgba(0,0,0,0.9)] [text-shadow:7px_9px_0px_#0066FF] z-30 miau-responsive">
-                MIAUUUU!
-              </span>
-
-              <img
-                src={logoSrc}
-                alt={title || "Logo DCimpress 3D"}
-                className="w-full h-auto"
-              />
-
-              <span className="absolute left-1/2 -translate-x-1/2 text-white font-black uppercase opacity-0 transition-all duration-500 delay-200 group-hover:opacity-100 drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [text-shadow:4px_3px_0px_#0066FF] z-30 welcome-single-line">
-                PRRR... BIENVENIDO
-              </span>
-            </div>
-          )}
-
-          <div className="description-wrapper">
-            <span className="desc-part-1 animate-reveal delay-1">
-              En<span className="impress3d-laser"> Dino Cat 3D</span>
-            </span>
-            <span className="desc-part-2 animate-reveal delay-2">
-              Creamos cada FIGURA para que sea
-            </span>
-
-            <div className="desc-part-3-row animate-reveal delay-3">
-              <span className="word-unica"> UNICA</span>
-              <span className="word-separator">+</span>
-              <span className="word-profesional">PROFESIONAL</span>
-            </div>
+    <section className="relative isolate min-h-[540px] h-[72svh] max-h-[850px] overflow-hidden bg-[#090a0e] text-white" aria-label="Presentación del catálogo">
+      <div className="absolute inset-0 z-0">
+        {slides.length > 0 ? (
+          <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 6500, disableOnInteraction: false }} loop={slides.length > 1} className="h-full w-full">
+            {slides.map((item, i) => (
+              <SwiperSlide key={i}>
+                <img src={srcOf(item)} alt={i === 0 ? title : `Figura destacada ${i + 1}`} className="h-full w-full object-cover object-center" loading={i === 0 ? "eager" : "lazy"} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        ) : <div className="h-full w-full bg-gradient-to-br from-[#161b25] via-[#100d10] to-black" />}
+      </div>
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/90 via-black/60 to-black/15" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#090a0e] via-transparent to-black/20" />
+      <div className="relative z-20 mx-auto flex h-full w-full max-w-[1440px] flex-col justify-center px-6 py-16 sm:px-10 lg:px-20">
+        <div className="max-w-[760px]">
+          {logo && <img src={logo} alt="Logo Endino Cat 3D" className="mb-6 h-20 w-20 object-contain drop-shadow-xl sm:h-24 sm:w-24" />}
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.35em] text-[#ff766a]">DCIMPRESS3D STORE / FIGURAS Y MODELOS 3D</p>
+          <h1 className="max-w-[740px] text-5xl font-black uppercase leading-[0.98] tracking-[-0.045em] sm:text-6xl lg:text-[clamp(4rem,6vw,6.5rem)]">Personajes que <span className="text-[#ff5b4f]">cobran vida.</span></h1>
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">{description || "Explora figuras, personajes y ediciones para tu próxima impresión 3D."}</p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <a href="/explorar" className="inline-flex min-h-12 items-center justify-center rounded-md bg-[#e94235] px-7 text-xs font-extrabold uppercase tracking-[0.12em] text-white transition hover:bg-[#ff6254] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Explorar personajes <span className="ml-3" aria-hidden="true">↗</span></a>
+            <a href="/shop" className="inline-flex min-h-12 items-center justify-center rounded-md border border-white/35 bg-black/30 px-7 text-xs font-extrabold uppercase tracking-[0.12em] text-white backdrop-blur-sm transition hover:border-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Catálogo completo</a>
           </div>
         </div>
+        <div className="absolute bottom-7 left-6 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.3em] text-white/55 sm:left-10 lg:left-20"><span className="h-px w-9 bg-[#ff5b4f]" /> Descubre tu próxima figura</div>
       </div>
-
-      <Swiper
-        modules={[Autoplay, EffectFade, Pagination]}
-        effect="fade"
-        autoplay={{ delay: 5000, disableOnInteraction: false }}
-        loop={slides.length > 1}
-        className="swiper-responsive-height z-0 custom-swiper"
-      >
-        {slides.map((img, index) => {
-          const src = getImageSrc(img);
-
-          return (
-            <SwiperSlide key={index} className="size-full">
-              <div className="relative size-full">
-                <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none" />
-                {src ? (
-                  <img
-                    src={src}
-                    alt={title || `Slide ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-black" />
-                )}
-              </div>
-            </SwiperSlide>
-          );
-        })}
-      </Swiper>
     </section>
   );
 };
